@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Rezervacija — Preview</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0d9488;
+      --accent-2: #0f766e;
+      --accent-soft: rgba(13,148,136,0.08);
+      --border: rgba(15,23,42,0.10);
+      --shadow: 0 1px 3px rgba(15,23,42,0.05), 0 8px 24px rgba(15,23,42,0.07);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --font: ui-sans-serif, system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: radial-gradient(900px 500px at 50% -100px, var(--accent-soft), transparent 70%), var(--bg); min-height: 100vh; color: var(--text); }
+
+    #pageTitle { margin: 32px 0 6px; font-size: 22px; font-weight: 700; text-align: center; }
+    #pageSubtitle { text-align: center; font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+
+    .layout {
+      width: min(1060px, calc(100% - 32px));
+      margin: 0 auto 60px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+
+    .card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .card-title { padding: 16px 20px; font-size: 14px; font-weight: 700; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(13,148,136,0.06), transparent); }
+
+    /* KALENDAR */
+   .kalendar { padding: 12px 14px; }
+.kal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.kal-nav-btn { width: 24px; height: 24px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+.kal-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.kal-mjesec { font-size: 13px; font-weight: 600; }
+.kal-dani-nazivi { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; margin-bottom: 4px; }
+.kal-dan-naziv { text-align: center; font-size: 9px; font-weight: 600; color: var(--muted); padding: 2px 0; letter-spacing: 0.03em; }
+.kal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.kal-dan { height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; color: var(--text); }
+.kal-dan:hover { border-color: var(--border); background: var(--bg-soft); }
+.kal-dan.danas {  font-weight: 700;  color: #fff; background: var(--accent); border-color: var(--accent); }
+.kal-dan.odabran { background:var(--accent) ; color: #fff; border-color:var(--accent); font-weight: 600; }
+.kal-dan.prosli { color: rgba(100,116,139,0.25); cursor: not-allowed; pointer-events: none; }
+.kal-dan.prazno { cursor: default; pointer-events: none; }
+
+    /* TERMINI */
+    .termini-sekcija { padding: 0 20px 20px; }
+    .termini-naslov { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px; }
+    .termini-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .termin { padding: 10px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; background: var(--bg); color: var(--text); }
+    .termin:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .termin.odabran { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .termin.zauzet { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+
+    /* FORMA */
+    .forma-sekcija { padding: 20px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--border); }
+    .forma-sekcija input, .forma-sekcija select { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px; color: var(--text); background: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+    .forma-sekcija input::placeholder { color: rgba(100,116,139,0.7); }
+    .forma-sekcija input:focus, .forma-sekcija select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .odabir-badge { background: var(--accent-soft); border: 1px solid rgba(13,148,136,0.2); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--accent); font-weight: 500; display: none; }
+    .submit-btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff; background: var(--accent); cursor: pointer; transition: background 0.15s, transform 0.08s; box-shadow: 0 4px 16px rgba(13,148,136,0.28); margin-top: 4px; }
+    .submit-btn:hover { background: var(--accent-2); }
+    .submit-btn:active { transform: translateY(1px); }
+
+    /* INFO */
+    .info-strana { display: flex; flex-direction: column; gap: 14px; }
+    .info-kartica { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; display: flex; align-items: flex-start; gap: 16px; }
+    .info-ikona { width: 38px; height: 38px; border-radius: 9px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent); }
+    .info-tekst h4 { font-size: 14px; font-weight: 700; color: var(--text); margin: 0 0 5px; }
+    .info-tekst p { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0; }
+
+    .status { font-size: 13px; color: var(--accent); padding: 0 20px 16px; min-height: 18px; }
+
+    /* CHAT */
+    #chat-widget-btn { position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 13px 22px; border: none; border-radius: 999px; font-family: var(--font); font-size: 13px; font-weight: 700; color: #fff; background: var(--accent); cursor: pointer; box-shadow: 0 8px 28px rgba(13,148,136,0.35); transition: background 0.2s, transform 0.2s; }
+    #chat-widget-btn:hover { background: var(--accent-2); transform: translateY(-2px); }
+    .db-puls { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.8); animation: puls 2s ease-in-out infinite; }
+    @keyframes puls { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+    #chat-panel { position: fixed; bottom: 90px; right: 28px; z-index: 9998; width: min(360px, calc(100vw - 32px)); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 20px 60px rgba(15,23,42,0.15); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transform: translateY(12px) scale(0.97); transition: opacity 0.25s, transform 0.3s cubic-bezier(0.16,1,0.3,1); }
+    #chat-panel.aktivan { opacity: 1; pointer-events: all; transform: none; }
+    .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg,rgba(13,148,136,0.06),transparent); }
+    .chat-header-title { font-size: 14px; font-weight: 700; }
+    .chat-zatvori { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border); background: #fff; color: var(--muted); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; line-height: 1; }
+    .chat-zatvori:hover { background: var(--text); color: #fff; border-color: var(--text); }
+    #chatMessages { height: 280px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #fafcff; scroll-behavior: smooth; }
+    .row { display: flex; }
+    .row.bot { justify-content: flex-start; }
+    .row.user { justify-content: flex-end; }
+    .msg { max-width: 85%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+    .msg.bot { background: #fff; border: 1px solid var(--border); border-radius: 3px 12px 12px 12px; }
+    .msg.user { background: var(--accent-soft); border: 1px solid rgba(13,148,136,0.2); border-radius: 12px 3px 12px 12px; }
+    .chatInputBar { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--border); background: #fff; }
+    #chatInput { flex: 1; padding: 9px 13px; border: 1px solid var(--border); border-radius: 999px; font-family: var(--font); font-size: 13px; outline: none; background: var(--bg-soft); transition: border-color 0.15s; }
+    #chatInput:focus { border-color: var(--accent); background: #fff; }
+    #chatSend { padding: 9px 16px; border: none; border-radius: 999px; font-family: var(--font); font-size: 13px; font-weight: 700; color: #fff; background: var(--accent); cursor: pointer; transition: background 0.15s; }
+    #chatSend:hover { background: var(--accent-2); }
+  </style>
+</head>
+<body>
+
+  <h2 id="pageTitle">Dental Studio XXX</h2>
+  <p id="pageSubtitle">Rezervirajte termin u 30 sekundi</p>
+
+  <div class="layout">
+
+    <!-- LIJEVO: KALENDAR + FORMA -->
+    <div class="card">
+      <div class="card-title">Odaberite termin</div>
+
+      <div class="kalendar">
+        <div class="kal-nav">
+          <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">‹</button>
+          <div class="kal-mjesec" id="kal-naslov"></div>
+          <button class="kal-nav-btn" onclick="promijeniMjesec(1)">›</button>
+        </div>
+        <div class="kal-dani-nazivi">
+          <div class="kal-dan-naziv">PON</div>
+          <div class="kal-dan-naziv">UTO</div>
+          <div class="kal-dan-naziv">SRI</div>
+          <div class="kal-dan-naziv">ČET</div>
+          <div class="kal-dan-naziv">PET</div>
+          <div class="kal-dan-naziv">SUB</div>
+          <div class="kal-dan-naziv">NED</div>
+        </div>
+        <div class="kal-grid" id="kal-grid"></div>
+      </div>
+
+      <div class="termini-sekcija" id="termini-sekcija" style="display:none;">
+        <div class="termini-naslov">Slobodni termini</div>
+        <div class="termini-grid" id="termini-grid"></div>
+      </div>
+
+      <div class="forma-sekcija">
+        <div class="odabir-badge" id="odabir-badge"></div>
+        <input type="text" id="name" placeholder="Ime i prezime" />
+        <input type="email" id="email" placeholder="Email adresa" />
+        <select id="service">
+          <option value="" disabled selected>Odaberite uslugu</option>
+          <option>RTG snimanje</option>
+          <option>Ortopan</option>
+          <option>CBCT snimanje</option>
+          <option>Konzultacija</option>
+        </select>
+        <button class="submit-btn" onclick="posaljiZahtjev()">Pošalji zahtjev</button>
+      </div>
+      <p class="status" id="status"></p>
+    </div>
+
+    <!-- DESNO: INFO -->
+    <div class="info-strana">
+      <div class="info-kartica">
+        <div class="info-ikona"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="info-tekst"><h4>Rezervirajte za 30 sekundi</h4><p>Odaberite datum, termin i uslugu — i gotovo.</p></div>
+      </div>
+      <div class="info-kartica">
+        <div class="info-ikona"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <div class="info-tekst"><h4>Potvrda unutar 24 sata</h4><p>Ordinacija će pregledati vaš zahtjev i javiti se mailom.</p></div>
+      </div>
+      <div class="info-kartica">
+        <div class="info-ikona"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/></svg></div>
+        <div class="info-tekst"><h4>Bez poziva i čekanja</h4><p>Zakažite u bilo koje doba — 24/7, bez telefona.</p></div>
+      </div>
+      <div class="info-kartica">
+        <div class="info-ikona"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div class="info-tekst"><h4>Vaši podaci su sigurni</h4><p>Isključivo za komunikaciju s ordinacijom.</p></div>
+      </div>
+    </div>
+
+  </div>
+
+  <button id="chat-widget-btn" onclick="toggleChat()">
+    <div class="db-puls"></div>
+    Pitajte asistenta
+  </button>
+
+  <div id="chat-panel">
+    <div class="chat-header">
+      <div class="chat-header-title">AI asistent</div>
+      <button class="chat-zatvori" onclick="toggleChat()">×</button>
+    </div>
+    <div id="chatMessages"></div>
+    <div class="chatInputBar">
+      <input id="chatInput" type="text" placeholder="Upiši pitanje..." onkeydown="if(event.key==='Enter') posaljiChat()" />
+      <button id="chatSend" onclick="posaljiChat()">Pošalji</button>
+    </div>
+  </div>
+
+  <script>
+    const danas = new Date();
+    let god = danas.getFullYear();
+    let mj  = danas.getMonth();
+    let odabraniDan    = null;
+    let odabraniTermin = null;
+
+    const MJESECI = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
+
+    const zauzetiTermini = {
+      '2026-03-26': ['09:00','11:00'],
+      '2026-03-27': ['10:00','14:00','15:00'],
+      '2026-03-28': ['09:00','09:30'],
+    };
+
+    const sviTermini = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30'];
+
+    function renderKalendar() {
+      document.getElementById('kal-naslov').textContent = `${MJESECI[mj]} ${god}`;
+      const grid = document.getElementById('kal-grid');
+      grid.innerHTML = '';
+
+      const prvaDana = new Date(god, mj, 1);
+      const zadnjiDan = new Date(god, mj + 1, 0).getDate();
+      let offset = prvaDana.getDay() - 1;
+      if (offset < 0) offset = 6;
+
+      for (let i = 0; i < offset; i++) {
+        const el = document.createElement('div');
+        el.className = 'kal-dan prazno';
+        grid.appendChild(el);
+      }
+
+      for (let d = 1; d <= zadnjiDan; d++) {
+        const el = document.createElement('div');
+        el.className = 'kal-dan';
+        el.textContent = d;
+
+        const datObj = new Date(god, mj, d);
+        const danTjedna = datObj.getDay();
+        const jeProsli = datObj < new Date(danas.getFullYear(), danas.getMonth(), danas.getDate());
+        const jeVikend = danTjedna === 0 || danTjedna === 6;
+
+        if (jeProsli || jeVikend) {
+          el.classList.add('prosli');
+        } else {
+          if (d === danas.getDate() && mj === danas.getMonth() && god === danas.getFullYear()) el.classList.add('danas');
+          if (odabraniDan && d === odabraniDan.d && mj === odabraniDan.mj && god === odabraniDan.god) el.classList.add('odabran');
+          el.onclick = () => { odabraniDan = {d, mj, god}; odabraniTermin = null; renderKalendar(); renderTermini(); azurirajBadge(); };
+        }
+        grid.appendChild(el);
+      }
+    }
+
+    function renderTermini() {
+      const sekcija = document.getElementById('termini-sekcija');
+      const grid = document.getElementById('termini-grid');
+      if (!odabraniDan) { sekcija.style.display = 'none'; return; }
+      sekcija.style.display = 'block';
+      grid.innerHTML = '';
+
+      const kljuc = `${odabraniDan.god}-${String(odabraniDan.mj+1).padStart(2,'0')}-${String(odabraniDan.d).padStart(2,'0')}`;
+      const zauzeti = zauzetiTermini[kljuc] || [];
+
+      sviTermini.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'termin';
+        el.textContent = t;
+        if (zauzeti.includes(t)) {
+          el.classList.add('zauzet');
+        } else {
+          if (odabraniTermin === t) el.classList.add('odabran');
+          el.onclick = () => { odabraniTermin = t; renderTermini(); azurirajBadge(); };
+        }
+        grid.appendChild(el);
+      });
+    }
+
+    function azurirajBadge() {
+      const badge = document.getElementById('odabir-badge');
+      if (odabraniDan && odabraniTermin) {
+        badge.style.display = 'block';
+        badge.textContent = `✓ Odabrano: ${String(odabraniDan.d).padStart(2,'0')}.${String(odabraniDan.mj+1).padStart(2,'0')}.${odabraniDan.god}. u ${odabraniTermin}`;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function promijeniMjesec(smjer) {
+      mj += smjer;
+      if (mj > 11) { mj = 0; god++; }
+      if (mj < 0)  { mj = 11; god--; }
+      renderKalendar();
+    }
+
+    function posaljiZahtjev() {
+      const ime    = document.getElementById('name').value.trim();
+      const email  = document.getElementById('email').value.trim();
+      const usluga = document.getElementById('service').value;
+      const status = document.getElementById('status');
+
+      if (!odabraniDan || !odabraniTermin) { status.textContent = 'Molimo odaberite datum i termin.'; return; }
+      if (!ime || !email) { status.textContent = 'Molimo unesite ime i email.'; return; }
+      if (!usluga) { status.textContent = 'Molimo odaberite uslugu.'; return; }
+
+      status.textContent = '✓ Zahtjev poslan! Ordinacija će vam se javiti mailom u roku od 24 sata.';
+    }
+
+    // Chat
+    let chatOtvoren = false;
+    function toggleChat() {
+      chatOtvoren = !chatOtvoren;
+      document.getElementById('chat-panel').classList.toggle('aktivan', chatOtvoren);
+      if (chatOtvoren) document.getElementById('chatInput').focus();
+    }
+
+    const demoOdgovori = {
+      'uslug': 'Nudimo RTG snimanje, Ortopan, CBCT i konzultacije.',
+      'cijena': 'RTG: 100€, Ortopan: 75€, CBCT: 200€, Konzultacija: 50€.',
+      'radno': 'Radimo ponedjeljak–petak 8:00–20:00, subotom 8:00–14:00.',
+      'lokacij': 'Nalazimo se na B.A.Krčelića 15/1, Zaprešić.',
+      'termin': 'Termin možete odabrati direktno u kalendaru — kliknite dan pa slobodni sat.',
+    };
+
+    function addMsg(tekst, tko) {
+      const wrap = document.getElementById('chatMessages');
+      const row = document.createElement('div'); row.className = `row ${tko}`;
+      const msg = document.createElement('div'); msg.className = `msg ${tko}`; msg.textContent = tekst;
+      row.appendChild(msg); wrap.appendChild(row); wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function posaljiChat() {
+      const unos = document.getElementById('chatInput');
+      const tekst = unos.value.trim(); if (!tekst) return;
+      addMsg(tekst, 'user'); unos.value = '';
+      const t = tekst.toLowerCase();
+      let odg = 'Hvala na pitanju. Za detalje kontaktirajte ordinaciju ili odaberite termin u kalendaru.';
+      for (const [k, v] of Object.entries(demoOdgovori)) { if (t.includes(k)) { odg = v; break; } }
+      setTimeout(() => addMsg(odg, 'bot'), 600);
+    }
+
+    addMsg('Dobar dan! Tu sam da odgovorim na pitanja o uslugama, cijenama i radnom vremenu.', 'bot');
+    renderKalendar();
+  </script>
+</body>
+</html>

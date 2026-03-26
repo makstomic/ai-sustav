@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Admin — Ordinex</title>
+  <link rel="stylesheet" href="/stye.css">
+  <style>
+    #adminTitle {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      margin: 32px 0 20px;
+      letter-spacing: -0.2px;
+    }
+
+    .zahtjev-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+    }
+
+    .zahtjev-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .zahtjev-ime {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .zahtjev-datum {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .zahtjev-row {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      font-size: 13.5px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .zahtjev-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .zahtjev-label {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .zahtjev-value {
+      color: var(--text);
+    }
+
+    .zahtjev-akcije {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-potvrdi {
+      flex: 1;
+      padding: 10px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.15s;
+    }
+    .btn-potvrdi:hover { background: var(--accent-2); }
+
+    .btn-predlozi {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      border-radius: 4px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .btn-predlozi:hover {
+      background: var(--accent-soft);
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.03em;
+    }
+
+    .status-potvrdjeno {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-predlozeno {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .prazno {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 48px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2 id="adminTitle">Admin</h2>
+  <div id="zahtjevi" style="max-width:760px; margin:0 auto; padding:0 16px 48px;"></div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>

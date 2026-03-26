@@ -1,0 +1,14 @@
+{
+  "brandName": "Dental Simic",
+  "clinicEmail": "makstomic2009@gmail.com",
+  "adminToken": "xK9mP2qR",
+  "theme": {
+    "accent": "#000000"
+  },
+  "services": [
+    { "name": "RTG", "price": "100" },
+    { "name": "Ortopan", "price": "75" },
+    { "name": "CBCT", "price": "200" },
+    { "name": "Konzultacije", "price": "50" }
+  ]
+}
