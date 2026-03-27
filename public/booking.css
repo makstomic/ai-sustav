@@ -30,7 +30,7 @@
 /* ---------- Base ---------- */
 body {
   font-family: var(--font);
-  background: radial-gradient(900px 500px at 50% -100px, var(--accent-soft), transparent 70%), var(--bg);
+  background: var(--bg);
   min-height: 100vh;
   color: var(--text);
 }
@@ -80,7 +80,7 @@ body {
   font-size: 14px;
   font-weight: 700;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(13, 148, 136, 0.06), transparent);
+  background: transparent;
 }
 
 /* ---------- Kalendar ---------- */
@@ -245,7 +245,8 @@ body {
 }
 
 .forma-sekcija input,
-.forma-sekcija select {
+.forma-sekcija select,
+.forma-sekcija textarea {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--border);
@@ -258,12 +259,14 @@ body {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.forma-sekcija input::placeholder {
+.forma-sekcija input::placeholder,
+.forma-sekcija textarea::placeholder {
   color: rgba(100, 116, 139, 0.7);
 }
 
 .forma-sekcija input:focus,
-.forma-sekcija select:focus {
+.forma-sekcija select:focus,
+.forma-sekcija textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -291,7 +294,6 @@ body {
   background: var(--accent);
   cursor: pointer;
   transition: background 0.15s, transform 0.08s;
-  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.28);
   margin-top: 4px;
 }
 
@@ -333,7 +335,7 @@ body {
   text-transform: uppercase;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(13, 148, 136, 0.05), transparent);
+  background: transparent;
 }
 
 .stepper {
@@ -370,7 +372,7 @@ body {
 .step-line {
   flex: 1;
   width: 2px;
-  background: linear-gradient(to bottom, var(--accent), rgba(13, 148, 136, 0.15));
+  background: var(--border);
   margin: 5px 0;
   min-height: 22px;
   border-radius: 2px;
@@ -482,7 +484,6 @@ body {
   color: #fff;
   background: var(--accent);
   cursor: pointer;
-  box-shadow: 0 8px 28px rgba(13, 148, 136, 0.35);
   transition: background 0.2s, transform 0.2s;
 }
 
@@ -510,7 +511,7 @@ body {
   right: 28px;
   z-index: 9998;
   width: min(360px, calc(100vw - 32px));
-  background: var(--bg);
+  background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -535,7 +536,7 @@ body {
   align-items: center;
   padding: 14px 18px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(13, 148, 136, 0.06), transparent);
+  background: transparent;
 }
 
 .chat-header-title {

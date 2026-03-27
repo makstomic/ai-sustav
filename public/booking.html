@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Rezervacija — Preview</title>
-  <link rel="stylesheet" href="booking.css" />
+  <link rel="stylesheet" href="/booking.css" />
 </head>
 <body>
 
@@ -19,15 +19,15 @@
 
       <div class="kalendar">
         <div class="kal-nav">
-          <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">‹</button>
+          <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">&#8249;</button>
           <div class="kal-mjesec" id="kal-naslov"></div>
-          <button class="kal-nav-btn" onclick="promijeniMjesec(1)">›</button>
+          <button class="kal-nav-btn" onclick="promijeniMjesec(1)">&#8250;</button>
         </div>
         <div class="kal-dani-nazivi">
           <div class="kal-dan-naziv">PON</div>
           <div class="kal-dan-naziv">UTO</div>
           <div class="kal-dan-naziv">SRI</div>
-          <div class="kal-dan-naziv">ČET</div>
+          <div class="kal-dan-naziv">&#268;ET</div>
           <div class="kal-dan-naziv">PET</div>
           <div class="kal-dan-naziv">SUB</div>
           <div class="kal-dan-naziv">NED</div>
@@ -40,20 +40,22 @@
         <div class="termini-grid" id="termini-grid"></div>
       </div>
 
-      <div class="forma-sekcija">
-        <div class="odabir-badge" id="odabir-badge"></div>
-        <input type="text" id="name" placeholder="Ime i prezime" />
-        <input type="email" id="email" placeholder="Email adresa" />
-        <select id="service">
+      <form id="bookingForm" class="forma-sekcija">
+        <div class="odabir-badge" id="odabir-badge" style="display:none;"></div>
+        <input type="hidden" id="date" name="date" />
+        <input type="text" id="name" name="name" placeholder="Ime i prezime" required />
+        <input type="email" id="email" name="email" placeholder="Email adresa" required />
+        <select id="service" name="service" required>
           <option value="" disabled selected>Odaberite uslugu</option>
           <option>RTG snimanje</option>
           <option>Ortopan</option>
           <option>CBCT snimanje</option>
           <option>Konzultacija</option>
         </select>
-        <button class="submit-btn" onclick="posaljiZahtjev()">Pošalji zahtjev</button>
-      </div>
-      <p class="status" id="status"></p>
+        <textarea id="note" name="note" placeholder="Napomena (opcionalno)" rows="2" style="resize:vertical;"></textarea>
+        <button type="submit" class="submit-btn">Po&#353;alji zahtjev</button>
+      </form>
+      <p class="status" id="bookingStatus"></p>
     </div>
 
     <!-- DESNO: STEPPER + STATS + KONTAKT -->
@@ -88,8 +90,8 @@
               <div class="step-num">3</div>
             </div>
             <div class="step-body">
-              <div class="step-title">Pošaljite zahtjev</div>
-              <div class="step-desc">Unesite ime i email — potvrda stiže mailom</div>
+              <div class="step-title">Po&#353;aljite zahtjev</div>
+              <div class="step-desc">Unesite ime i email &mdash; potvrda sti&#382;e mailom</div>
             </div>
           </div>
         </div>
@@ -115,11 +117,11 @@
       <div class="kontakt-box">
         <div class="kontakt-red">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-          <span>B.A.Krčelića 15/1, Zaprešić</span>
+          <span>B.A.Kr&#269;eli&#263;a 15/1, Zapre&#353;i&#263;</span>
         </div>
         <div class="kontakt-red">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>Pon–Pet 8:00–20:00 &nbsp;·&nbsp; Sub 8:00–14:00</span>
+          <span>Pon&ndash;Pet 8:00&ndash;20:00 &nbsp;&middot;&nbsp; Sub 8:00&ndash;14:00</span>
         </div>
       </div>
 
@@ -135,23 +137,24 @@
   <div id="chat-panel">
     <div class="chat-header">
       <div class="chat-header-title">AI asistent</div>
-      <button class="chat-zatvori" onclick="toggleChat()">×</button>
+      <button class="chat-zatvori" onclick="toggleChat()">&#xD7;</button>
     </div>
     <div id="chatMessages"></div>
     <div class="chatInputBar">
-      <input id="chatInput" type="text" placeholder="Upiši pitanje..." onkeydown="if(event.key==='Enter') posaljiChat()" />
-      <button id="chatSend" onclick="posaljiChat()">Pošalji</button>
+      <input id="chatInput" type="text" placeholder="Upi&#353;i pitanje..." />
+      <button id="chatSend">Po&#353;alji</button>
     </div>
   </div>
 
   <script>
+    // ── Kalendar ──
     const danas = new Date();
     let god = danas.getFullYear();
     let mj  = danas.getMonth();
     let odabraniDan    = null;
     let odabraniTermin = null;
 
-    const MJESECI = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
+    const MJESECI = ['Sije\u010danj','Velja\u010da','O\u017eujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
 
     const zauzetiTermini = {
       '2026-03-26': ['09:00','11:00'],
@@ -224,11 +227,15 @@
 
     function azurirajBadge() {
       const badge = document.getElementById('odabir-badge');
+      const dateInput = document.getElementById('date');
       if (odabraniDan && odabraniTermin) {
+        const datumStr = `${String(odabraniDan.d).padStart(2,'0')}.${String(odabraniDan.mj+1).padStart(2,'0')}.${odabraniDan.god}. u ${odabraniTermin}`;
         badge.style.display = 'block';
-        badge.textContent = `✓ Odabrano: ${String(odabraniDan.d).padStart(2,'0')}.${String(odabraniDan.mj+1).padStart(2,'0')}.${odabraniDan.god}. u ${odabraniTermin}`;
+        badge.textContent = `\u2713 Odabrano: ${datumStr}`;
+        dateInput.value = datumStr;
       } else {
         badge.style.display = 'none';
+        dateInput.value = '';
       }
     }
 
@@ -239,20 +246,7 @@
       renderKalendar();
     }
 
-    function posaljiZahtjev() {
-      const ime    = document.getElementById('name').value.trim();
-      const email  = document.getElementById('email').value.trim();
-      const usluga = document.getElementById('service').value;
-      const status = document.getElementById('status');
-
-      if (!odabraniDan || !odabraniTermin) { status.textContent = 'Molimo odaberite datum i termin.'; return; }
-      if (!ime || !email) { status.textContent = 'Molimo unesite ime i email.'; return; }
-      if (!usluga) { status.textContent = 'Molimo odaberite uslugu.'; return; }
-
-      status.textContent = '✓ Zahtjev poslan! Ordinacija će vam se javiti mailom u roku od 24 sata.';
-    }
-
-    // Chat
+    // ── Chat toggle ──
     let chatOtvoren = false;
     function toggleChat() {
       chatOtvoren = !chatOtvoren;
@@ -260,33 +254,9 @@
       if (chatOtvoren) document.getElementById('chatInput').focus();
     }
 
-    const demoOdgovori = {
-      'uslug': 'Nudimo RTG snimanje, Ortopan, CBCT i konzultacije.',
-      'cijena': 'RTG: 100€, Ortopan: 75€, CBCT: 200€, Konzultacija: 50€.',
-      'radno': 'Radimo ponedjeljak–petak 8:00–20:00, subotom 8:00–14:00.',
-      'lokacij': 'Nalazimo se na B.A.Krčelića 15/1, Zaprešić.',
-      'termin': 'Termin možete odabrati direktno u kalendaru — kliknite dan pa slobodni sat.',
-    };
-
-    function addMsg(tekst, tko) {
-      const wrap = document.getElementById('chatMessages');
-      const row = document.createElement('div'); row.className = `row ${tko}`;
-      const msg = document.createElement('div'); msg.className = `msg ${tko}`; msg.textContent = tekst;
-      row.appendChild(msg); wrap.appendChild(row); wrap.scrollTop = wrap.scrollHeight;
-    }
-
-    function posaljiChat() {
-      const unos = document.getElementById('chatInput');
-      const tekst = unos.value.trim(); if (!tekst) return;
-      addMsg(tekst, 'user'); unos.value = '';
-      const t = tekst.toLowerCase();
-      let odg = 'Hvala na pitanju. Za detalje kontaktirajte ordinaciju ili odaberite termin u kalendaru.';
-      for (const [k, v] of Object.entries(demoOdgovori)) { if (t.includes(k)) { odg = v; break; } }
-      setTimeout(() => addMsg(odg, 'bot'), 600);
-    }
-
-    addMsg('Dobar dan! Tu sam da odgovorim na pitanja o uslugama, cijenama i radnom vremenu.', 'bot');
     renderKalendar();
   </script>
+
+  <script src="/booking.js"></script>
 </body>
 </html>

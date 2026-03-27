@@ -1,5 +1,6 @@
 const dijelovi = window.location.pathname.split("/");
 const clientId = dijelovi[2];
+const adminToken = dijelovi[3];
 const wrap = document.getElementById("zahtjevi");
 const title = document.getElementById("adminTitle");
 
@@ -38,6 +39,16 @@ function promijeniTab(tab) {
   prikaziZahtjeve();
 }
 
+// ── HTML escaping — sprječava XSS ──
+function esc(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ── Prikaz ──
 function prikaziZahtjeve() {
   const filtrirani = sviZahtjevi.filter(z =>
@@ -54,21 +65,21 @@ function prikaziZahtjeve() {
   wrap.innerHTML = filtrirani.map(z => `
     <div class="zahtjev-card" style="${z.status !== 'na_cekanju' ? 'opacity:0.65;' : ''}">
       <div class="zahtjev-header">
-        <span class="zahtjev-ime">${z.name}</span>
+        <span class="zahtjev-ime">${esc(z.name)}</span>
         <div style="display:flex; align-items:center; gap:12px;">
           ${z.status === 'potvrdjeno' ? `<span class="status-badge status-potvrdjeno">Potvrđeno</span>` : ''}
           ${z.status === 'predlozeno' ? `<span class="status-badge status-predlozeno">Predloženo</span>` : ''}
-          <span class="zahtjev-datum">${z.primljeno}</span>
+          <span class="zahtjev-datum">${esc(z.primljeno)}</span>
         </div>
       </div>
-      <div class="zahtjev-row"><span class="zahtjev-label">Email</span><span class="zahtjev-value">${z.email}</span></div>
-      <div class="zahtjev-row"><span class="zahtjev-label">Datum</span><span class="zahtjev-value">${z.date}</span></div>
-      <div class="zahtjev-row"><span class="zahtjev-label">Usluga</span><span class="zahtjev-value">${z.service}</span></div>
-      <div class="zahtjev-row"><span class="zahtjev-label">Napomena</span><span class="zahtjev-value">${z.note}</span></div>
+      <div class="zahtjev-row"><span class="zahtjev-label">Email</span><span class="zahtjev-value">${esc(z.email)}</span></div>
+      <div class="zahtjev-row"><span class="zahtjev-label">Datum</span><span class="zahtjev-value">${esc(z.date)}</span></div>
+      <div class="zahtjev-row"><span class="zahtjev-label">Usluga</span><span class="zahtjev-value">${esc(z.service)}</span></div>
+      <div class="zahtjev-row"><span class="zahtjev-label">Napomena</span><span class="zahtjev-value">${esc(z.note)}</span></div>
       ${z.status === 'na_cekanju' ? `
         <div class="zahtjev-akcije">
-          <button class="btn-potvrdi" onclick="potvrdi('${z.id}')">Potvrdi termin</button>
-          <button class="btn-predlozi" onclick="predlozi('${z.id}')">Predloži drugi termin</button>
+          <button class="btn-potvrdi" onclick="potvrdi(${esc(z.id)})">Potvrdi termin</button>
+          <button class="btn-predlozi" onclick="predlozi(${esc(z.id)})">Predloži drugi termin</button>
         </div>
       ` : ''}
     </div>
@@ -82,7 +93,7 @@ async function potvrdi(id) {
   await fetch("/admin-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId, id, akcija: "potvrdi", termin }),
+    body: JSON.stringify({ clientId, token: adminToken, id, akcija: "potvrdi", termin }),
   });
 
   alert("Potvrda poslana pacijentu!");
@@ -96,7 +107,7 @@ async function predlozi(id) {
   await fetch("/admin-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId, id, akcija: "predlozi", termin }),
+    body: JSON.stringify({ clientId, token: adminToken, id, akcija: "predlozi", termin }),
   });
 
   alert("Prijedlog poslan pacijentu!");
@@ -105,7 +116,7 @@ async function predlozi(id) {
 
 // ── Init ──
 async function ucitajZahtjeve() {
-  const res  = await fetch(`/admin-data/${clientId}`);
+  const res  = await fetch(`/admin-data/${clientId}?token=${adminToken}`);
   const data = await res.json();
 
   title.textContent = `Admin — ${data.brandName}`;

@@ -1,9 +1,10 @@
 require("dotenv").config();
-const express  = require("express");
-const path     = require("path");
-const fs       = require("fs");
-const OpenAI   = require("openai");
+const express    = require("express");
+const path       = require("path");
+const fs         = require("fs");
+const OpenAI     = require("openai");
 const { Resend } = require("resend");
+const rateLimit  = require("express-rate-limit");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -11,15 +12,39 @@ const PORT = process.env.PORT || 3000;
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Middleware
-app.use(express.json());
+// ── Sanitizacija clientId — sprječava path traversal ──
+// Dozvoljava samo slova, brojeve, crtice i podvlake
+function sanitizeClientId(clientId) {
+  if (!clientId || !/^[a-zA-Z0-9_-]+$/.test(clientId)) return null;
+  return clientId;
+}
+
+// ── Rate limiteri ──
+const faqLimiter = rateLimit({
+  windowMs: 60 * 1000,   // 1 minuta
+  max: 15,               // max 15 poruka/min po IP-u
+  message: { reply: "Previše zahtjeva. Pričekajte minutu i pokušajte opet." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const bookingLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 sat
+  max: 5,                    // max 5 rezervacija/sat po IP-u
+  message: { ok: false, error: "Previše zahtjeva. Pokušajte za sat vremena." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ── Middleware ──
+app.use(express.json({ limit: "20kb" })); // ograničava veličinu tijela zahtjeva
 app.use(express.static("public"));
 app.use((req, res, next) => {
-  res.setHeader("Content-Security-Policy", "frame-ancestors *");
+  res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
   next();
 });
 
-// Helper — učitaj JSON klijenta
+// Helper — učitaj JSON klijenta (clientId mora biti već sanitiziran)
 function loadClient(clientId) {
   const filePath = path.join(__dirname, "clients", `${clientId}.json`);
   if (!fs.existsSync(filePath)) return null;
@@ -47,13 +72,21 @@ app.get("/booking/:clientId", (req, res) => {
 });
 
 app.get("/config/:clientId", (req, res) => {
-  const client = loadClient(req.params.clientId);
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).json({ error: "Neispravan ID." });
+  const client = loadClient(clientId);
   if (!client) return res.status(404).json({ error: "Client not found" });
-  res.json(client);
+  // Vrati samo javne podatke — NE adminToken
+  const { adminToken: _omit, clinicEmail: _omit2, ...publicData } = client;
+  res.json(publicData);
 });
 
-// Test mail
+// Test mail — dostupan samo lokalno (127.0.0.1)
 app.get("/test-mail", async (req, res) => {
+  const ip = req.ip || req.socket.remoteAddress;
+  if (ip !== "127.0.0.1" && ip !== "::1" && ip !== "::ffff:127.0.0.1") {
+    return res.status(403).send("Zabranjen pristup.");
+  }
   try {
     await sendMail({
       to:      process.env.CLINIC_EMAIL,
@@ -68,12 +101,26 @@ app.get("/test-mail", async (req, res) => {
 });
 
 // FAQ chatbot
-app.post("/faq", async (req, res) => {
+app.post("/faq", faqLimiter, async (req, res) => {
   try {
     const { message, clientId, history } = req.body;
 
-    const client = loadClient(clientId);
+    // Validacija inputa
+    const safeClientId = sanitizeClientId(clientId);
+    if (!safeClientId) return res.status(400).json({ reply: "Neispravan zahtjev." });
+    if (typeof message !== "string" || message.trim().length === 0 || message.length > 500) {
+      return res.status(400).json({ reply: "Poruka mora biti između 1 i 500 znakova." });
+    }
+
+    const client = loadClient(safeClientId);
     if (!client) return res.status(404).json({ reply: "Ne mogu naći ordinaciju." });
+
+    // Ograniči historiju na zadnjih 10 poruka kako bi se spriječilo slanje golemih konteksta
+    const safeHistory = Array.isArray(history)
+      ? history
+          .filter(m => m && typeof m.role === "string" && typeof m.content === "string")
+          .slice(-10)
+      : [];
 
     const servicesText = (client.services || [])
       .map((s) => `- ${s.name}${s.price ? `: ${s.price}` : ""}`)
@@ -104,8 +151,8 @@ ${servicesText || "- (nije definirano)"}
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        ...(Array.isArray(history) ? history : []),
-        { role: "user", content: message },
+        ...safeHistory,
+        { role: "user", content: message.trim() },
       ],
     });
 
@@ -117,49 +164,67 @@ ${servicesText || "- (nije definirano)"}
 });
 
 // Booking — slanje maila ordinaciji
-app.post("/booking", async (req, res) => {
+app.post("/booking", bookingLimiter, async (req, res) => {
   try {
     const { clientId, name, email, date, service, note } = req.body;
 
-    const client = loadClient(clientId);
+    // Sanitizacija i validacija
+    const safeClientId = sanitizeClientId(clientId);
+    if (!safeClientId) return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
+
+    if (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 100)
+      return res.status(400).json({ ok: false, error: "Neispravo ime." });
+    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200)
+      return res.status(400).json({ ok: false, error: "Neispravna email adresa." });
+    if (typeof date !== "string" || date.trim().length === 0 || date.length > 50)
+      return res.status(400).json({ ok: false, error: "Datum nije odabran." });
+    if (typeof service !== "string" || service.trim().length === 0 || service.length > 100)
+      return res.status(400).json({ ok: false, error: "Usluga nije odabrana." });
+
+    const safeName    = name.trim();
+    const safeEmail   = email.trim().toLowerCase();
+    const safeDate    = date.trim();
+    const safeService = service.trim();
+    const safeNote    = typeof note === "string" ? note.trim().slice(0, 500) : "—";
+
+    const client = loadClient(safeClientId);
     if (!client) return res.status(404).json({ ok: false, error: "Client not found" });
 
     const toEmail = client.clinicEmail || process.env.CLINIC_EMAIL;
 
-
     // Spremi zahtjev u JSON fajl
-const requestsDir = path.join(__dirname, "requests");
-if (!fs.existsSync(requestsDir)) fs.mkdirSync(requestsDir);
+    const requestsDir = path.join(__dirname, "requests");
+    if (!fs.existsSync(requestsDir)) fs.mkdirSync(requestsDir);
 
-const requestsFile = path.join(requestsDir, `${clientId}.json`);
-const postojeci = fs.existsSync(requestsFile)
-  ? JSON.parse(fs.readFileSync(requestsFile, "utf-8"))
-  : [];
+    const requestsFile = path.join(requestsDir, `${safeClientId}.json`);
+    const postojeci = fs.existsSync(requestsFile)
+      ? JSON.parse(fs.readFileSync(requestsFile, "utf-8"))
+      : [];
 
-postojeci.push({
-  id: Date.now(),
-  name,
-  email,
-  date,
-  service,
-  note: note || "—",
-  status: "na_cekanju",
-  primljeno: new Date().toLocaleString("hr-HR"),
-});
+    postojeci.push({
+      id: Date.now(),
+      name:    safeName,
+      email:   safeEmail,
+      date:    safeDate,
+      service: safeService,
+      note:    safeNote || "—",
+      status: "na_cekanju",
+      primljeno: new Date().toLocaleString("hr-HR"),
+    });
 
-fs.writeFileSync(requestsFile, JSON.stringify(postojeci, null, 2));
+    fs.writeFileSync(requestsFile, JSON.stringify(postojeci, null, 2));
 
     await sendMail({
       to:      toEmail,
-      subject: `Novi zahtjev — ${client.brandName} — ${name}`,
+      subject: `Novi zahtjev — ${client.brandName} — ${safeName}`,
       text:
         `Novi zahtjev za termin:\n\n` +
         `Ordinacija: ${client.brandName}\n` +
-        `Ime:        ${name}\n` +
-        `Email:      ${email}\n` +
-        `Datum:      ${date}\n` +
-        `Usluga:     ${service}\n` +
-        `Napomena:   ${note || "—"}\n\n` +
+        `Ime:        ${safeName}\n` +
+        `Email:      ${safeEmail}\n` +
+        `Datum:      ${safeDate}\n` +
+        `Usluga:     ${safeService}\n` +
+        `Napomena:   ${safeNote || "—"}\n\n` +
         `Termin se ne potvrđuje automatski — potrebna ručna potvrda ordinacije.`,
     });
 
@@ -172,18 +237,22 @@ fs.writeFileSync(requestsFile, JSON.stringify(postojeci, null, 2));
 
 // Admin — dohvati zahtjeve
 app.get("/admin/:clientId/:token", (req, res) => {
-  const client = loadClient(req.params.clientId);
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).send("Neispravan zahtjev.");
+  const client = loadClient(clientId);
   if (!client) return res.status(404).send("Not found");
   if (req.params.token !== client.adminToken) return res.status(403).send("Zabranjen pristup");
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-
 app.get("/admin-data/:clientId", (req, res) => {
-  const client = loadClient(req.params.clientId);
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
+  const client = loadClient(clientId);
   if (!client) return res.status(404).json({ error: "Client not found" });
+  if (req.query.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
-  const requestsFile = path.join(__dirname, "requests", `${req.params.clientId}.json`);
+  const requestsFile = path.join(__dirname, "requests", `${clientId}.json`);
   const zahtjevi = fs.existsSync(requestsFile)
     ? JSON.parse(fs.readFileSync(requestsFile, "utf-8"))
     : [];
@@ -194,10 +263,21 @@ app.get("/admin-data/:clientId", (req, res) => {
 // Admin — potvrdi ili predloži termin
 app.post("/admin-action", async (req, res) => {
   try {
-    const { clientId, id, akcija, termin } = req.body;
+    const { clientId, token, id, akcija, termin } = req.body;
 
-    const client = loadClient(clientId);
-    const requestsFile = path.join(__dirname, "requests", `${clientId}.json`);
+    // Autentikacija
+    const safeClientId = sanitizeClientId(clientId);
+    if (!safeClientId) return res.status(400).json({ ok: false });
+    const client = loadClient(safeClientId);
+    if (!client) return res.status(404).json({ ok: false });
+    if (!token || token !== client.adminToken) return res.status(403).json({ ok: false, error: "Zabranjen pristup" });
+
+    if (!["potvrdi", "predlozi"].includes(akcija))
+      return res.status(400).json({ ok: false, error: "Neispravna akcija." });
+    if (typeof termin !== "string" || termin.trim().length === 0 || termin.length > 100)
+      return res.status(400).json({ ok: false, error: "Termin nije naveden." });
+
+    const requestsFile = path.join(__dirname, "requests", `${safeClientId}.json`);
     const zahtjevi = JSON.parse(fs.readFileSync(requestsFile, "utf-8"));
 
     const zahtjev = zahtjevi.find(z => z.id == id);
@@ -212,8 +292,8 @@ app.post("/admin-action", async (req, res) => {
       : `Prijedlog novog termina — ${client.brandName}`;
 
     const text = akcija === "potvrdi"
-      ? `Poštovani ${zahtjev.name},\n\nVaš termin je potvrđen.\n\nDatum i vrijeme: ${termin}\nUsluga: ${zahtjev.service}\n\nDo videnja,\n${client.brandName}`
-      : `Poštovani ${zahtjev.name},\n\nNažalost traženi termin nije dostupan.\n\nPredlažemo: ${termin}\n\nAko vam odgovara, javite nam se na povratni mail.\n\n${client.brandName}`;
+      ? `Poštovani ${zahtjev.name},\n\nVaš termin je potvrđen.\n\nDatum i vrijeme: ${termin.trim()}\nUsluga: ${zahtjev.service}\n\nDo videnja,\n${client.brandName}`
+      : `Poštovani ${zahtjev.name},\n\nNažalost traženi termin nije dostupan.\n\nPredlažemo: ${termin.trim()}\n\nAko vam odgovara, javite nam se na povratni mail.\n\n${client.brandName}`;
 
     await sendMail({ to: zahtjev.email, subject, text });
 

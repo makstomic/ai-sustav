@@ -114,11 +114,22 @@ chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat()
 // ── Quick reply gumbi ──
 function addQuickReplies() {
   const opcije = [
-    "💰 Cijene usluga",
-    "📋 Koje usluge nudite?",
-    "🕐 Radno vrijeme",
-    "📍 Gdje se nalazite?",
-    "❓ Nisam siguran što mi treba",
+    {
+      label: "Želim zakazati termin",
+      async onKlik() {
+        const odgovor = "Odlično! Ispunite formu s lijeve strane — odaberite datum, unesite ime, email i uslugu. Ordinacija će vam se javiti mailom s potvrdom termina.";
+        addBot(odgovor);
+        history.push({ role: "assistant", content: odgovor });
+      },
+    },
+    {
+      label: "Imam pitanje o ordinaciji",
+      async onKlik() {
+        const odgovor = "Naravno! Što vas zanima? Mogu pomoći s informacijama o uslugama, cijenama, radnom vremenu i lokaciji.";
+        addBot(odgovor);
+        history.push({ role: "assistant", content: odgovor });
+      },
+    },
   ];
 
   const wrap = document.createElement("div");
@@ -130,9 +141,9 @@ function addQuickReplies() {
     margin-top: 10px;
   `;
 
-  opcije.forEach((tekst) => {
+  opcije.forEach(({ label, onKlik }) => {
     const btn = document.createElement("button");
-    btn.textContent = tekst;
+    btn.textContent = label;
     btn.style.cssText = `
       padding: 8px 14px;
       border: 1.5px solid var(--accent);
@@ -153,14 +164,11 @@ function addQuickReplies() {
       btn.style.background = "transparent";
       btn.style.color = "var(--accent)";
     };
-    btn.addEventListener("click", () => {
-      // Ukloni gumbe nakon klika
-      const qr = document.getElementById("quickReplies");
-      if (qr) qr.remove();
-
-      // Pošalji kao da je korisnik upisao
-      chatInput.value = tekst;
-      sendChat();
+    btn.addEventListener("click", async () => {
+      document.getElementById("quickReplies")?.remove();
+      addUser(label);
+      history.push({ role: "user", content: label });
+      await onKlik();
     });
     wrap.appendChild(btn);
   });

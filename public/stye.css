@@ -131,8 +131,7 @@ body {
   color: #fff;
   background: var(--accent);
   cursor: pointer;
-  transition: background 0.15s, transform 0.08s, box-shadow 0.15s;
-  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.28);
+  transition: background 0.15s, transform 0.08s;
   margin-top: auto;
 }
 
@@ -264,8 +263,7 @@ body {
   color: #fff;
   background: var(--accent);
   cursor: pointer;
-  box-shadow: 0 8px 28px rgba(13, 148, 136, 0.35);
-  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: background 0.2s, transform 0.2s;
   animation: fabUlaz 0.5s cubic-bezier(0.16,1,0.3,1) both;
 }
 
@@ -277,7 +275,6 @@ body {
 #db_fab:hover {
   background: var(--accent-2);
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(13, 148, 136, 0.4);
 }
 
 .db_puls {
@@ -308,7 +305,6 @@ body {
   background: var(--accent);
   cursor: pointer;
   transition: background 0.15s, transform 0.08s;
-  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.25);
 }
 
 .db_inline_btn:hover  { background: var(--accent-2); }
