@@ -3,7 +3,7 @@
   "clinicEmail": "makstomic2009@gmail.com",
   "adminToken": "xK9mP2qR",
   "theme": {
-    "accent": "#FF0000"
+    "accent": "#0d9488"
   },
   "services": [
     { "name": "RTG", "price": "100" },

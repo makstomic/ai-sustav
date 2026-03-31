@@ -156,11 +156,8 @@
 
     const MJESECI = ['Sije\u010danj','Velja\u010da','O\u017eujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
 
-    const zauzetiTermini = {
-      '2026-03-26': ['09:00','11:00'],
-      '2026-03-27': ['10:00','14:00','15:00'],
-      '2026-03-28': ['09:00','09:30'],
-    };
+    const _kalClientId = window.location.pathname.split('/').pop();
+    let zauzetiDanas = [];
 
     const sviTermini = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30'];
 
@@ -195,7 +192,18 @@
         } else {
           if (d === danas.getDate() && mj === danas.getMonth() && god === danas.getFullYear()) el.classList.add('danas');
           if (odabraniDan && d === odabraniDan.d && mj === odabraniDan.mj && god === odabraniDan.god) el.classList.add('odabran');
-          el.onclick = () => { odabraniDan = {d, mj, god}; odabraniTermin = null; renderKalendar(); renderTermini(); azurirajBadge(); };
+          el.onclick = async () => {
+            odabraniDan = {d, mj, god};
+            odabraniTermin = null;
+            renderKalendar();
+            const kljuc = `${god}-${String(mj+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            try {
+              const r = await fetch(`/termini/${_kalClientId}/${kljuc}`);
+              zauzetiDanas = r.ok ? await r.json() : [];
+            } catch { zauzetiDanas = []; }
+            renderTermini();
+            azurirajBadge();
+          };
         }
         grid.appendChild(el);
       }
@@ -208,14 +216,11 @@
       sekcija.style.display = 'block';
       grid.innerHTML = '';
 
-      const kljuc = `${odabraniDan.god}-${String(odabraniDan.mj+1).padStart(2,'0')}-${String(odabraniDan.d).padStart(2,'0')}`;
-      const zauzeti = zauzetiTermini[kljuc] || [];
-
       sviTermini.forEach(t => {
         const el = document.createElement('div');
         el.className = 'termin';
         el.textContent = t;
-        if (zauzeti.includes(t)) {
+        if (zauzetiDanas.includes(t)) {
           el.classList.add('zauzet');
         } else {
           if (odabraniTermin === t) el.classList.add('odabran');

@@ -5,6 +5,7 @@ const fs         = require("fs");
 const OpenAI     = require("openai");
 const { Resend } = require("resend");
 const rateLimit  = require("express-rate-limit");
+const db         = require("./database");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -130,18 +131,55 @@ app.post("/faq", faqLimiter, async (req, res) => {
 Ti si profesionalni AI asistent za: ${client.brandName}.
 Jezik: hrvatski. Stil: kratko, jasno, profesionalno.
 
-- Odgovaraj na pitanja o uslugama, cijenama, lokaciji i radnom vremenu
-- Pomozi korisniku odabrati pravu uslugu ako je nesiguran
-- Budi topao ali profesionalan — pacijenti su često nervozni
+Služiš kao informativni chatbot za dentalne ordinacije na hrvatskom jeziku. Tvoj zadatak je pružiti korisnicima osnovne informacije o ordinaciji, uključujući:
 
-STROGA PRAVILA — NIKAD NE KRŠI:
-- NIKAD ne potvrđuj, ne dogovaraj i ne predlažeš konkretne termine
-- Ako pita za termin: "Termin možete zatražiti putem forme — ordinacija će vam se javiti mailom."
-- NIKAD ne izmišljaj informacije koje nisu navedene ispod
-- Ako nešto ne znaš: "Za tu informaciju kontaktirajte ordinaciju direktno."
-- Ne spominji konkurenciju
-- Ne daj medicinske dijagnoze ni savjete
-- cijene uvijek u eurima
+- cijene usluga (navedi jasne primjere ili tablicu s cijenama)
+- lokaciju ordinacije
+- radno vrijeme ordinacije
+
+NAGLASAK: Ne primaš rezervacije termina! Kada korisnik izrazi želju za naručivanjem termina (npr. napiše "želim naručiti termin" ili slično), uvijek ga preusmjeriš na posebnu web-formu s kalendarom za odabir termina, ljubazno objasniš da se termini rezerviraju putem te forme te da će dobiti potvrdu naručenog termina unutar radnog vremena ordinacije.
+
+Prije davanja podataka, analiziraj korisnički upit kako bi ispravno odredio koju informaciju traži (cijena, lokacija, radno vrijeme, naručivanje). Započni odgovore davanjem potrebnih informacija ili uputa, a dijalog uvijek završavaj jasnom i profesionalnom rečenicom.
+
+Format outputa:
+- Odgovori na hrvatskom jeziku, sažeto i informativno.
+- Cjenik navedi u odvojenim stavkama (ili tablici ako je potrebno).
+- Ako korisnik pita za naručivanje termina, obavezno preusmjeri na formu i navedenu proceduru.
+- Ukoliko korisnik postavi više pitanja, odgovori jasno na svako posebno.
+
+Persistiraj dok nisi siguran da su sve informacije korisniku jasne i potpune prije završetka odgovora. Razmišljaj korak po korak: najprije analiziraj upit i odredi što je prioritetan zahtjev, zatim izrađuj odgovor.
+
+Primjer 1:  
+Upit: "Koliko košta vađenje zuba i gdje se nalazite?"  
+Odgovor:  
+- Analiza: Traže se cijena i lokacija.  
+- Formatiraj:  
+Cijena vađenja zuba: 55 EUR  
+Lokacija: Ulica Primjera 1, Zagreb  
+Za ostale cijene ili informacije slobodno pitajte.
+
+Primjer 2:  
+Upit: "Želim naručiti termin za kontrolu."  
+Odgovor:  
+- Analiza: Korisnik želi rezervirati termin.  
+- Formatiraj:  
+Za rezervaciju termina, molimo Vas da ispunite našu online formu putem dostupnog kalendara. Nakon što odaberete termin, potvrdu ćete primiti unutar radnog vremena.
+
+Primjer 3:  
+Upit: "Koje su cijene i kada radite?"  
+Odgovor:  
+- Analiza: Zanimaju ga cijene i radno vrijeme.  
+- Formatiraj:  
+Cijene odabranih usluga:  
+- Vađenje zuba: 55 EUR  
+- Čišćenje kamenca: 35 EUR  
+Radno vrijeme: pon-pet 8:00-19:00  
+Za naručivanje termina koristite naš kalendar na web-stranici, a potvrdu ćete dobiti unutar radnog vremena.
+
+(Pravi primjeri mogu biti duži te sadržavati više navedenih usluga, adresu i preciznije radno vrijeme, prema stvarnim podatcima ordinacije.)
+
+Podsjetnik:  
+Tvoj zadatak je pružati TOČNE informacije o cijeni, lokaciji i radnom vremenu dentalne ordinacije, ali naručivanje termina uvijek odvajaš i preusmjeravaš korisnike na namjensku online formu za rezervaciju.
 
 Usluge:
 ${servicesText || "- (nije definirano)"}
@@ -192,27 +230,20 @@ app.post("/booking", bookingLimiter, async (req, res) => {
 
     const toEmail = client.clinicEmail || process.env.CLINIC_EMAIL;
 
-    // Spremi zahtjev u JSON fajl
-    const requestsDir = path.join(__dirname, "requests");
-    if (!fs.existsSync(requestsDir)) fs.mkdirSync(requestsDir);
-
-    const requestsFile = path.join(requestsDir, `${safeClientId}.json`);
-    const postojeci = fs.existsSync(requestsFile)
-      ? JSON.parse(fs.readFileSync(requestsFile, "utf-8"))
-      : [];
-
-    postojeci.push({
-      id: Date.now(),
-      name:    safeName,
-      email:   safeEmail,
-      date:    safeDate,
-      service: safeService,
-      note:    safeNote || "—",
-      status: "na_cekanju",
-      primljeno: new Date().toLocaleString("hr-HR"),
-    });
-
-    fs.writeFileSync(requestsFile, JSON.stringify(postojeci, null, 2));
+    // Spremi zahtjev u bazu
+    db.prepare(`
+      INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'na_cekanju', ?)
+    `).run(
+      Date.now(),
+      safeClientId,
+      safeName,
+      safeEmail,
+      safeDate,
+      safeService,
+      safeNote || "—",
+      new Date().toLocaleString("hr-HR")
+    );
 
     await sendMail({
       to:      toEmail,
@@ -252,12 +283,11 @@ app.get("/admin-data/:clientId", (req, res) => {
   if (!client) return res.status(404).json({ error: "Client not found" });
   if (req.query.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
-  const requestsFile = path.join(__dirname, "requests", `${clientId}.json`);
-  const zahtjevi = fs.existsSync(requestsFile)
-    ? JSON.parse(fs.readFileSync(requestsFile, "utf-8"))
-    : [];
+  const zahtjevi = db.prepare(
+    "SELECT * FROM requests WHERE clientId = ? ORDER BY id DESC"
+  ).all(clientId);
 
-  res.json({ brandName: client.brandName, zahtjevi: zahtjevi.reverse() });
+  res.json({ brandName: client.brandName, zahtjevi });
 });
 
 // Admin — potvrdi ili predloži termin
@@ -277,15 +307,14 @@ app.post("/admin-action", async (req, res) => {
     if (typeof termin !== "string" || termin.trim().length === 0 || termin.length > 100)
       return res.status(400).json({ ok: false, error: "Termin nije naveden." });
 
-    const requestsFile = path.join(__dirname, "requests", `${safeClientId}.json`);
-    const zahtjevi = JSON.parse(fs.readFileSync(requestsFile, "utf-8"));
-
-    const zahtjev = zahtjevi.find(z => z.id == id);
+    const zahtjev = db.prepare(
+      "SELECT * FROM requests WHERE id = ? AND clientId = ?"
+    ).get(id, safeClientId);
     if (!zahtjev) return res.status(404).json({ ok: false });
 
-    zahtjev.status = akcija === "potvrdi" ? "potvrdjeno" : "predlozeno";
-
-    fs.writeFileSync(requestsFile, JSON.stringify(zahtjevi, null, 2));
+    const noviStatus = akcija === "potvrdi" ? "potvrdjeno" : "predlozeno";
+    db.prepare("UPDATE requests SET status = ? WHERE id = ?").run(noviStatus, id);
+    zahtjev.status = noviStatus;
 
     const subject = akcija === "potvrdi"
       ? `Potvrda termina — ${client.brandName}`
@@ -315,14 +344,13 @@ app.get("/admin-kalendar/:clientId/:token", (req, res) => {
   if (!client) return res.status(404).json({ error: "Client not found" });
   if (req.params.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
-  const requestsFile = path.join(__dirname, "requests", `${clientId}.json`);
-  const zahtjevi = fs.existsSync(requestsFile)
-    ? JSON.parse(fs.readFileSync(requestsFile, "utf-8"))
-    : [];
+  const zahtjevi = db.prepare(
+    "SELECT * FROM requests WHERE clientId = ? AND status = 'potvrdjeno'"
+  ).all(clientId);
 
-  // Filtriraj potvrđene i grupiraj po datumu (format: "DD.MM.YYYY. u HH:MM")
+  // Grupiraj po datumu (format: "DD.MM.YYYY. u HH:MM")
   const grupirano = {};
-  for (const z of zahtjevi.filter(z => z.status === "potvrdjeno")) {
+  for (const z of zahtjevi) {
     const match = z.date.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\.\s+u\s+(\d{2}:\d{2})/);
     if (!match) continue;
     const [, dan, mjes, god, vrijeme] = match;
@@ -337,6 +365,30 @@ app.get("/admin-kalendar/:clientId/:token", (req, res) => {
   }
 
   res.json(grupirano);
+});
+
+// Zauzeti termini za odabrani dan (booking kalendar)
+app.get("/termini/:clientId/:datum", (req, res) => {
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
+
+  const datum = req.params.datum;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum))
+    return res.status(400).json({ error: "Neispravan datum." });
+
+  const [god, mjes, dan] = datum.split("-");
+  // U bazi je format: "DD.MM.YYYY. u HH:MM" (s padStart na 2 znaka)
+  const likeUzorak = `${dan}.${mjes}.${god}.%`;
+
+  const zahtjevi = db.prepare(
+    "SELECT date FROM requests WHERE clientId = ? AND status = 'potvrdjeno' AND date LIKE ?"
+  ).all(clientId, likeUzorak);
+
+  const zauzeti = zahtjevi
+    .map(z => { const m = z.date.match(/(\d{2}:\d{2})$/); return m ? m[1] : null; })
+    .filter(Boolean);
+
+  res.json(zauzeti);
 });
 
 app.listen(PORT, () => {
