@@ -6,37 +6,39 @@ const title = document.getElementById("adminTitle");
 
 let sviZahtjevi = [];
 let aktivniTab = "cekanje";
+let kalendarData = {};
+let kalendarGodina = null;
+let kalendarMjesec = null;
+let odabraniDanKey = null;
+
+const MJES_NAZIVI = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj",
+                     "Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
 
 // ── Tabovi ──
 function napraviTabove() {
   const tabWrap = document.createElement("div");
   tabWrap.style.cssText = "display:flex; gap:8px; max-width:900px; margin:0 auto 20px; padding:0 16px;";
   tabWrap.innerHTML = `
-    <button id="tab-cekanje" onclick="promijeniTab('cekanje')" style="flex:1; padding:11px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid var(--accent); background:var(--accent); color:#fff; font-family:var(--font);">Na čekanju</button>
+    <button id="tab-cekanje"  onclick="promijeniTab('cekanje')"  style="flex:1; padding:11px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid var(--accent); background:var(--accent); color:#fff; font-family:var(--font);">Na čekanju</button>
     <button id="tab-povijest" onclick="promijeniTab('povijest')" style="flex:1; padding:11px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid var(--accent); background:transparent; color:var(--accent); font-family:var(--font);">Povijest</button>
+    <button id="tab-kalendar" onclick="promijeniTab('kalendar')" style="flex:1; padding:11px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid var(--accent); background:transparent; color:var(--accent); font-family:var(--font);">Kalendar</button>
   `;
   document.getElementById("adminTitle").after(tabWrap);
 }
 
 function promijeniTab(tab) {
   aktivniTab = tab;
+  ["cekanje", "povijest", "kalendar"].forEach(t => {
+    const b = document.getElementById(`tab-${t}`);
+    b.style.background = t === tab ? "var(--accent)" : "transparent";
+    b.style.color      = t === tab ? "#fff"          : "var(--accent)";
+  });
 
-  const btnCekanje  = document.getElementById("tab-cekanje");
-  const btnPovijest = document.getElementById("tab-povijest");
-
-  if (tab === "cekanje") {
-    btnCekanje.style.background  = "var(--accent)";
-    btnCekanje.style.color       = "#fff";
-    btnPovijest.style.background = "transparent";
-    btnPovijest.style.color      = "var(--accent)";
+  if (tab === "kalendar") {
+    ucitajKalendar();
   } else {
-    btnPovijest.style.background = "var(--accent)";
-    btnPovijest.style.color      = "#fff";
-    btnCekanje.style.background  = "transparent";
-    btnCekanje.style.color       = "var(--accent)";
+    prikaziZahtjeve();
   }
-
-  prikaziZahtjeve();
 }
 
 // ── HTML escaping — sprječava XSS ──
@@ -49,7 +51,7 @@ function esc(str) {
     .replace(/'/g, "&#39;");
 }
 
-// ── Prikaz ──
+// ── Prikaz zahtjeva ──
 function prikaziZahtjeve() {
   const filtrirani = sviZahtjevi.filter(z =>
     aktivniTab === "cekanje"
@@ -85,6 +87,7 @@ function prikaziZahtjeve() {
     </div>
   `).join("");
 }
+
 // ── Akcije ──
 async function potvrdi(id) {
   const termin = prompt("Upiši potvrđeni termin (npr. 15.03. u 10:00):");
@@ -114,15 +117,155 @@ async function predlozi(id) {
   ucitajZahtjeve();
 }
 
-// ── Init ──
+// ── Init zahtjevi ──
 async function ucitajZahtjeve() {
-  const res  = await fetch(`/admin-data/${clientId}?token=${adminToken}`);
-  const data = await res.json();
+  const [dataRes, configRes] = await Promise.all([
+    fetch(`/admin-data/${clientId}?token=${adminToken}`),
+    fetch(`/config/${clientId}`),
+  ]);
+  const data   = await dataRes.json();
+  const config = await configRes.json();
 
   title.textContent = `Admin — ${data.brandName}`;
   sviZahtjevi = data.zahtjevi;
 
+  if (config.theme?.accent) {
+    document.documentElement.style.setProperty("--accent", config.theme.accent);
+    document.documentElement.style.setProperty("--accent-2", config.theme.accent2 || config.theme.accent);
+    document.documentElement.style.setProperty("--accent-soft", config.theme.accentSoft || "rgba(0,0,0,0.08)");
+  }
+
   prikaziZahtjeve();
+}
+
+// ── Kalendar ──
+async function ucitajKalendar() {
+  try {
+    const res = await fetch(`/admin-kalendar/${clientId}/${adminToken}`);
+    kalendarData = await res.json();
+  } catch {
+    kalendarData = {};
+  }
+  const danas = new Date();
+  if (kalendarGodina === null) kalendarGodina = danas.getFullYear();
+  if (kalendarMjesec === null) kalendarMjesec  = danas.getMonth();
+  prikaziKalendar();
+}
+
+function isoKey(date) {
+  const g = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${g}-${m}-${d}`;
+}
+
+function mijenjajMjesec(smjer) {
+  kalendarMjesec += smjer;
+  if (kalendarMjesec > 11) { kalendarMjesec = 0; kalendarGodina++; }
+  if (kalendarMjesec < 0)  { kalendarMjesec = 11; kalendarGodina--; }
+  prikaziKalendar();
+}
+
+function odaberiDan(key) {
+  odabraniDanKey = odabraniDanKey === key ? null : key;
+  prikaziKalendar();
+}
+
+function prikaziKalendar() {
+  const prviDan   = new Date(kalendarGodina, kalendarMjesec, 1);
+  const zadnjiDan = new Date(kalendarGodina, kalendarMjesec + 1, 0);
+  const danasKey  = isoKey(new Date());
+
+  // Offset: koliko praznih ćelija ispred (tjedan počinje ponedjeljkom)
+  let pocetakOffset = prviDan.getDay() - 1;
+  if (pocetakOffset < 0) pocetakOffset = 6;
+
+  const daniTjedna = ["Po", "Ut", "Sr", "Če", "Pe", "Su", "Ne"];
+
+  const headerHTML = daniTjedna.map(d =>
+    `<div class="kal-header-dan">${d}</div>`
+  ).join("");
+
+  const prazneHTML = Array(pocetakOffset)
+    .fill('<div class="kal-dan kal-prazan"></div>')
+    .join("");
+
+  let daniHTML = "";
+  for (let d = 1; d <= zadnjiDan.getDate(); d++) {
+    const key = isoKey(new Date(kalendarGodina, kalendarMjesec, d));
+    const imaTermina = !!kalendarData[key];
+    const jeOdabran  = key === odabraniDanKey;
+    const jeDanas    = key === danasKey;
+
+    let klase = "kal-dan";
+    if (jeOdabran)            klase += " kal-odabran";
+    if (jeDanas && !jeOdabran) klase += " kal-danas";
+
+    daniHTML += `
+      <div class="${klase}" onclick="odaberiDan('${key}')">
+        ${d}
+        ${imaTermina ? '<span class="kal-dot"></span>' : ''}
+      </div>`;
+  }
+
+  const terminiHTML = odabraniDanKey ? napraviTermine(odabraniDanKey) : "";
+  const naslov = `${MJES_NAZIVI[kalendarMjesec]} ${kalendarGodina}`;
+
+  wrap.innerHTML = `
+    <div class="kal-wrap">
+      <div class="kal-nav">
+        <button class="kal-nav-btn" onclick="mijenjajMjesec(-1)">&#8592;</button>
+        <span class="kal-mjes">${esc(naslov)}</span>
+        <button class="kal-nav-btn" onclick="mijenjajMjesec(1)">&#8594;</button>
+      </div>
+      <div class="kal-card">
+        <div class="kal-grid">
+          ${headerHTML}
+          ${prazneHTML}
+          ${daniHTML}
+        </div>
+      </div>
+      ${terminiHTML}
+    </div>
+  `;
+}
+
+function napraviTermine(dateKey) {
+  const zauzetiTermini = kalendarData[dateKey] || [];
+  const zauzetoMap = {};
+  for (const t of zauzetiTermini) {
+    zauzetoMap[t.time] = t;
+  }
+
+  // Slotovi 09:00 — 16:30 svakih 30 min
+  const slotovi = [];
+  for (let h = 9; h <= 16; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      if (h === 16 && m > 30) break;
+      slotovi.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
+  }
+
+  const [g, mj, d] = dateKey.split("-");
+  const hrDatum = `${parseInt(d)}. ${parseInt(mj)}. ${g}.`;
+
+  const slotsHTML = slotovi.map(s => {
+    const termin = zauzetoMap[s];
+    if (termin) {
+      return `
+        <div class="termin-slot zauzet">
+          ${esc(s)}
+          <span class="termin-info">${esc(termin.name)} — ${esc(termin.service)}</span>
+        </div>`;
+    }
+    return `<div class="termin-slot">${esc(s)}</div>`;
+  }).join("");
+
+  return `
+    <div class="termini-wrap">
+      <div class="termini-naslov">Termini — ${esc(hrDatum)}</div>
+      <div class="termini-grid">${slotsHTML}</div>
+    </div>`;
 }
 
 napraviTabove();

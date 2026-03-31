@@ -307,6 +307,38 @@ app.post("/admin-action", async (req, res) => {
 
 
 
+// Admin — kalendar (potvrđeni termini grupirani po datumu)
+app.get("/admin-kalendar/:clientId/:token", (req, res) => {
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
+  const client = loadClient(clientId);
+  if (!client) return res.status(404).json({ error: "Client not found" });
+  if (req.params.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+
+  const requestsFile = path.join(__dirname, "requests", `${clientId}.json`);
+  const zahtjevi = fs.existsSync(requestsFile)
+    ? JSON.parse(fs.readFileSync(requestsFile, "utf-8"))
+    : [];
+
+  // Filtriraj potvrđene i grupiraj po datumu (format: "DD.MM.YYYY. u HH:MM")
+  const grupirano = {};
+  for (const z of zahtjevi.filter(z => z.status === "potvrdjeno")) {
+    const match = z.date.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\.\s+u\s+(\d{2}:\d{2})/);
+    if (!match) continue;
+    const [, dan, mjes, god, vrijeme] = match;
+    const kljuc = `${god}-${mjes.padStart(2, "0")}-${dan.padStart(2, "0")}`;
+    if (!grupirano[kljuc]) grupirano[kljuc] = [];
+    grupirano[kljuc].push({
+      id:      z.id,
+      name:    z.name,
+      service: z.service,
+      time:    vrijeme,
+    });
+  }
+
+  res.json(grupirano);
+});
+
 app.listen(PORT, () => {
   console.log(`Server radi na http://localhost:${PORT}/booking/simic`);
 });
