@@ -14,25 +14,24 @@ let odabraniDanKey = null;
 const MJES_NAZIVI = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj",
                      "Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
 
-// ── Tabovi ──
+// ── Tabovi — sidebar navigacija ──
 function napraviTabove() {
-  const tabWrap = document.createElement("div");
-  tabWrap.style.cssText = "display:flex; gap:8px; max-width:900px; margin:0 auto 20px; padding:0 16px;";
-  tabWrap.innerHTML = `
-    <button id="tab-cekanje"  onclick="promijeniTab('cekanje')"  style="flex:1; padding:11px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid var(--accent); background:var(--accent); color:#fff; font-family:var(--font);">Na čekanju</button>
-    <button id="tab-povijest" onclick="promijeniTab('povijest')" style="flex:1; padding:11px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid var(--accent); background:transparent; color:var(--accent); font-family:var(--font);">Povijest</button>
-    <button id="tab-kalendar" onclick="promijeniTab('kalendar')" style="flex:1; padding:11px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid var(--accent); background:transparent; color:var(--accent); font-family:var(--font);">Kalendar</button>
-  `;
-  document.getElementById("adminTitle").after(tabWrap);
+  // Tabovi su sada u sidebar navigaciji (admin.html) — ništa ne trebamo dodavati
 }
 
 function promijeniTab(tab) {
   aktivniTab = tab;
+
+  // Ažuriraj aktivni item u sidebaru
   ["cekanje", "povijest", "kalendar"].forEach(t => {
-    const b = document.getElementById(`tab-${t}`);
-    b.style.background = t === tab ? "var(--accent)" : "transparent";
-    b.style.color      = t === tab ? "#fff"          : "var(--accent)";
+    const el = document.getElementById(`nav-${t}`);
+    if (el) el.classList.toggle("active", t === tab);
   });
+
+  // Ažuriraj naslov u topbaru
+  const naslovi = { cekanje: "Na čekanju", povijest: "Povijest", kalendar: "Kalendar" };
+  const titleEl = document.getElementById("adminTitle");
+  if (titleEl) titleEl.textContent = naslovi[tab] || "Admin";
 
   if (tab === "kalendar") {
     ucitajKalendar();
@@ -58,6 +57,14 @@ function prikaziZahtjeve() {
       ? z.status === "na_cekanju"
       : z.status !== "na_cekanju"
   );
+
+  // Ažuriraj badge s brojem zahtjeva na čekanju
+  const pendingCount = sviZahtjevi.filter(z => z.status === "na_cekanju").length;
+  const badge = document.getElementById("nav-pending-badge");
+  if (badge) {
+    badge.textContent = pendingCount;
+    badge.style.display = pendingCount > 0 ? "inline-block" : "none";
+  }
 
   if (filtrirani.length === 0) {
     wrap.innerHTML = `<p class="prazno">${aktivniTab === "cekanje" ? "Nema zahtjeva na čekanju." : "Nema završenih zahtjeva."}</p>`;
@@ -119,21 +126,19 @@ async function predlozi(id) {
 
 // ── Init zahtjevi ──
 async function ucitajZahtjeve() {
-  const [dataRes, configRes] = await Promise.all([
-    fetch(`/admin-data/${clientId}?token=${adminToken}`),
-    fetch(`/config/${clientId}`),
-  ]);
-  const data   = await dataRes.json();
-  const config = await configRes.json();
+  const dataRes = await fetch(`/admin-data/${clientId}?token=${adminToken}`);
+  const data    = await dataRes.json();
 
-  title.textContent = `Admin — ${data.brandName}`;
+  title.textContent = "Na čekanju";
   sviZahtjevi = data.zahtjevi;
 
-  if (config.theme?.accent) {
-    document.documentElement.style.setProperty("--accent", config.theme.accent);
-    document.documentElement.style.setProperty("--accent-2", config.theme.accent2 || config.theme.accent);
-    document.documentElement.style.setProperty("--accent-soft", config.theme.accentSoft || "rgba(0,0,0,0.08)");
-  }
+  // Postavi naziv ordinacije u sidebar i topbar
+  const sidebarBrand = document.getElementById("sidebarBrand");
+  if (sidebarBrand) sidebarBrand.textContent = data.brandName;
+  const topbarOrdinacija = document.getElementById("topbarOrdinacija");
+  if (topbarOrdinacija) topbarOrdinacija.textContent = data.brandName;
+
+  // Boja je fiksna tirkizna (#0d9488) za sve ordinacije — ne prepisujemo
 
   prikaziZahtjeve();
 }
@@ -208,24 +213,35 @@ function prikaziKalendar() {
       </div>`;
   }
 
-  const terminiHTML = odabraniDanKey ? napraviTermine(odabraniDanKey) : "";
+  const terminiHTML = odabraniDanKey
+    ? napraviTermine(odabraniDanKey)
+    : `<div class="kal-placeholder">
+         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+         <span>Odaberite dan za prikaz termina</span>
+       </div>`;
   const naslov = `${MJES_NAZIVI[kalendarMjesec]} ${kalendarGodina}`;
 
   wrap.innerHTML = `
     <div class="kal-wrap">
-      <div class="kal-nav">
-        <button class="kal-nav-btn" onclick="mijenjajMjesec(-1)">&#8592;</button>
-        <span class="kal-mjes">${esc(naslov)}</span>
-        <button class="kal-nav-btn" onclick="mijenjajMjesec(1)">&#8594;</button>
-      </div>
-      <div class="kal-card">
-        <div class="kal-grid">
-          ${headerHTML}
-          ${prazneHTML}
-          ${daniHTML}
+      <div class="kal-layout">
+        <div class="kal-lijevo">
+          <div class="kal-nav">
+            <button class="kal-nav-btn" onclick="mijenjajMjesec(-1)">&#8592;</button>
+            <span class="kal-mjes">${esc(naslov)}</span>
+            <button class="kal-nav-btn" onclick="mijenjajMjesec(1)">&#8594;</button>
+          </div>
+          <div class="kal-card">
+            <div class="kal-grid">
+              ${headerHTML}
+              ${prazneHTML}
+              ${daniHTML}
+            </div>
+          </div>
+        </div>
+        <div class="kal-desno">
+          ${terminiHTML}
         </div>
       </div>
-      ${terminiHTML}
     </div>
   `;
 }
