@@ -655,6 +655,385 @@
     .am-badge-predlozeno { background: #fef9c3; color: #854d0e; }
 
     /* ========================
+       Admin mockup — shell s dark sidebarom (am-shell, am-sidebar, am-main)
+       ======================== */
+    .am-shell {
+      display: flex;
+      height: 460px;
+      overflow: hidden;
+    }
+
+    /* Tamni sidebar */
+    .am-sidebar {
+      width: 190px;
+      background: #0f172a !important;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .am-sidebar-logo {
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .am-sidebar-logo-text {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .am-sidebar-logo-text span { color: #0d9488; }
+
+    .am-sidebar-brand {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .am-sidebar-nav {
+      padding: 8px 0;
+      flex: 1;
+      background: #0f172a;
+    }
+
+    .am-nav-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.22);
+      padding: 12px 18px 4px;
+    }
+
+    .am-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 18px 9px 15px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.48);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+
+    .am-nav-item.active {
+      color: #fff;
+      background: rgba(13,148,136,0.16);
+      border-left-color: #0d9488;
+    }
+
+    .am-nav-item svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      opacity: 0.6;
+    }
+
+    .am-nav-item.active svg { opacity: 1; }
+
+    .am-nav-badge {
+      margin-left: auto;
+      background: #0d9488;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+    }
+
+    /* Main area */
+    .am-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .am-topbar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      flex-shrink: 0;
+    }
+
+    .am-topbar-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .am-content {
+      padding: 18px 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* ========================
+       AI asistent mockup — perspektiva korisnika
+       (ai-page-sim, ai-chat-panel, ai-chips, ai-fab-btn)
+       ======================== */
+
+    /* Wrapper koji simulira stranicu s widgetom u kutu */
+    .ai-page-sim {
+      position: relative;
+      min-height: 460px;
+      background: #f1f5f9;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Simulirana pozadina stranice ordinacije */
+    .ai-page-bg {
+      flex: 1;
+      padding: 28px 32px 0;
+    }
+
+    .ai-bg-naslov {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .ai-bg-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* Blurred content koji sugerira booking formu ispod */
+    .ai-blur-layout {
+      display: grid;
+      grid-template-columns: 1fr 240px;
+      gap: 16px;
+      opacity: 0.35;
+    }
+
+    .ai-blur-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .ai-blur-card.tall { height: 260px; }
+    .ai-blur-card.sm   { height: 72px; }
+
+    .ai-blur-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Wrapper za AI tab: ograničena visina, relativna pozicija za overlay */
+    .ai-overlay-wrap {
+      position: relative;
+      max-height: 540px;
+      overflow: hidden;
+    }
+
+    /* Widget area — apsolutno u donjem desnom kutu */
+    .ai-widget-wrap {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    /* Otvoreni chat panel */
+    .ai-chat-panel {
+      width: 300px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(15,23,42,0.15);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-chat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ai-chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Zelena točka "online" */
+    .ai-live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: puls 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    .ai-chat-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .ai-chat-online {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .ai-chat-close {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font);
+      line-height: 1;
+    }
+
+    /* Poruke */
+    .ai-chat-msgs {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fafcff;
+    }
+
+    .ai-msg-bot {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 3px 12px 12px 12px;
+      padding: 9px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text);
+    }
+
+    /* Ponuđena pitanja — chip gumbi */
+    .ai-chips-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .ai-chip {
+      padding: 6px 12px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.12s;
+    }
+
+    .ai-chip:hover {
+      background: rgba(13,148,136,0.18);
+    }
+
+    /* Input traka */
+    .ai-chat-bar {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: #fff;
+    }
+
+    .ai-chat-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-family: var(--font);
+      font-size: 12px;
+      outline: none;
+      background: #f8fafc;
+      color: var(--text);
+    }
+
+    .ai-chat-input::placeholder { color: var(--muted); }
+
+    .ai-chat-send {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.12s;
+    }
+
+    .ai-chat-send:hover { background: var(--accent-dark); }
+
+    /* FAB gumb ispod panela */
+    .ai-fab-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 20px;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(13,148,136,0.4);
+    }
+
+    .ai-fab-puls {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.8);
+      animation: puls 2s ease-in-out infinite;
+    }
+
+    /* Responzivnost za AI i admin mockup */
+    @media (max-width: 600px) {
+      .ai-blur-layout { grid-template-columns: 1fr; }
+      .ai-blur-col { display: none; }
+      .ai-chat-panel { width: 260px; }
+      .am-sidebar { width: 160px; }
+    }
+
+    /* ========================
        Značajke sekcija
        ======================== */
     #znacajke {
@@ -1412,6 +1791,7 @@
 
       <!-- ---- Tab: AI asistent ---- -->
       <!-- Perspektiva korisnika: stranica ordinacije s otvorenim chat widgetom -->
+      <!-- AI tab: točna kopija booking stranice s otvorenim chat widgetom na vrhu -->
       <div id="tab-ai" class="tab-panel" role="tabpanel">
         <div class="mockup-wrapper">
           <div class="mockup-bar">
@@ -1421,27 +1801,89 @@
             <div class="mockup-url">ordinacija-demo.hr/zakazivanje</div>
           </div>
 
-          <!-- Simulacija: korisnik gleda stranicu ordinacije, widget otvoren u kutu -->
-          <div class="ai-page-sim">
+          <!-- Wrapper: booking stranica u pozadini, chat widget apsolutno pozicioniran -->
+          <div class="ai-overlay-wrap">
 
-            <!-- Pozadina stranice ordinacije (blurred content) -->
-            <div class="ai-page-bg">
-              <div class="ai-bg-naslov">Demo ordinacija</div>
-              <div class="ai-bg-sub">Rezervirajte termin u 30 sekundi</div>
-              <div class="ai-blur-layout">
-                <div class="ai-blur-card tall"></div>
-                <div class="ai-blur-col">
-                  <div class="ai-blur-card sm"></div>
-                  <div class="ai-blur-card sm"></div>
-                  <div class="ai-blur-card sm"></div>
+            <!-- Točna kopija booking stranice (isti bm- markup kao u Tab 1) -->
+            <div class="bm-page-head">
+              <div class="bm-page-title">Demo ordinacija</div>
+              <div class="bm-page-sub">Rezervirajte termin u 30 sekundi</div>
+            </div>
+            <div class="bm-layout">
+              <div class="bm-card">
+                <div class="bm-card-title">Odaberite termin</div>
+                <div class="bm-kalendar">
+                  <div class="bm-kal-nav">
+                    <button class="bm-kal-nav-btn">&#8249;</button>
+                    <div class="bm-kal-miesec">Travanj 2026</div>
+                    <button class="bm-kal-nav-btn">&#8250;</button>
+                  </div>
+                  <div class="bm-kal-dani-nazivi">
+                    <div class="bm-kal-dan-naziv">PON</div><div class="bm-kal-dan-naziv">UTO</div>
+                    <div class="bm-kal-dan-naziv">SRI</div><div class="bm-kal-dan-naziv">&#268;ET</div>
+                    <div class="bm-kal-dan-naziv">PET</div><div class="bm-kal-dan-naziv">SUB</div>
+                    <div class="bm-kal-dan-naziv">NED</div>
+                  </div>
+                  <div class="bm-kal-grid">
+                    <div class="bm-kal-dan prazno"></div><div class="bm-kal-dan prazno"></div>
+                    <div class="bm-kal-dan danas">1</div><div class="bm-kal-dan">2</div>
+                    <div class="bm-kal-dan">3</div><div class="bm-kal-dan prosli">4</div><div class="bm-kal-dan prosli">5</div>
+                    <div class="bm-kal-dan">6</div><div class="bm-kal-dan">7</div><div class="bm-kal-dan">8</div>
+                    <div class="bm-kal-dan odabran">9</div><div class="bm-kal-dan">10</div>
+                    <div class="bm-kal-dan prosli">11</div><div class="bm-kal-dan prosli">12</div>
+                    <div class="bm-kal-dan">13</div><div class="bm-kal-dan">14</div><div class="bm-kal-dan">15</div>
+                    <div class="bm-kal-dan">16</div><div class="bm-kal-dan">17</div>
+                    <div class="bm-kal-dan prosli">18</div><div class="bm-kal-dan prosli">19</div>
+                    <div class="bm-kal-dan">20</div><div class="bm-kal-dan">21</div><div class="bm-kal-dan">22</div>
+                    <div class="bm-kal-dan">23</div><div class="bm-kal-dan">24</div>
+                    <div class="bm-kal-dan prosli">25</div><div class="bm-kal-dan prosli">26</div>
+                    <div class="bm-kal-dan">27</div><div class="bm-kal-dan">28</div><div class="bm-kal-dan">29</div>
+                    <div class="bm-kal-dan">30</div>
+                    <div class="bm-kal-dan prazno"></div><div class="bm-kal-dan prazno"></div><div class="bm-kal-dan prazno"></div>
+                  </div>
+                </div>
+                <div class="bm-termini">
+                  <div class="bm-termini-naslov">Slobodni termini</div>
+                  <div class="bm-termini-grid">
+                    <div class="bm-termin zauzet">09:00</div><div class="bm-termin zauzet">09:30</div>
+                    <div class="bm-termin odabran">10:00</div><div class="bm-termin">10:30</div>
+                    <div class="bm-termin">11:00</div><div class="bm-termin zauzet">11:30</div>
+                    <div class="bm-termin">14:00</div><div class="bm-termin">14:30</div>
+                    <div class="bm-termin">15:00</div><div class="bm-termin zauzet">15:30</div>
+                    <div class="bm-termin">16:00</div><div class="bm-termin">16:30</div>
+                  </div>
+                </div>
+                <form class="bm-forma" onsubmit="return false;">
+                  <div class="bm-odabir-badge">&#10003; Odabrano: 09.04.2026. u 10:00</div>
+                  <input class="bm-input" type="text" placeholder="Ime i prezime" />
+                  <input class="bm-input" type="email" placeholder="Email adresa" />
+                  <select class="bm-select"><option>Odaberite uslugu</option><option>Opći pregled</option></select>
+                  <button class="bm-submit" type="button">Po&#353;alji zahtjev</button>
+                </form>
+              </div>
+              <div class="bm-info-strana">
+                <div class="bm-stepper-card">
+                  <div class="bm-stepper-naslov">Kako rezervirati</div>
+                  <div class="bm-stepper">
+                    <div class="bm-step"><div class="bm-step-left"><div class="bm-step-num">1</div><div class="bm-step-line"></div></div><div class="bm-step-body"><div class="bm-step-title">Odaberite datum</div><div class="bm-step-desc">Kliknite slobodan radni dan</div></div></div>
+                    <div class="bm-step"><div class="bm-step-left"><div class="bm-step-num">2</div><div class="bm-step-line"></div></div><div class="bm-step-body"><div class="bm-step-title">Odaberite termin</div><div class="bm-step-desc">Prikazuju se dostupni sati</div></div></div>
+                    <div class="bm-step last"><div class="bm-step-left"><div class="bm-step-num">3</div></div><div class="bm-step-body"><div class="bm-step-title">Po&#353;aljite zahtjev</div><div class="bm-step-desc">Potvrda sti&#382;e mailom</div></div></div>
+                  </div>
+                </div>
+                <div class="bm-stats-row">
+                  <div class="bm-stat-box"><div class="bm-stat-val">30s</div><div class="bm-stat-label">rezervacija</div></div>
+                  <div class="bm-stat-box"><div class="bm-stat-val">24h</div><div class="bm-stat-label">potvrda</div></div>
+                  <div class="bm-stat-box"><div class="bm-stat-val">24/7</div><div class="bm-stat-label">dostupno</div></div>
+                </div>
+                <div class="bm-kontakt-box">
+                  <div class="bm-kontakt-red"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg><span>Zagreb, Ilica 42</span></div>
+                  <div class="bm-kontakt-red"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Pon&ndash;Pet 8:00&ndash;20:00</span></div>
                 </div>
               </div>
             </div>
 
-            <!-- Chat widget fiksiran u donjem desnom kutu -->
+            <!-- Chat widget apsolutno pozicioniran — dno desno, točno kao na pravoj stranici -->
             <div class="ai-widget-wrap">
-
-              <!-- Otvoreni panel chata -->
               <div class="ai-chat-panel">
                 <div class="ai-chat-header">
                   <div class="ai-chat-header-left">
@@ -1453,14 +1895,8 @@
                   </div>
                   <button class="ai-chat-close">&#xD7;</button>
                 </div>
-
                 <div class="ai-chat-msgs">
-                  <!-- Pozdravna poruka bota -->
-                  <div class="ai-msg-bot">
-                    Dobar dan! Ja sam AI asistent ove ordinacije. Odgovaram na pitanja o uslugama, terminima i zakazivanju.
-                  </div>
-
-                  <!-- Ponuđena pitanja kao chip gumbi -->
+                  <div class="ai-msg-bot">Dobar dan! Odgovaram na pitanja o uslugama, terminima i zakazivanju.</div>
                   <div class="ai-chips-wrap">
                     <button class="ai-chip">Koje usluge nudite?</button>
                     <button class="ai-chip">Slobodni termini ovaj tjedan</button>
@@ -1468,22 +1904,14 @@
                     <button class="ai-chip">Radno vrijeme</button>
                   </div>
                 </div>
-
                 <div class="ai-chat-bar">
                   <input class="ai-chat-input" type="text" placeholder="Upi&#353;i pitanje..." readonly />
-                  <button class="ai-chat-send">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                  </button>
+                  <button class="ai-chat-send"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
                 </div>
               </div>
-
-              <!-- FAB gumb (Pitajte asistenta) ispod panela -->
-              <button class="ai-fab-btn">
-                <span class="ai-fab-puls"></span>
-                Pitajte asistenta
-              </button>
-
+              <button class="ai-fab-btn"><span class="ai-fab-puls"></span>Pitajte asistenta</button>
             </div>
+
           </div>
         </div>
       </div>
