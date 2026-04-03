@@ -54,12 +54,17 @@ function loadClient(clientId) {
 
 // Helper — pošalji mail (Resend)
 async function sendMail({ to, subject, text }) {
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: process.env.EMAIL_FROM,   // npr. "DentBook <noreply@tvoja-domena.com>"
     to,
     subject,
     text,
   });
+  if (error) {
+    console.error("RESEND ERROR:", error);
+    throw new Error(error.message || "Mail nije poslan");
+  }
+  return data;
 }
 
 // ── RUTE ──
