@@ -38,6 +38,7 @@ const bookingLimiter = rateLimit({
 });
 
 // ── Middleware ──
+app.set("trust proxy", 1); // potrebno za Railway/reverse proxy (rate limiter)
 app.use(express.json({ limit: "20kb" })); // ograničava veličinu tijela zahtjeva
 app.use(express.static("public"));
 app.use((req, res, next) => {
@@ -280,6 +281,7 @@ app.post("/booking", bookingLimiter, async (req, res) => {
   }
 });
 
+
 // Admin — dohvati zahtjeve
 app.get("/admin/:clientId/:token", (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
@@ -309,7 +311,6 @@ app.post("/admin-action", async (req, res) => {
   try {
     const { clientId, token, id, akcija, termin } = req.body;
 
-    // Autentikacija
     const safeClientId = sanitizeClientId(clientId);
     if (!safeClientId) return res.status(400).json({ ok: false });
     const client = loadClient(safeClientId);
@@ -347,9 +348,6 @@ app.post("/admin-action", async (req, res) => {
   }
 });
 
-
-
-
 // Admin — kalendar (potvrđeni termini grupirani po datumu)
 app.get("/admin-kalendar/:clientId/:token", (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
@@ -362,7 +360,6 @@ app.get("/admin-kalendar/:clientId/:token", (req, res) => {
     "SELECT * FROM requests WHERE clientId = ? AND status = 'potvrdjeno'"
   ).all(clientId);
 
-  // Grupiraj po datumu (format: "DD.MM.YYYY. u HH:MM")
   const grupirano = {};
   for (const z of zahtjevi) {
     const match = z.date.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\.\s+u\s+(\d{2}:\d{2})/);
@@ -370,12 +367,7 @@ app.get("/admin-kalendar/:clientId/:token", (req, res) => {
     const [, dan, mjes, god, vrijeme] = match;
     const kljuc = `${god}-${mjes.padStart(2, "0")}-${dan.padStart(2, "0")}`;
     if (!grupirano[kljuc]) grupirano[kljuc] = [];
-    grupirano[kljuc].push({
-      id:      z.id,
-      name:    z.name,
-      service: z.service,
-      time:    vrijeme,
-    });
+    grupirano[kljuc].push({ id: z.id, name: z.name, service: z.service, time: vrijeme });
   }
 
   res.json(grupirano);
@@ -391,7 +383,6 @@ app.get("/termini/:clientId/:datum", (req, res) => {
     return res.status(400).json({ error: "Neispravan datum." });
 
   const [god, mjes, dan] = datum.split("-");
-  // U bazi je format: "DD.MM.YYYY. u HH:MM" (s padStart na 2 znaka)
   const likeUzorak = `${dan}.${mjes}.${god}.%`;
 
   const zahtjevi = db.prepare(
