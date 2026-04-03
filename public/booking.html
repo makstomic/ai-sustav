@@ -115,13 +115,17 @@
 
       <!-- Kontakt -->
       <div class="kontakt-box">
-        <div class="kontakt-red">
+        <div class="kontakt-red" id="kontakt-lokacija" style="display:none;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-          <span>B.A.Kr&#269;eli&#263;a 15/1, Zapre&#353;i&#263;</span>
+          <span id="kontakt-lokacija-tekst"></span>
         </div>
-        <div class="kontakt-red">
+        <div class="kontakt-red" id="kontakt-telefon" style="display:none;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.18 4.32 2 2 0 012.18 2H5.1a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+          <span id="kontakt-telefon-tekst"></span>
+        </div>
+        <div class="kontakt-red" id="kontakt-sati" style="display:none;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>Pon&ndash;Pet 8:00&ndash;20:00 &nbsp;&middot;&nbsp; Sub 8:00&ndash;14:00</span>
+          <span id="kontakt-sati-tekst"></span>
         </div>
       </div>
 
@@ -136,7 +140,7 @@
 
   <div id="chat-panel">
     <div class="chat-header">
-      <div class="chat-header-title">AI asistent</div>
+      <div class="chat-header-title" id="chatHeaderTitle">AI asistent</div>
       <button class="chat-zatvori" onclick="toggleChat()">&#xD7;</button>
     </div>
     <div id="chatMessages"></div>

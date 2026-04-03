@@ -36,11 +36,35 @@ async function loadConfig() {
 
   pageTitle.innerText = `Rezervacija — ${clientConfig.brandName}`;
 
- if (clientConfig.theme?.accent) {
-  document.documentElement.style.setProperty("--accent", clientConfig.theme.accent);
-  document.documentElement.style.setProperty("--accent-2", clientConfig.theme.accent2 || clientConfig.theme.accent);
-  document.documentElement.style.setProperty("--accent-soft", clientConfig.theme.accentSoft || "rgba(45, 74, 138, 0.10)");
-}
+  const t = clientConfig.theme || {};
+  if (t.accent) {
+    document.documentElement.style.setProperty("--accent", t.accent);
+    document.documentElement.style.setProperty("--accent-2", t.accent2 || t.accent);
+    document.documentElement.style.setProperty("--accent-soft", t.accentSoft || "rgba(45,74,138,0.10)");
+  }
+  if (t.bgColor) {
+    document.documentElement.style.setProperty("--bg", t.bgColor);
+  }
+  if (t.bgSoft) {
+    document.documentElement.style.setProperty("--bg-soft", t.bgSoft);
+  }
+
+  // Kontakt box
+  if (clientConfig.location) {
+    document.getElementById("kontakt-lokacija-tekst").textContent = clientConfig.location;
+    document.getElementById("kontakt-lokacija").style.display = "flex";
+  }
+  if (clientConfig.phone) {
+    document.getElementById("kontakt-telefon-tekst").textContent = clientConfig.phone;
+    document.getElementById("kontakt-telefon").style.display = "flex";
+  }
+  if (clientConfig.workingHours) {
+    document.getElementById("kontakt-sati-tekst").textContent = clientConfig.workingHours;
+    document.getElementById("kontakt-sati").style.display = "flex";
+  }
+
+  // Chat header
+  document.getElementById("chatHeaderTitle").textContent = `${clientConfig.brandName} — Asistent`;
 }
 
 // ── FAQ chatbot ──
@@ -177,10 +201,26 @@ function addQuickReplies() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// ── Popuni usluge iz configa ──
+function populateServices() {
+  const select = document.getElementById("service");
+  const services = clientConfig.services || [];
+  if (!services.length) return;
+
+  select.innerHTML = '<option value="" disabled selected>Odaberite uslugu</option>';
+  services.forEach(({ name }) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+}
+
 // INIT
 (async () => {
   try {
     await loadConfig();
+    populateServices();
 
     const pozdrav = `Dobrodošli u ${clientConfig.brandName}! 👋\n\nJa sam vaš digitalni asistent. Mogu vam pomoći s informacijama o uslugama, cijenama i ordinaciji.\n\nO čemu želite saznati više?`;
 

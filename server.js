@@ -131,7 +131,7 @@ app.post("/faq", faqLimiter, async (req, res) => {
     const phoneText = client.phone || "(telefon nije definiran)";
     const hoursText = client.workingHours || "(radno vrijeme nije definirano)";
 
-    const systemPrompt = `
+    const systemPrompt = client.systemPrompt ? client.systemPrompt.trim() : `
 Ti si profesionalni AI asistent za: ${client.brandName}.
 Jezik: hrvatski. Stil: kratko, jasno, profesionalno.
 
@@ -401,5 +401,5 @@ app.get("/termini/:clientId/:datum", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server radi na http://localhost:${PORT}/booking/simic`);
+  console.log(`Server radi na http://localhost:${PORT}`);
 });
