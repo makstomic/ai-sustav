@@ -1,0 +1,17 @@
+{
+  "brandName": "Dentalna ordinacija Ivana Vrbić",
+  "clinicEmail": "info@ordinacija-vrbic.hr",
+  "adminToken": "vR7nQ4wL",
+  "theme": {
+    "accent": "#2563eb"
+  },
+  "location": "Podsusedska aleja 10a, 10000, Zagreb",
+  "phone": "01 3492 410",
+  "workingHours": "Pon–Pet: 08:00–20:00 | Sub: 08:00–13:00",
+  "services": [
+    { "name": "Estetska stomatologija", "price": "" },
+    { "name": "Endodoncija", "price": "" },
+    { "name": "Implantologija", "price": "" },
+    { "name": "Oralna kirurgija", "price": "" }
+  ]
+}
