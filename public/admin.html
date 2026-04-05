@@ -530,6 +530,101 @@
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; }
     }
+
+    /* ========================
+       Mobile optimizacija (≤ 768px)
+       ======================== */
+    @media (max-width: 768px) {
+      #content {
+        padding: 16px 14px;
+      }
+
+      /* Zahtjev kartice — kompaktnije */
+      .zahtjev-card {
+        padding: 14px 16px;
+        margin-bottom: 10px;
+      }
+
+      .zahtjev-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+      }
+
+      /* Podaci u redovima — puni width na mobitelu */
+      .zahtjev-row {
+        grid-template-columns: 90px 1fr;
+        font-size: 13px;
+        padding: 6px 0;
+      }
+
+      /* Gumbi za akcije — stapaju se na malom ekranu */
+      .zahtjev-akcije {
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+      }
+
+      .btn-potvrdi,
+      .btn-predlozi {
+        padding: 13px;
+        font-size: 14px;
+      }
+
+      /* Kalendar layout — već stacked, samo razmaci */
+      .kal-wrap {
+        max-width: 100%;
+      }
+
+      .kal-card {
+        padding: 12px;
+      }
+
+      .kal-dan {
+        min-height: 40px;
+        font-size: 13px;
+      }
+
+      /* Termini grid — manji minimum da stanu na ekran */
+      .termini-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 6px;
+      }
+
+      .termini-wrap {
+        padding: 14px 16px;
+      }
+
+      /* Topbar — malo manji */
+      #topbar {
+        height: 52px;
+        padding: 0 16px;
+      }
+
+      #adminTitle {
+        font-size: 14px;
+      }
+    }
+
+    /* Extra mali ekrani (≤ 400px) */
+    @media (max-width: 400px) {
+      .zahtjev-row {
+        grid-template-columns: 80px 1fr;
+        font-size: 12px;
+      }
+
+      .kal-header-dan {
+        font-size: 9px;
+        padding: 4px 0;
+      }
+
+      .termini-grid {
+        grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+      }
+    }
   </style>
 </head>
 <body>

@@ -162,8 +162,27 @@
 
     const _kalClientId = window.location.pathname.split('/').pop();
     let zauzetiDanas = [];
+    let workingHoursSchedule = {};
 
-    const sviTermini = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30'];
+    // Generira termine u razmacima od 30 min unutar radnog vremena
+    function generirajTermine(raspon) {
+      if (!raspon) return [];
+      const [od, do_] = raspon.split('-');
+      const [odH, odM] = od.split(':').map(Number);
+      const [doH, doM] = do_.split(':').map(Number);
+      const termini = [];
+      let h = odH, m = odM;
+      while (h * 60 + m < doH * 60 + doM) {
+        termini.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+        m += 30;
+        if (m >= 60) { m -= 60; h++; }
+      }
+      return termini;
+    }
+
+    function jeRadniDan(danTjedna) {
+      return String(danTjedna) in workingHoursSchedule;
+    }
 
     function renderKalendar() {
       document.getElementById('kal-naslov').textContent = `${MJESECI[mj]} ${god}`;
@@ -189,15 +208,15 @@
         const datObj = new Date(god, mj, d);
         const danTjedna = datObj.getDay();
         const jeProsli = datObj < new Date(danas.getFullYear(), danas.getMonth(), danas.getDate());
-        const jeVikend = danTjedna === 0 || danTjedna === 6;
+        const jeZatvoren = !jeRadniDan(danTjedna);
 
-        if (jeProsli || jeVikend) {
+        if (jeProsli || jeZatvoren) {
           el.classList.add('prosli');
         } else {
           if (d === danas.getDate() && mj === danas.getMonth() && god === danas.getFullYear()) el.classList.add('danas');
           if (odabraniDan && d === odabraniDan.d && mj === odabraniDan.mj && god === odabraniDan.god) el.classList.add('odabran');
           el.onclick = async () => {
-            odabraniDan = {d, mj, god};
+            odabraniDan = {d, mj, god, danTjedna};
             odabraniTermin = null;
             renderKalendar();
             const kljuc = `${god}-${String(mj+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -219,6 +238,9 @@
       if (!odabraniDan) { sekcija.style.display = 'none'; return; }
       sekcija.style.display = 'block';
       grid.innerHTML = '';
+
+      const raspon = workingHoursSchedule[String(odabraniDan.danTjedna)] || null;
+      const sviTermini = generirajTermine(raspon);
 
       sviTermini.forEach(t => {
         const el = document.createElement('div');
@@ -263,7 +285,11 @@
       if (chatOtvoren) document.getElementById('chatInput').focus();
     }
 
-    renderKalendar();
+    // Kalendar se renderira tek kad booking.js postavi raspored
+    window.initKalendar = function(schedule) {
+      workingHoursSchedule = schedule || {};
+      renderKalendar();
+    };
   </script>
 
   <script src="/booking.js"></script>

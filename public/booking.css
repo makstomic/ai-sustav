@@ -651,3 +651,120 @@ body {
 #chatSend:hover {
   background: var(--accent-2);
 }
+
+/* ============================================================
+   Mobile optimizacija (≤ 600px)
+   ============================================================ */
+@media (max-width: 600px) {
+  #pageTitle {
+    font-size: 20px;
+    margin: 20px 0 4px;
+  }
+
+  #pageSubtitle {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .layout {
+    width: calc(100% - 24px);
+    margin-bottom: 96px;
+    gap: 14px;
+  }
+
+  /* Kalendar — veći touch targetovi */
+  .kalendar {
+    padding: 12px;
+  }
+
+  .kal-dan {
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .kal-nav-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .kal-dan-naziv {
+    font-size: 10px;
+  }
+
+  /* Termini — 3 kolone umjesto 4 */
+  .termini-sekcija {
+    padding: 0 12px 16px;
+  }
+
+  .termini-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .termin {
+    padding: 13px 6px;
+    font-size: 14px;
+  }
+
+  /* Forma — 16px sprječava auto-zoom na iOS */
+  .forma-sekcija {
+    padding: 16px 12px;
+    gap: 10px;
+  }
+
+  .forma-sekcija input,
+  .forma-sekcija select,
+  .forma-sekcija textarea {
+    padding: 14px 13px;
+    font-size: 16px;
+  }
+
+  .submit-btn {
+    padding: 16px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  /* Chat gumb — niže i prilagođeno */
+  #chat-widget-btn {
+    bottom: 16px;
+    right: 16px;
+    padding: 12px 18px;
+    font-size: 13px;
+  }
+
+  /* Chat panel — puni ekran širina na mobilnom */
+  #chat-panel {
+    bottom: 76px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    border-radius: 16px;
+  }
+
+  #chatMessages {
+    height: 260px;
+  }
+
+  /* Sprječava iOS auto-zoom pri fokusu na chat input */
+  #chatInput {
+    font-size: 16px;
+  }
+
+  /* Info strana — kompaktni razmaci */
+  .info-strana {
+    gap: 10px;
+  }
+
+  .stepper {
+    padding: 14px 14px 10px;
+  }
+
+  .stats-row {
+    gap: 6px;
+  }
+
+  .stat-val {
+    font-size: 18px;
+  }
+}

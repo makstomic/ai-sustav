@@ -397,5 +397,5 @@ app.get("/termini/:clientId/:datum", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server radi na http://localhost:${PORT}`);
+  console.log(`Server radi na http://localhost:${PORT}/booking/vrbic`);
 });

@@ -49,6 +49,16 @@ async function loadConfig() {
     document.documentElement.style.setProperty("--bg-soft", t.bgSoft);
   }
 
+  // Font
+  if (clientConfig.font) {
+    const fontName = clientConfig.font;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@400;500;600;700;800&display=swap`;
+    document.head.appendChild(link);
+    document.documentElement.style.setProperty("--font", `'${fontName}', ui-sans-serif, system-ui, sans-serif`);
+  }
+
   // Kontakt box
   if (clientConfig.location) {
     document.getElementById("kontakt-lokacija-tekst").textContent = clientConfig.location;
@@ -62,6 +72,7 @@ async function loadConfig() {
     document.getElementById("kontakt-sati-tekst").textContent = clientConfig.workingHours;
     document.getElementById("kontakt-sati").style.display = "flex";
   }
+
 
   // Chat header
   document.getElementById("chatHeaderTitle").textContent = `${clientConfig.brandName} — Asistent`;
@@ -221,6 +232,7 @@ function populateServices() {
   try {
     await loadConfig();
     populateServices();
+    if (typeof window.initKalendar === 'function') window.initKalendar(clientConfig.workingHoursSchedule || {});
 
     const pozdrav = `Dobrodošli u ${clientConfig.brandName}! 👋\n\nJa sam vaš digitalni asistent. Mogu vam pomoći s informacijama o uslugama, cijenama i ordinaciji.\n\nO čemu želite saznati više?`;
 

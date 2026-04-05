@@ -10,9 +10,25 @@ let kalendarData = {};
 let kalendarGodina = null;
 let kalendarMjesec = null;
 let odabraniDanKey = null;
+let workingHoursSchedule = {};
 
 const MJES_NAZIVI = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj",
                      "Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
+
+function generirajTermine(raspon) {
+  if (!raspon) return [];
+  const [od, do_] = raspon.split('-');
+  const [odH, odM] = od.split(':').map(Number);
+  const [doH, doM] = do_.split(':').map(Number);
+  const termini = [];
+  let h = odH, m = odM;
+  while (h * 60 + m < doH * 60 + doM) {
+    termini.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+    m += 30;
+    if (m >= 60) { m -= 60; h++; }
+  }
+  return termini;
+}
 
 // ── Tabovi — sidebar navigacija ──
 function napraviTabove() {
@@ -128,6 +144,15 @@ async function predlozi(id) {
 async function ucitajZahtjeve() {
   const dataRes = await fetch(`/admin-data/${clientId}?token=${adminToken}`);
   const data    = await dataRes.json();
+
+  // Učitaj raspored radnog vremena
+  try {
+    const cfgRes = await fetch(`/config/${clientId}`);
+    if (cfgRes.ok) {
+      const cfg = await cfgRes.json();
+      workingHoursSchedule = cfg.workingHoursSchedule || {};
+    }
+  } catch { workingHoursSchedule = {}; }
 
   title.textContent = "Na čekanju";
   sviZahtjevi = data.zahtjevi;
@@ -253,17 +278,13 @@ function napraviTermine(dateKey) {
     zauzetoMap[t.time] = t;
   }
 
-  // Slotovi 09:00 — 16:30 svakih 30 min
-  const slotovi = [];
-  for (let h = 9; h <= 16; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      if (h === 16 && m > 30) break;
-      slotovi.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    }
-  }
-
   const [g, mj, d] = dateKey.split("-");
   const hrDatum = `${parseInt(d)}. ${parseInt(mj)}. ${g}.`;
+
+  // Slotovi iz radnog vremena za taj dan
+  const danTjedna = new Date(parseInt(g), parseInt(mj) - 1, parseInt(d)).getDay();
+  const raspon = workingHoursSchedule[String(danTjedna)];
+  const slotovi = raspon ? generirajTermine(raspon) : [];
 
   const slotsHTML = slotovi.map(s => {
     const termin = zauzetoMap[s];

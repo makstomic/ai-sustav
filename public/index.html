@@ -1029,8 +1029,16 @@
     @media (max-width: 600px) {
       .ai-blur-layout { grid-template-columns: 1fr; }
       .ai-blur-col { display: none; }
-      .ai-chat-panel { width: 260px; }
-      .am-sidebar { width: 160px; }
+      .ai-chat-panel { width: 240px; }
+
+      /* Admin mockup — sakrij sidebar na mobilnom, prikaži samo content */
+      .am-sidebar { display: none; }
+      .am-shell { height: auto; min-height: 380px; }
+
+      /* Booking mockup — kompaktniji */
+      .bm-layout { padding: 0 10px 18px; }
+      .bm-termini-grid { grid-template-columns: repeat(3, 1fr); }
+      .bm-kal-dan { height: 30px; font-size: 12px; }
     }
 
     /* ========================
@@ -1490,6 +1498,57 @@
         width: 100%;
         justify-content: center;
       }
+    }
+
+    /* ========================
+       Mobile optimizacija (≤ 768px)
+       ======================== */
+    @media (max-width: 768px) {
+      /* Sekcije — manji padding */
+      #hero         { padding: 52px 0 40px; }
+      #preview      { padding: 52px 0; }
+      #znacajke     { padding: 52px 0; }
+      #kako-radi    { padding: 52px 0; }
+      #cijene       { padding: 52px 0; }
+      #kontakt      { padding: 52px 0; }
+
+      .preview-header  { margin-bottom: 28px; }
+      .znacajke-header { margin-bottom: 36px; }
+      .kako-header     { margin-bottom: 40px; }
+      .cijene-header   { margin-bottom: 36px; }
+
+      /* Kontejner — manji rubovi */
+      .container { width: calc(100% - 32px); }
+
+      /* Hero — gumbi jedan ispod drugog na malim ekranima */
+      .hero-btns { flex-direction: column; align-items: stretch; }
+      .hero-btns .btn-primary,
+      .hero-btns .btn-outline { justify-content: center; }
+
+      /* Cijene kartica */
+      .price-card   { padding: 32px 22px; }
+      .price-amount { font-size: 42px; }
+
+      /* Kontakt forma */
+      .kontakt-form { padding: 24px 20px; }
+
+      /* Mockup wrapper — bez bočnih sjena na malim ekranima */
+      .mockup-wrapper { border-radius: 10px; }
+
+      /* Tab gumbi — manji */
+      .tab-btn { padding: 9px 16px; font-size: 13px; }
+    }
+
+    @media (max-width: 480px) {
+      #hero { padding: 40px 0 32px; }
+      #preview, #znacajke, #kako-radi, #cijene, #kontakt { padding: 40px 0; }
+
+      .price-card   { padding: 26px 18px; }
+      .price-amount { font-size: 38px; }
+      .kontakt-form { padding: 20px 16px; }
+
+      /* Mockup browser bar — sakrij URL na malim ekranima */
+      .mockup-url { display: none; }
     }
 
     /* ========================
