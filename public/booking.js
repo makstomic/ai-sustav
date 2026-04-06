@@ -11,6 +11,31 @@ const chatSend      = document.getElementById("chatSend");
 let history      = [];
 let clientConfig = null;
 
+// Doktori
+let sviDoktori    = [];
+let aktivniDrIdx  = 0;
+
+function aktivniDoktorId() {
+  return sviDoktori[aktivniDrIdx]?.id || "";
+}
+
+function promijeniDoktora(smjer) {
+  if (sviDoktori.length === 0) return;
+  aktivniDrIdx = (aktivniDrIdx + smjer + sviDoktori.length) % sviDoktori.length;
+  document.getElementById("doctorIme").textContent = sviDoktori[aktivniDrIdx]?.name || "—";
+  // Reset kalendara za novog doktora
+  if (typeof window._resetKalendar === "function") window._resetKalendar();
+}
+
+function initDoctorSwitcher(doctors) {
+  sviDoktori = doctors || [];
+  if (sviDoktori.length === 0) return;
+  const sw = document.getElementById("doctorSwitcher");
+  if (sw) sw.style.display = "flex";
+  const imeEl = document.getElementById("doctorIme");
+  if (imeEl) imeEl.textContent = sviDoktori[0]?.name || "—";
+}
+
 // ── Chat bubble helpers ──
 function addMsg(text, tko) {
   const row = document.createElement("div");
@@ -98,6 +123,7 @@ form.addEventListener("submit", async (e) => {
 
   const payload = {
     clientId,
+    doctorId: aktivniDoktorId(),
     name:    document.getElementById("name").value.trim(),
     email:   document.getElementById("email").value.trim(),
     date:    document.getElementById("date").value.trim(),
@@ -232,6 +258,7 @@ function populateServices() {
   try {
     await loadConfig();
     populateServices();
+    initDoctorSwitcher(clientConfig.doctors || []);
     if (typeof window.initKalendar === 'function') window.initKalendar(clientConfig.workingHoursSchedule || {});
 
     const pozdrav = `Dobrodošli u ${clientConfig.brandName}! 👋\n\nJa sam vaš digitalni asistent. Mogu vam pomoći s informacijama o uslugama, cijenama i ordinaciji.\n\nO čemu želite saznati više?`;

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Prijava — Ordinova</title>
+  <style>
+    :root {
+      --accent: #0d9488;
+      --accent-2: #0f766e;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: rgba(15,23,42,0.10);
+      --shadow: 0 4px 24px rgba(15,23,42,0.10);
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-brand {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+    }
+
+    .login-logo span { color: var(--accent); }
+
+    .login-klinika {
+      font-size: 14px;
+      color: var(--muted);
+      min-height: 20px;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+    }
+
+    .login-naslov {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .login-podnaslov {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: var(--font);
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 11px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-login:hover { background: var(--accent-2); }
+    .btn-login:disabled { opacity: 0.6; cursor: default; }
+
+    .login-error {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #dc2626;
+      display: none;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-brand">
+    <div class="login-logo">Ordin<span>ova</span></div>
+    <div class="login-klinika" id="loginKlinika">Učitavanje...</div>
+  </div>
+
+  <div class="login-card">
+    <div class="login-naslov">Prijava u admin panel</div>
+    <div class="login-podnaslov">Unesite lozinku za pristup</div>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="form-group">
+        <label for="loginPassword">Lozinka</label>
+        <input type="password" id="loginPassword" placeholder="Unesite lozinku" autofocus required />
+      </div>
+      <button type="submit" class="btn-login" id="loginBtn">Prijava</button>
+    </form>
+
+    <div class="login-error" id="loginError"></div>
+  </div>
+
+  <div class="login-footer">Ordinova &copy; 2025</div>
+</div>
+
+<script>
+  const clientId = window.location.pathname.split("/").pop();
+  const klinikEl = document.getElementById("loginKlinika");
+  const form     = document.getElementById("loginForm");
+  const pwInput  = document.getElementById("loginPassword");
+  const btnLogin = document.getElementById("loginBtn");
+  const errEl    = document.getElementById("loginError");
+
+  // Učitaj naziv klinike
+  fetch(`/config/${clientId}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(cfg => {
+      if (cfg && cfg.brandName) {
+        klinikEl.textContent = cfg.brandName;
+        document.title = `Prijava — ${cfg.brandName}`;
+        if (cfg.theme && cfg.theme.accent) {
+          document.documentElement.style.setProperty("--accent", cfg.theme.accent);
+          document.documentElement.style.setProperty("--accent-2", cfg.theme.accent2 || cfg.theme.accent);
+        }
+      } else {
+        klinikEl.textContent = "";
+      }
+    })
+    .catch(() => { klinikEl.textContent = ""; });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errEl.style.display = "none";
+    btnLogin.disabled = true;
+    btnLogin.textContent = "Prijavljujem...";
+
+    try {
+      const res = await fetch("/admin-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, password: pwInput.value }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        sessionStorage.setItem("adminToken_" + clientId, data.token);
+        window.location.href = `/admin/${clientId}`;
+      } else {
+        errEl.textContent = data.error || "Pogrešna lozinka.";
+        errEl.style.display = "block";
+        pwInput.value = "";
+        pwInput.focus();
+      }
+    } catch {
+      errEl.textContent = "Greška pri prijavi. Pokušajte opet.";
+      errEl.style.display = "block";
+    } finally {
+      btnLogin.disabled = false;
+      btnLogin.textContent = "Prijava";
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,6 +1,15 @@
 const dijelovi = window.location.pathname.split("/");
 const clientId = dijelovi[2];
-const adminToken = dijelovi[3];
+
+// Podrška za stari URL format (/admin/clientId/token)
+const tokenFromUrl = dijelovi[3];
+if (tokenFromUrl) sessionStorage.setItem("adminToken_" + clientId, tokenFromUrl);
+
+const adminToken = sessionStorage.getItem("adminToken_" + clientId);
+if (!adminToken) {
+  window.location.href = "/login/" + clientId;
+}
+
 const wrap = document.getElementById("zahtjevi");
 const title = document.getElementById("adminTitle");
 
@@ -11,6 +20,10 @@ let kalendarGodina = null;
 let kalendarMjesec = null;
 let odabraniDanKey = null;
 let workingHoursSchedule = {};
+
+// Doktori
+let sviDoktori = [];       // [{id, name}, ...]
+let aktivniDoktorIdx = 0;  // index u sviDoktori
 
 const MJES_NAZIVI = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj",
                      "Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
@@ -30,33 +43,7 @@ function generirajTermine(raspon) {
   return termini;
 }
 
-// ── Tabovi — sidebar navigacija ──
-function napraviTabove() {
-  // Tabovi su sada u sidebar navigaciji (admin.html) — ništa ne trebamo dodavati
-}
-
-function promijeniTab(tab) {
-  aktivniTab = tab;
-
-  // Ažuriraj aktivni item u sidebaru
-  ["cekanje", "povijest", "kalendar"].forEach(t => {
-    const el = document.getElementById(`nav-${t}`);
-    if (el) el.classList.toggle("active", t === tab);
-  });
-
-  // Ažuriraj naslov u topbaru
-  const naslovi = { cekanje: "Na čekanju", povijest: "Povijest", kalendar: "Kalendar" };
-  const titleEl = document.getElementById("adminTitle");
-  if (titleEl) titleEl.textContent = naslovi[tab] || "Admin";
-
-  if (tab === "kalendar") {
-    ucitajKalendar();
-  } else {
-    prikaziZahtjeve();
-  }
-}
-
-// ── HTML escaping — sprječava XSS ──
+// ── HTML escaping ──
 function esc(str) {
   return String(str ?? "")
     .replace(/&/g, "&amp;")
@@ -66,34 +53,92 @@ function esc(str) {
     .replace(/'/g, "&#39;");
 }
 
+// ── Doctor switcher HTML ──
+function doktorSwitcherHTML() {
+  if (sviDoktori.length === 0) return "";
+  const ime = sviDoktori[aktivniDoktorIdx]?.name || "—";
+  return `
+    <div class="doctor-switcher">
+      <span class="doctor-switcher-label">Doktor</span>
+      <button class="doctor-arrow" onclick="promijeniDoktora(-1)">&#8592;</button>
+      <span class="doctor-switcher-name">${esc(ime)}</span>
+      <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8594;</button>
+    </div>
+  `;
+}
+
+function promijeniDoktora(smjer) {
+  if (sviDoktori.length === 0) return;
+  aktivniDoktorIdx = (aktivniDoktorIdx + smjer + sviDoktori.length) % sviDoktori.length;
+  if (aktivniTab === "kalendar") {
+    odabraniDanKey = null;
+    ucitajKalendar();
+  } else {
+    prikaziZahtjeve();
+  }
+}
+
+// ── Tabovi ──
+function promijeniTab(tab) {
+  aktivniTab = tab;
+
+  ["cekanje", "povijest", "kalendar"].forEach(t => {
+    const el = document.getElementById(`nav-${t}`);
+    if (el) el.classList.toggle("active", t === tab);
+  });
+
+  const naslovi = { cekanje: "Na čekanju", povijest: "Povijest", kalendar: "Kalendar" };
+  const titleEl = document.getElementById("adminTitle");
+  if (titleEl) titleEl.textContent = naslovi[tab] || "Admin";
+
+  if (tab === "kalendar") {
+    odabraniDanKey = null;
+    ucitajKalendar();
+  } else {
+    prikaziZahtjeve();
+  }
+}
+
 // ── Prikaz zahtjeva ──
 function prikaziZahtjeve() {
-  const filtrirani = sviZahtjevi.filter(z =>
+  const aktivniDoktor = sviDoktori[aktivniDoktorIdx];
+
+  let filtrirani = sviZahtjevi.filter(z =>
     aktivniTab === "cekanje"
       ? z.status === "na_cekanju"
       : z.status !== "na_cekanju"
   );
 
-  // Ažuriraj badge s brojem zahtjeva na čekanju
-  const pendingCount = sviZahtjevi.filter(z => z.status === "na_cekanju").length;
+  // Filtriraj po doktoru ako postoje doktori
+  if (aktivniDoktor) {
+    filtrirani = filtrirani.filter(z => z.doctorId === aktivniDoktor.id);
+  }
+
+  // Badge
+  const pendingCount = sviDoktori.length > 0
+    ? sviZahtjevi.filter(z => z.status === "na_cekanju" && z.doctorId === (sviDoktori[aktivniDoktorIdx]?.id || "")).length
+    : sviZahtjevi.filter(z => z.status === "na_cekanju").length;
   const badge = document.getElementById("nav-pending-badge");
   if (badge) {
     badge.textContent = pendingCount;
     badge.style.display = pendingCount > 0 ? "inline-block" : "none";
   }
 
+  const switcher = doktorSwitcherHTML();
+
   if (filtrirani.length === 0) {
-    wrap.innerHTML = `<p class="prazno">${aktivniTab === "cekanje" ? "Nema zahtjeva na čekanju." : "Nema završenih zahtjeva."}</p>`;
+    wrap.innerHTML = switcher + `<p class="prazno">${aktivniTab === "cekanje" ? "Nema zahtjeva na čekanju." : "Nema završenih zahtjeva."}</p>`;
     return;
   }
 
-  wrap.innerHTML = filtrirani.map(z => `
-    <div class="zahtjev-card" style="${z.status !== 'na_cekanju' ? 'opacity:0.65;' : ''}">
+  wrap.innerHTML = switcher + filtrirani.map(z => `
+    <div class="zahtjev-card" style="${z.status !== 'na_cekanju' ? 'opacity:0.75;' : ''}">
       <div class="zahtjev-header">
         <span class="zahtjev-ime">${esc(z.name)}</span>
         <div style="display:flex; align-items:center; gap:12px;">
           ${z.status === 'potvrdjeno' ? `<span class="status-badge status-potvrdjeno">Potvrđeno</span>` : ''}
           ${z.status === 'predlozeno' ? `<span class="status-badge status-predlozeno">Predloženo</span>` : ''}
+          ${z.status === 'otkazano'   ? `<span class="status-badge status-otkazano">Otkazano</span>` : ''}
           <span class="zahtjev-datum">${esc(z.primljeno)}</span>
         </div>
       </div>
@@ -104,7 +149,12 @@ function prikaziZahtjeve() {
       ${z.status === 'na_cekanju' ? `
         <div class="zahtjev-akcije">
           <button class="btn-potvrdi" onclick="potvrdi(${esc(z.id)})">Potvrdi termin</button>
-          <button class="btn-predlozi" onclick="predlozi(${esc(z.id)})">Predloži drugi termin</button>
+          <button class="btn-predlozi" onclick="predlozi(${esc(z.id)})">Predloži drugi</button>
+        </div>
+      ` : ''}
+      ${z.status === 'potvrdjeno' ? `
+        <div class="zahtjev-akcije">
+          <button class="btn-otkazi" onclick="otkazi(${esc(z.id)})">Otkaži termin</button>
         </div>
       ` : ''}
     </div>
@@ -140,10 +190,35 @@ async function predlozi(id) {
   ucitajZahtjeve();
 }
 
+async function otkazi(id) {
+  if (!confirm("Jeste li sigurni da želite otkazati ovaj termin? Pacijent će biti obaviješten mailom.")) return;
+
+  const res = await fetch("/admin-cancel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientId, token: adminToken, id }),
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    alert("Termin je otkazan. Pacijent je obaviješten.");
+    ucitajZahtjeve();
+  } else {
+    alert("Greška pri otkazivanju.");
+  }
+}
+
 // ── Init zahtjevi ──
 async function ucitajZahtjeve() {
   const dataRes = await fetch(`/admin-data/${clientId}?token=${adminToken}`);
-  const data    = await dataRes.json();
+
+  if (dataRes.status === 403) {
+    sessionStorage.removeItem("adminToken_" + clientId);
+    window.location.href = "/login/" + clientId;
+    return;
+  }
+
+  const data = await dataRes.json();
 
   // Učitaj raspored radnog vremena
   try {
@@ -156,14 +231,12 @@ async function ucitajZahtjeve() {
 
   title.textContent = "Na čekanju";
   sviZahtjevi = data.zahtjevi;
+  sviDoktori = data.doctors || [];
 
-  // Postavi naziv ordinacije u sidebar i topbar
   const sidebarBrand = document.getElementById("sidebarBrand");
   if (sidebarBrand) sidebarBrand.textContent = data.brandName;
   const topbarOrdinacija = document.getElementById("topbarOrdinacija");
   if (topbarOrdinacija) topbarOrdinacija.textContent = data.brandName;
-
-  // Boja je fiksna tirkizna (#0d9488) za sve ordinacije — ne prepisujemo
 
   prikaziZahtjeve();
 }
@@ -171,7 +244,9 @@ async function ucitajZahtjeve() {
 // ── Kalendar ──
 async function ucitajKalendar() {
   try {
-    const res = await fetch(`/admin-kalendar/${clientId}/${adminToken}`);
+    const aktivniDoktor = sviDoktori[aktivniDoktorIdx];
+    const doctorParam = aktivniDoktor ? `&doctorId=${encodeURIComponent(aktivniDoktor.id)}` : "";
+    const res = await fetch(`/admin-kalendar/${clientId}?token=${adminToken}${doctorParam}`);
     kalendarData = await res.json();
   } catch {
     kalendarData = {};
@@ -206,7 +281,6 @@ function prikaziKalendar() {
   const zadnjiDan = new Date(kalendarGodina, kalendarMjesec + 1, 0);
   const danasKey  = isoKey(new Date());
 
-  // Offset: koliko praznih ćelija ispred (tjedan počinje ponedjeljkom)
   let pocetakOffset = prviDan.getDay() - 1;
   if (pocetakOffset < 0) pocetakOffset = 6;
 
@@ -247,6 +321,7 @@ function prikaziKalendar() {
   const naslov = `${MJES_NAZIVI[kalendarMjesec]} ${kalendarGodina}`;
 
   wrap.innerHTML = `
+    ${doktorSwitcherHTML()}
     <div class="kal-wrap">
       <div class="kal-layout">
         <div class="kal-lijevo">
@@ -281,7 +356,6 @@ function napraviTermine(dateKey) {
   const [g, mj, d] = dateKey.split("-");
   const hrDatum = `${parseInt(d)}. ${parseInt(mj)}. ${g}.`;
 
-  // Slotovi iz radnog vremena za taj dan
   const danTjedna = new Date(parseInt(g), parseInt(mj) - 1, parseInt(d)).getDay();
   const raspon = workingHoursSchedule[String(danTjedna)];
   const slotovi = raspon ? generirajTermine(raspon) : [];
@@ -305,5 +379,4 @@ function napraviTermine(dateKey) {
     </div>`;
 }
 
-napraviTabove();
 ucitajZahtjeve();

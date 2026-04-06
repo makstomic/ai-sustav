@@ -305,6 +305,69 @@
 
     .status-potvrdjeno { background: #dcfce7; color: #166534; }
     .status-predlozeno { background: #fef9c3; color: #854d0e; }
+    .status-otkazano   { background: #fee2e2; color: #991b1b; }
+
+    .btn-otkazi {
+      padding: 10px;
+      background: transparent;
+      color: #dc2626;
+      border: 1.5px solid #dc2626;
+      border-radius: 4px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+
+    .btn-otkazi:hover { background: #fee2e2; }
+
+    /* Doctor switcher */
+    .doctor-switcher {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 16px;
+      max-width: 760px;
+    }
+
+    .doctor-switcher-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+
+    .doctor-switcher-name {
+      flex: 1;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .doctor-arrow {
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 15px;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.12s;
+      flex-shrink: 0;
+    }
+
+    .doctor-arrow:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
     .prazno {
       text-align: center;

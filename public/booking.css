@@ -83,6 +83,49 @@ body {
   background: transparent;
 }
 
+/* ---------- Doctor switcher ---------- */
+.doctor-switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.doctor-switcher-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  flex-shrink: 0;
+}
+
+.doctor-switcher-name {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.doctor-arrow {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 15px;
+  cursor: pointer;
+  color: var(--text);
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.doctor-arrow:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ---------- Kalendar ---------- */
 .kalendar {
   padding: 16px 18px;
@@ -733,17 +776,17 @@ body {
     font-size: 13px;
   }
 
-  /* Chat panel — puni ekran širina na mobilnom */
+  /* Chat panel — kompaktni kutak na mobilnom */
   #chat-panel {
     bottom: 76px;
     right: 12px;
-    left: 12px;
-    width: auto;
-    border-radius: 16px;
+    left: auto;
+    width: min(300px, calc(100vw - 24px));
+    border-radius: 14px;
   }
 
   #chatMessages {
-    height: 260px;
+    height: 220px;
   }
 
   /* Sprječava iOS auto-zoom pri fokusu na chat input */

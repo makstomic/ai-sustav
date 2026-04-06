@@ -21,6 +21,10 @@
     "5": "08:00-20:00",
     "6": "08:00-13:00"
   },
+  "doctors": [
+    { "id": "dr_vrbic", "name": "Dr. Ivana Vrbić" },
+    { "id": "dr_horvat", "name": "Dr. Tomislav Horvat" }
+  ],
   "services": [
     { "name": "Estetska stomatologija", "price": "" },
     { "name": "Endodoncija", "price": "" },

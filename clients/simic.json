@@ -21,6 +21,10 @@
     "5": "08:00-20:00",
     "6": "08:00-14:00"
   },
+  "doctors": [
+    { "id": "dr_simic", "name": "Dr. Marko Šimić" },
+    { "id": "dr_kovac", "name": "Dr. Ana Kovač" }
+  ],
   "services": [
     { "name": "RTG", "price": "100" },
     { "name": "Ortopan", "price": "75" },

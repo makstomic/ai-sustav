@@ -78,6 +78,29 @@ app.get("/booking/:clientId", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "booking.html"));
 });
 
+// ── Login stranica ──
+app.get("/login/:clientId", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// ── Admin login API ──
+app.post("/admin-login", (req, res) => {
+  const { clientId, password } = req.body;
+  const safeClientId = sanitizeClientId(clientId);
+  if (!safeClientId) return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
+  const client = loadClient(safeClientId);
+  if (!client) return res.status(404).json({ ok: false, error: "Ordinacija nije pronađena." });
+  if (!password || password !== client.adminToken)
+    return res.status(403).json({ ok: false, error: "Pogrešna lozinka." });
+  res.json({ ok: true, token: client.adminToken, brandName: client.brandName, doctors: client.doctors || [] });
+});
+
+// ── Admin panel (novi URL bez tokena) ──
+app.get("/admin/:clientId", (req, res) => {
+  // Samo jedan segment → nova login-based ruta
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
 app.get("/config/:clientId", (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
   if (!clientId) return res.status(400).json({ error: "Neispravan ID." });
@@ -219,7 +242,7 @@ ${servicesText || "- (nije definirano)"}
 // Booking — slanje maila ordinaciji
 app.post("/booking", bookingLimiter, async (req, res) => {
   try {
-    const { clientId, name, email, date, service, note } = req.body;
+    const { clientId, name, email, date, service, note, doctorId } = req.body;
 
     // Sanitizacija i validacija
     const safeClientId = sanitizeClientId(clientId);
@@ -239,16 +262,22 @@ app.post("/booking", bookingLimiter, async (req, res) => {
     const safeDate    = date.trim();
     const safeService = service.trim();
     const safeNote    = typeof note === "string" ? note.trim().slice(0, 500) : "—";
+    const safeDoctorId = typeof doctorId === "string" ? doctorId.trim().slice(0, 50) : "";
 
     const client = loadClient(safeClientId);
     if (!client) return res.status(404).json({ ok: false, error: "Client not found" });
+
+    // Pronađi ime doktora (ako postoji)
+    const doctors = client.doctors || [];
+    const doktor = doctors.find(d => d.id === safeDoctorId);
+    const doktorNaziv = doktor ? doktor.name : null;
 
     const toEmail = client.clinicEmail || process.env.CLINIC_EMAIL;
 
     // Spremi zahtjev u bazu
     db.prepare(`
-      INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'na_cekanju', ?)
+      INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'na_cekanju', ?, ?)
     `).run(
       Date.now(),
       safeClientId,
@@ -257,7 +286,8 @@ app.post("/booking", bookingLimiter, async (req, res) => {
       safeDate,
       safeService,
       safeNote || "—",
-      new Date().toLocaleString("hr-HR")
+      new Date().toLocaleString("hr-HR"),
+      safeDoctorId
     );
 
     await sendMail({
@@ -266,6 +296,7 @@ app.post("/booking", bookingLimiter, async (req, res) => {
       text:
         `Novi zahtjev za termin:\n\n` +
         `Ordinacija: ${client.brandName}\n` +
+        (doktorNaziv ? `Doktor:     ${doktorNaziv}\n` : "") +
         `Ime:        ${safeName}\n` +
         `Email:      ${safeEmail}\n` +
         `Datum:      ${safeDate}\n` +
@@ -282,13 +313,9 @@ app.post("/booking", bookingLimiter, async (req, res) => {
 });
 
 
-// Admin — dohvati zahtjeve
+// Admin — backwards-compat redirect (stari URL format s tokenom u URL-u)
 app.get("/admin/:clientId/:token", (req, res) => {
-  const clientId = sanitizeClientId(req.params.clientId);
-  if (!clientId) return res.status(400).send("Neispravan zahtjev.");
-  const client = loadClient(clientId);
-  if (!client) return res.status(404).send("Not found");
-  if (req.params.token !== client.adminToken) return res.status(403).send("Zabranjen pristup");
+  // Preusmjeri na novu rutu — JS u admin.html će pokupit token iz URL-a
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
@@ -303,7 +330,7 @@ app.get("/admin-data/:clientId", (req, res) => {
     "SELECT * FROM requests WHERE clientId = ? ORDER BY id DESC"
   ).all(clientId);
 
-  res.json({ brandName: client.brandName, zahtjevi });
+  res.json({ brandName: client.brandName, zahtjevi, doctors: client.doctors || [] });
 });
 
 // Admin — potvrdi ili predloži termin
@@ -348,17 +375,47 @@ app.post("/admin-action", async (req, res) => {
   }
 });
 
+// Admin — otkaži termin
+app.post("/admin-cancel", async (req, res) => {
+  try {
+    const { clientId, token, id } = req.body;
+    const safeClientId = sanitizeClientId(clientId);
+    if (!safeClientId) return res.status(400).json({ ok: false });
+    const client = loadClient(safeClientId);
+    if (!client) return res.status(404).json({ ok: false });
+    if (!token || token !== client.adminToken) return res.status(403).json({ ok: false, error: "Zabranjen pristup" });
+
+    const zahtjev = db.prepare("SELECT * FROM requests WHERE id = ? AND clientId = ?").get(id, safeClientId);
+    if (!zahtjev) return res.status(404).json({ ok: false });
+
+    db.prepare("UPDATE requests SET status = 'otkazano' WHERE id = ?").run(id);
+
+    await sendMail({
+      to:      zahtjev.email,
+      subject: `Otkazivanje termina — ${client.brandName}`,
+      text:    `Poštovani ${zahtjev.name},\n\nNažalost, Vaš termin je otkazan.\n\nDatum: ${zahtjev.date}\nUsluga: ${zahtjev.service}\n\nMolimo Vas da se javite ordinaciji za novi termin.\n\n${client.brandName}`,
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("CANCEL ERROR:", err);
+    res.status(500).json({ ok: false });
+  }
+});
+
 // Admin — kalendar (potvrđeni termini grupirani po datumu)
-app.get("/admin-kalendar/:clientId/:token", (req, res) => {
+app.get("/admin-kalendar/:clientId", (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
   if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
   const client = loadClient(clientId);
   if (!client) return res.status(404).json({ error: "Client not found" });
-  if (req.params.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+  const token = req.query.token || req.params.token;
+  if (token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
-  const zahtjevi = db.prepare(
-    "SELECT * FROM requests WHERE clientId = ? AND status = 'potvrdjeno'"
-  ).all(clientId);
+  const doctorId = req.query.doctorId || "";
+  const zahtjevi = doctorId
+    ? db.prepare("SELECT * FROM requests WHERE clientId = ? AND status = 'potvrdjeno' AND doctorId = ?").all(clientId, doctorId)
+    : db.prepare("SELECT * FROM requests WHERE clientId = ? AND status = 'potvrdjeno'").all(clientId);
 
   const grupirano = {};
   for (const z of zahtjevi) {
@@ -373,7 +430,7 @@ app.get("/admin-kalendar/:clientId/:token", (req, res) => {
   res.json(grupirano);
 });
 
-// Zauzeti termini za odabrani dan (booking kalendar)
+// Zauzeti termini za odabrani dan (booking kalendar) — opcionalno filtrirano po doktoru
 app.get("/termini/:clientId/:datum", (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
   if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
@@ -384,10 +441,11 @@ app.get("/termini/:clientId/:datum", (req, res) => {
 
   const [god, mjes, dan] = datum.split("-");
   const likeUzorak = `${dan}.${mjes}.${god}.%`;
+  const doctorId = req.query.doctorId || "";
 
-  const zahtjevi = db.prepare(
-    "SELECT date FROM requests WHERE clientId = ? AND status = 'potvrdjeno' AND date LIKE ?"
-  ).all(clientId, likeUzorak);
+  const zahtjevi = doctorId
+    ? db.prepare("SELECT date FROM requests WHERE clientId = ? AND status = 'potvrdjeno' AND date LIKE ? AND doctorId = ?").all(clientId, likeUzorak, doctorId)
+    : db.prepare("SELECT date FROM requests WHERE clientId = ? AND status = 'potvrdjeno' AND date LIKE ?").all(clientId, likeUzorak);
 
   const zauzeti = zahtjevi
     .map(z => { const m = z.date.match(/(\d{2}:\d{2})$/); return m ? m[1] : null; })

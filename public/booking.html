@@ -17,6 +17,14 @@
     <div class="card">
       <div class="card-title">Odaberite termin</div>
 
+      <!-- Doctor switcher — prikazuje se samo ako klinika ima doktore -->
+      <div class="doctor-switcher" id="doctorSwitcher" style="display:none;">
+        <span class="doctor-switcher-label">Doktor</span>
+        <button class="doctor-arrow" onclick="promijeniDoktora(-1)">&#8249;</button>
+        <span class="doctor-switcher-name" id="doctorIme">—</span>
+        <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8250;</button>
+      </div>
+
       <div class="kalendar">
         <div class="kal-nav">
           <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">&#8249;</button>
@@ -220,8 +228,10 @@
             odabraniTermin = null;
             renderKalendar();
             const kljuc = `${god}-${String(mj+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const drId = typeof aktivniDoktorId === 'function' ? aktivniDoktorId() : '';
+            const drParam = drId ? `?doctorId=${encodeURIComponent(drId)}` : '';
             try {
-              const r = await fetch(`/termini/${_kalClientId}/${kljuc}`);
+              const r = await fetch(`/termini/${_kalClientId}/${kljuc}${drParam}`);
               zauzetiDanas = r.ok ? await r.json() : [];
             } catch { zauzetiDanas = []; }
             renderTermini();
@@ -289,6 +299,16 @@
     window.initKalendar = function(schedule) {
       workingHoursSchedule = schedule || {};
       renderKalendar();
+    };
+
+    // Reset kalendara pri promjeni doktora
+    window._resetKalendar = function() {
+      odabraniDan = null;
+      odabraniTermin = null;
+      zauzetiDanas = [];
+      renderKalendar();
+      renderTermini();
+      azurirajBadge();
     };
   </script>
 

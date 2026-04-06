@@ -18,4 +18,9 @@ db.exec(`
   )
 `);
 
+// Migracija — dodaj doctorId stupac ako ne postoji
+try {
+  db.exec("ALTER TABLE requests ADD COLUMN doctorId TEXT NOT NULL DEFAULT ''");
+} catch (_) { /* stupac već postoji */ }
+
 module.exports = db;
