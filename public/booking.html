@@ -236,6 +236,9 @@
             } catch { zauzetiDanas = []; }
             renderTermini();
             azurirajBadge();
+            setTimeout(() => {
+              document.getElementById('termini-sekcija').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 50);
           };
         }
         grid.appendChild(el);
@@ -260,7 +263,14 @@
           el.classList.add('zauzet');
         } else {
           if (odabraniTermin === t) el.classList.add('odabran');
-          el.onclick = () => { odabraniTermin = t; renderTermini(); azurirajBadge(); };
+          el.onclick = () => {
+            odabraniTermin = t;
+            renderTermini();
+            azurirajBadge();
+            setTimeout(() => {
+              document.getElementById('bookingForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 50);
+          };
         }
         grid.appendChild(el);
       });
