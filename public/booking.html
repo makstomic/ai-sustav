@@ -9,8 +9,7 @@
 <body>
 
   <div class="page-header">
-    <p class="page-title-primary" id="pageTitlePrimary">Ordinacija dentalne medicine</p>
-    <p class="page-title-secondary" id="pageTitleSecondary">Dental Studio</p>
+    <h1 class="page-title">Rezervacija termina</h1>
   </div>
 
   <div class="layout">
@@ -42,7 +41,7 @@
           <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8250;</button>
         </div>
         <div class="mob-dr-potvrdi">
-          <button class="mob-potvrdi-btn" onclick="window.idiNaKorak(2)">Potvrdi odabir &#8594;</button>
+          <button class="mob-potvrdi-btn" onclick="window.idiNaKorak(2)">Nastavi &#8594;</button>
         </div>
       </div>
 
@@ -370,6 +369,7 @@
     function toggleChat() {
       chatOtvoren = !chatOtvoren;
       document.getElementById('chat-panel').classList.toggle('aktivan', chatOtvoren);
+      document.getElementById('chat-widget-btn').style.display = chatOtvoren ? 'none' : '';
       if (window._isMobile()) document.body.style.overflow = chatOtvoren ? 'hidden' : '';
       if (chatOtvoren) document.getElementById('chatInput').focus();
     }

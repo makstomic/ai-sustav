@@ -1,8 +1,6 @@
 // Učitamo clientId iz URL-a: /booking/simic
 const clientId = window.location.pathname.split("/").pop();
 
-const pageTitlePrimary   = document.getElementById("pageTitlePrimary");
-const pageTitleSecondary = document.getElementById("pageTitleSecondary");
 const form          = document.getElementById("bookingForm");
 const bookingStatus = document.getElementById("bookingStatus");
 const chatMessages  = document.getElementById("chatMessages");
@@ -64,8 +62,6 @@ async function loadConfig() {
   if (!res.ok) throw new Error("Ne mogu učitati config.");
   clientConfig = await res.json();
 
-  if (pageTitlePrimary) pageTitlePrimary.textContent = clientConfig.primaryTitle || clientConfig.brandName;
-  if (pageTitleSecondary) pageTitleSecondary.textContent = clientConfig.secondaryTitle || '';
 
   const t = clientConfig.theme || {};
   if (t.accent) {
