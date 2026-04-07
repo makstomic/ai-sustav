@@ -8,14 +8,30 @@
 </head>
 <body>
 
-  <h2 id="pageTitle">Dental Studio XXX</h2>
-  <p id="pageSubtitle">Rezervirajte termin u 30 sekundi</p>
+  <div class="page-header">
+    <p class="page-title-primary" id="pageTitlePrimary">Ordinacija dentalne medicine</p>
+    <p class="page-title-secondary" id="pageTitleSecondary">Dental Studio</p>
+  </div>
 
   <div class="layout">
 
     <!-- LIJEVO: KALENDAR + FORMA -->
     <div class="card">
-      <div class="card-title">Odaberite termin</div>
+      <div class="card-title">Rezervirajte termin</div>
+
+      <!-- Mobile: progress bar (hidden on desktop) -->
+      <div id="mob-prog">
+        <button class="mob-back-btn" id="mobBack" onclick="window.idiNazad()">&#8592;</button>
+        <div class="mp-steps">
+          <div class="mp-step" data-k="1" onclick="window.idiNaStep(1)"><div class="mp-dot"><span>1</span></div></div>
+          <div class="mp-line" id="mp-line-1"></div>
+          <div class="mp-step" data-k="2" onclick="window.idiNaStep(2)"><div class="mp-dot"><span>2</span></div></div>
+          <div class="mp-line" id="mp-line-2"></div>
+          <div class="mp-step" data-k="3" onclick="window.idiNaStep(3)"><div class="mp-dot"><span>3</span></div></div>
+          <div class="mp-line" id="mp-line-3"></div>
+          <div class="mp-step" data-k="4" onclick="window.idiNaStep(4)"><div class="mp-dot"><span>4</span></div></div>
+        </div>
+      </div>
 
       <!-- Doctor switcher — prikazuje se samo ako klinika ima doktore -->
       <div class="mob-k1" id="mobDrSekcija">
@@ -183,7 +199,35 @@
     window.idiNaKorak = function(n) {
       if (!window._isMobile()) return;
       document.body.dataset.korak = n;
+
+      // Update step dots
+      document.querySelectorAll('.mp-step').forEach(el => {
+        const k = parseInt(el.dataset.k);
+        el.className = 'mp-step' + (k === n ? ' active' : k < n ? ' done' : '');
+      });
+
+      // Update connecting lines
+      for (let i = 1; i <= 3; i++) {
+        const line = document.getElementById('mp-line-' + i);
+        if (line) line.classList.toggle('done', i < n);
+      }
+
+      // Back button
+      const back = document.getElementById('mobBack');
+      if (back) back.style.visibility = n > 1 ? 'visible' : 'hidden';
+
       document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    window.idiNazad = function() {
+      const cur = parseInt(document.body.dataset.korak || '1');
+      if (cur > 1) window.idiNaKorak(cur - 1);
+    };
+
+    // Klik na gotov korak → idi nazad na njega
+    window.idiNaStep = function(n) {
+      const cur = parseInt(document.body.dataset.korak || '1');
+      if (n < cur) window.idiNaKorak(n);
     };
 
     // ── Generira termine ──

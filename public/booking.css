@@ -36,18 +36,30 @@ body {
 }
 
 /* ---------- Page header ---------- */
-#pageTitle {
-  margin: 32px 0 6px;
-  font-size: 22px;
-  font-weight: 700;
+.page-header {
   text-align: center;
+  margin: 32px 0 28px;
 }
 
-#pageSubtitle {
-  text-align: center;
-  font-size: 14px;
+.page-title-primary {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 28px;
+}
+
+.page-title-secondary {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 5px;
+  line-height: 1.2;
+}
+
+/* ---------- Mobile progress bar (hidden on desktop) ---------- */
+#mob-prog {
+  display: none;
 }
 
 /* ---------- Layout ---------- */
@@ -702,20 +714,106 @@ body {
    Mobile optimizacija (≤ 600px)
    ============================================================ */
 @media (max-width: 600px) {
-  #pageTitle {
-    font-size: 20px;
-    margin: 20px 0 4px;
+  .page-header {
+    margin: 20px 0 16px;
   }
 
-  #pageSubtitle {
-    font-size: 13px;
-    margin-bottom: 16px;
+  .page-title-secondary {
+    font-size: 18px;
   }
 
   .layout {
     width: calc(100% - 24px);
     margin-bottom: 96px;
     gap: 14px;
+  }
+
+  /* ── Mobile progress bar ── */
+  #mob-prog {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mob-back-btn {
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--muted);
+    flex-shrink: 0;
+    font-family: var(--font);
+    line-height: 1;
+    transition: border-color 0.15s, color 0.15s;
+    visibility: hidden;
+  }
+
+  .mob-back-btn:active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .mp-steps {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .mp-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+  }
+
+  .mp-step.done {
+    cursor: pointer;
+  }
+
+  .mp-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .mp-step.active .mp-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .mp-step.done .mp-dot {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .mp-line {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    transition: background 0.25s;
+  }
+
+  .mp-line.done {
+    background: var(--accent);
   }
 
   /* Kalendar — veći touch targetovi */
@@ -856,64 +954,36 @@ body {
     background: var(--accent-2);
   }
 
-  /* Doktor prikaz na koraku 1 — veći, naglašeniji */
+  /* Doktor prikaz na koraku 1: [←] [Ime] [→] u redu, isti height */
   body[data-korak="1"] .doctor-switcher {
-    flex-direction: column;
     align-items: center;
-    padding: 28px 20px 16px;
-    gap: 12px;
+    padding: 28px 16px 16px;
+    gap: 10px;
     border-bottom: none;
+    flex-wrap: nowrap;
   }
 
   body[data-korak="1"] .doctor-switcher-label {
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    color: var(--muted);
+    display: none;
   }
 
   body[data-korak="1"] .doctor-switcher-name {
-    font-size: 22px;
-    font-weight: 800;
+    flex: 1;
     text-align: center;
-    order: 2;
+    font-size: 19px;
+    font-weight: 800;
   }
 
   body[data-korak="1"] .doctor-arrow {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    font-size: 26px;
+    font-size: 24px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    order: 3;
-  }
-
-  body[data-korak="1"] .doctor-switcher > * {
     flex-shrink: 0;
-  }
-
-  body[data-korak="1"] .doctor-switcher-label {
-    order: 1;
-    width: 100%;
-    text-align: center;
-  }
-
-  body[data-korak="1"] .doctor-switcher-name {
-    order: 2;
-    width: 100%;
-  }
-
-  /* Wrap arrows in their own row via auto-margin trick */
-  body[data-korak="1"] .doctor-arrow:first-of-type {
-    order: 3;
-    margin-left: auto;
-  }
-
-  body[data-korak="1"] .doctor-arrow:last-of-type {
-    order: 4;
-    margin-right: auto;
   }
 
   /* Doctor arrow — veći touch target (desktop flow) */
