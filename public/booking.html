@@ -18,14 +18,19 @@
       <div class="card-title">Odaberite termin</div>
 
       <!-- Doctor switcher — prikazuje se samo ako klinika ima doktore -->
-      <div class="doctor-switcher" id="doctorSwitcher" style="display:none;">
-        <span class="doctor-switcher-label">Doktor</span>
-        <button class="doctor-arrow" onclick="promijeniDoktora(-1)">&#8249;</button>
-        <span class="doctor-switcher-name" id="doctorIme">—</span>
-        <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8250;</button>
+      <div class="mob-k1" id="mobDrSekcija">
+        <div class="doctor-switcher" id="doctorSwitcher" style="display:none;">
+          <span class="doctor-switcher-label">Doktor</span>
+          <button class="doctor-arrow" onclick="promijeniDoktora(-1)">&#8249;</button>
+          <span class="doctor-switcher-name" id="doctorIme">—</span>
+          <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8250;</button>
+        </div>
+        <div class="mob-dr-potvrdi">
+          <button class="mob-potvrdi-btn" onclick="window.idiNaKorak(2)">Potvrdi odabir &#8594;</button>
+        </div>
       </div>
 
-      <div class="kalendar">
+      <div class="kalendar mob-k2">
         <div class="kal-nav">
           <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">&#8249;</button>
           <div class="kal-mjesec" id="kal-naslov"></div>
@@ -43,12 +48,12 @@
         <div class="kal-grid" id="kal-grid"></div>
       </div>
 
-      <div class="termini-sekcija" id="termini-sekcija" style="display:none;">
+      <div class="termini-sekcija mob-k3" id="termini-sekcija" style="display:none;">
         <div class="termini-naslov">Slobodni termini</div>
         <div class="termini-grid" id="termini-grid"></div>
       </div>
 
-      <form id="bookingForm" class="forma-sekcija">
+      <form id="bookingForm" class="forma-sekcija mob-k4">
         <div class="odabir-badge" id="odabir-badge" style="display:none;"></div>
         <input type="hidden" id="date" name="date" />
         <input type="text" id="name" name="name" placeholder="Ime i prezime" required />
@@ -174,6 +179,13 @@
 
     window._isMobile = () => window.innerWidth <= 600;
 
+    // ── Mobile step logic ──
+    window.idiNaKorak = function(n) {
+      if (!window._isMobile()) return;
+      document.body.dataset.korak = n;
+      document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     // ── Generira termine ──
     function generirajTermine(raspon) {
       if (!raspon) return [];
@@ -238,9 +250,13 @@
             } catch { zauzetiDanas = []; }
             renderTermini();
             azurirajBadge();
-            setTimeout(() => {
-              document.getElementById('termini-sekcija').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 50);
+            if (window._isMobile()) {
+              window.idiNaKorak(3);
+            } else {
+              setTimeout(() => {
+                document.getElementById('termini-sekcija').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 50);
+            }
           };
         }
         grid.appendChild(el);
@@ -269,9 +285,13 @@
             odabraniTermin = t;
             renderTermini();
             azurirajBadge();
-            setTimeout(() => {
-              document.getElementById('bookingForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 50);
+            if (window._isMobile()) {
+              window.idiNaKorak(4);
+            } else {
+              setTimeout(() => {
+                document.getElementById('bookingForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 50);
+            }
           };
         }
         grid.appendChild(el);
@@ -325,6 +345,7 @@
       renderTermini();
       azurirajBadge();
     };
+
   </script>
 
   <script src="/booking.js"></script>

@@ -812,7 +812,111 @@ body {
     gap: 10px;
   }
 
-  /* Doctor arrow — veći touch target */
+  /* ── Mobile step: sakrij sekcije koje nisu aktivne ── */
+  body[data-korak="1"] .mob-k2,
+  body[data-korak="1"] .mob-k3,
+  body[data-korak="1"] .mob-k4,
+  body[data-korak="2"] .mob-k1,
+  body[data-korak="2"] .mob-k3,
+  body[data-korak="2"] .mob-k4,
+  body[data-korak="3"] .mob-k1,
+  body[data-korak="3"] .mob-k2,
+  body[data-korak="3"] .mob-k4,
+  body[data-korak="4"] .mob-k1,
+  body[data-korak="4"] .mob-k2,
+  body[data-korak="4"] .mob-k3 {
+    display: none !important;
+  }
+
+  /* ── Korak 1: odabir doktora ── */
+  .mob-dr-potvrdi {
+    display: none;
+  }
+
+  body[data-korak="1"] .mob-dr-potvrdi {
+    display: block;
+    padding: 0 16px 20px;
+  }
+
+  .mob-potvrdi-btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .mob-potvrdi-btn:hover {
+    background: var(--accent-2);
+  }
+
+  /* Doktor prikaz na koraku 1 — veći, naglašeniji */
+  body[data-korak="1"] .doctor-switcher {
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 20px 16px;
+    gap: 12px;
+    border-bottom: none;
+  }
+
+  body[data-korak="1"] .doctor-switcher-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  body[data-korak="1"] .doctor-switcher-name {
+    font-size: 22px;
+    font-weight: 800;
+    text-align: center;
+    order: 2;
+  }
+
+  body[data-korak="1"] .doctor-arrow {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    font-size: 26px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    order: 3;
+  }
+
+  body[data-korak="1"] .doctor-switcher > * {
+    flex-shrink: 0;
+  }
+
+  body[data-korak="1"] .doctor-switcher-label {
+    order: 1;
+    width: 100%;
+    text-align: center;
+  }
+
+  body[data-korak="1"] .doctor-switcher-name {
+    order: 2;
+    width: 100%;
+  }
+
+  /* Wrap arrows in their own row via auto-margin trick */
+  body[data-korak="1"] .doctor-arrow:first-of-type {
+    order: 3;
+    margin-left: auto;
+  }
+
+  body[data-korak="1"] .doctor-arrow:last-of-type {
+    order: 4;
+    margin-right: auto;
+  }
+
+  /* Doctor arrow — veći touch target (desktop flow) */
   .doctor-arrow {
     padding: 10px 16px;
     font-size: 20px;
