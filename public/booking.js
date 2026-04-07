@@ -19,6 +19,10 @@ function aktivniDoktorId() {
   return sviDoktori[aktivniDrIdx]?.id || "";
 }
 
+window.aktivniDoktorIme = function() {
+  return sviDoktori[aktivniDrIdx]?.name || "";
+};
+
 function promijeniDoktora(smjer) {
   if (sviDoktori.length === 0) return;
   aktivniDrIdx = (aktivniDrIdx + smjer + sviDoktori.length) % sviDoktori.length;
@@ -260,6 +264,12 @@ function populateServices() {
     populateServices();
     initDoctorSwitcher(clientConfig.doctors || []);
     if (typeof window.initKalendar === 'function') window.initKalendar(clientConfig.workingHoursSchedule || {});
+
+    // Postavi početni korak na mobilnom
+    if (window._isMobile && window._isMobile() && window.idiNaKorak) {
+      const hasDoctors = (clientConfig.doctors || []).length > 0;
+      window.idiNaKorak(hasDoctors ? 1 : 2);
+    }
 
     const pozdrav = `Dobrodošli u ${clientConfig.brandName}! 👋\n\nJa sam vaš digitalni asistent. Mogu vam pomoći s informacijama o uslugama, cijenama i ordinaciji.\n\nO čemu želite saznati više?`;
 

@@ -17,15 +17,30 @@
     <div class="card">
       <div class="card-title">Odaberite termin</div>
 
+      <!-- Mobile: step progress indicator (hidden on desktop via CSS) -->
+      <div id="mob-prog">
+        <button class="mob-back-btn" id="mobBack" onclick="window.idiNazad()">&#8592;</button>
+        <div class="mp-koraci">
+          <div class="mp-korak aktivan" data-k="1"><span>1</span></div>
+          <div class="mp-crta"></div>
+          <div class="mp-korak" data-k="2"><span>2</span></div>
+          <div class="mp-crta"></div>
+          <div class="mp-korak" data-k="3"><span>3</span></div>
+          <div class="mp-crta"></div>
+          <div class="mp-korak" data-k="4"><span>4</span></div>
+        </div>
+        <div class="mob-korak-label" id="mobKorakLabel">Doktor</div>
+      </div>
+
       <!-- Doctor switcher — prikazuje se samo ako klinika ima doktore -->
-      <div class="doctor-switcher" id="doctorSwitcher" style="display:none;">
+      <div class="doctor-switcher mob-k1" id="doctorSwitcher" style="display:none;">
         <span class="doctor-switcher-label">Doktor</span>
         <button class="doctor-arrow" onclick="promijeniDoktora(-1)">&#8249;</button>
         <span class="doctor-switcher-name" id="doctorIme">—</span>
         <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8250;</button>
       </div>
 
-      <div class="kalendar">
+      <div class="kalendar mob-k2">
         <div class="kal-nav">
           <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">&#8249;</button>
           <div class="kal-mjesec" id="kal-naslov"></div>
@@ -43,12 +58,12 @@
         <div class="kal-grid" id="kal-grid"></div>
       </div>
 
-      <div class="termini-sekcija" id="termini-sekcija" style="display:none;">
+      <div class="termini-sekcija mob-k3" id="termini-sekcija" style="display:none;">
         <div class="termini-naslov">Slobodni termini</div>
         <div class="termini-grid" id="termini-grid"></div>
       </div>
 
-      <form id="bookingForm" class="forma-sekcija">
+      <form id="bookingForm" class="forma-sekcija mob-k4">
         <div class="odabir-badge" id="odabir-badge" style="display:none;"></div>
         <input type="hidden" id="date" name="date" />
         <input type="text" id="name" name="name" placeholder="Ime i prezime" required />
@@ -141,6 +156,11 @@
 
   </div>
 
+  <!-- Mobile sticky CTA (hidden on desktop via CSS) -->
+  <div id="sticky-cta">
+    <button id="sticky-cta-btn" onclick="window._handleStickyCTA()">Nastavi &#8594;</button>
+  </div>
+
   <button id="chat-widget-btn" onclick="toggleChat()">
     <div class="db-puls"></div>
     Pitajte asistenta
@@ -172,7 +192,74 @@
     let zauzetiDanas = [];
     let workingHoursSchedule = {};
 
-    // Generira termine u razmacima od 30 min unutar radnog vremena
+    // ── Mobile step logic ──
+    let _mobilniKorak = 0;
+    window._isMobile = () => window.innerWidth <= 600;
+
+    const _MOB_LABELS = ['Doktor', 'Datum', 'Termin', 'Podaci'];
+
+    window.idiNaKorak = function(n) {
+      _mobilniKorak = n;
+      if (!window._isMobile()) return;
+
+      document.body.dataset.korak = n;
+
+      // Update progress dots
+      document.querySelectorAll('.mp-korak').forEach(el => {
+        const k = parseInt(el.dataset.k);
+        el.classList.toggle('aktivan', k === n);
+        el.classList.toggle('gotov', k < n);
+      });
+
+      // Update step label
+      const labelEl = document.getElementById('mobKorakLabel');
+      if (labelEl) labelEl.textContent = _MOB_LABELS[n - 1] || '';
+
+      // Back button
+      const backBtn = document.getElementById('mobBack');
+      if (backBtn) backBtn.style.visibility = n > 1 ? 'visible' : 'hidden';
+
+      // Sticky CTA
+      const stickyBtn = document.getElementById('sticky-cta-btn');
+      if (stickyBtn) {
+        if (n === 1) {
+          stickyBtn.textContent = 'Nastavi \u2192';
+          stickyBtn.disabled = false;
+          stickyBtn.classList.remove('disabled');
+        } else if (n === 2) {
+          stickyBtn.textContent = 'Odaberite datum \u2191';
+          stickyBtn.disabled = true;
+          stickyBtn.classList.add('disabled');
+        } else if (n === 3) {
+          stickyBtn.textContent = 'Odaberite termin \u2191';
+          stickyBtn.disabled = true;
+          stickyBtn.classList.add('disabled');
+        } else if (n === 4) {
+          stickyBtn.textContent = 'Rezerviraj termin';
+          stickyBtn.disabled = false;
+          stickyBtn.classList.remove('disabled');
+        }
+      }
+
+      // Scroll card into view
+      setTimeout(() => {
+        document.querySelector('.card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 30);
+    };
+
+    window.idiNazad = function() {
+      if (_mobilniKorak > 1) window.idiNaKorak(_mobilniKorak - 1);
+    };
+
+    window._handleStickyCTA = function() {
+      if (_mobilniKorak === 1) {
+        window.idiNaKorak(2);
+      } else if (_mobilniKorak === 4) {
+        document.getElementById('bookingForm').requestSubmit();
+      }
+    };
+
+    // ── Generira termine ──
     function generirajTermine(raspon) {
       if (!raspon) return [];
       const [od, do_] = raspon.split('-');
@@ -236,9 +323,13 @@
             } catch { zauzetiDanas = []; }
             renderTermini();
             azurirajBadge();
-            setTimeout(() => {
-              document.getElementById('termini-sekcija').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 50);
+            if (window._isMobile()) {
+              window.idiNaKorak(3);
+            } else {
+              setTimeout(() => {
+                document.getElementById('termini-sekcija').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 50);
+            }
           };
         }
         grid.appendChild(el);
@@ -267,9 +358,13 @@
             odabraniTermin = t;
             renderTermini();
             azurirajBadge();
-            setTimeout(() => {
-              document.getElementById('bookingForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 50);
+            if (window._isMobile()) {
+              window.idiNaKorak(4);
+            } else {
+              setTimeout(() => {
+                document.getElementById('bookingForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 50);
+            }
           };
         }
         grid.appendChild(el);
@@ -281,8 +376,10 @@
       const dateInput = document.getElementById('date');
       if (odabraniDan && odabraniTermin) {
         const datumStr = `${String(odabraniDan.d).padStart(2,'0')}.${String(odabraniDan.mj+1).padStart(2,'0')}.${odabraniDan.god}. u ${odabraniTermin}`;
+        const drIme = typeof window.aktivniDoktorIme === 'function' ? window.aktivniDoktorIme() : '';
+        const drPart = drIme ? `Dr. ${drIme}, ` : '';
         badge.style.display = 'block';
-        badge.textContent = `\u2713 Odabrano: ${datumStr}`;
+        badge.textContent = `\u2713 Odabrano: ${drPart}${datumStr}`;
         dateInput.value = datumStr;
       } else {
         badge.style.display = 'none';
@@ -302,6 +399,7 @@
     function toggleChat() {
       chatOtvoren = !chatOtvoren;
       document.getElementById('chat-panel').classList.toggle('aktivan', chatOtvoren);
+      if (window._isMobile()) document.body.style.overflow = chatOtvoren ? 'hidden' : '';
       if (chatOtvoren) document.getElementById('chatInput').focus();
     }
 
@@ -319,6 +417,7 @@
       renderKalendar();
       renderTermini();
       azurirajBadge();
+      if (window._isMobile()) window.idiNaKorak(2);
     };
   </script>
 
