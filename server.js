@@ -75,7 +75,36 @@ app.get("/", (req, res) => {
 });
 
 app.get("/booking/:clientId", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "booking.html"));
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).send("Invalid client ID");
+
+  const client = loadClient(clientId);
+  let html = fs.readFileSync(path.join(__dirname, "public", "booking.html"), "utf-8");
+
+  if (client) {
+    const t = client.theme || {};
+    const vars = [];
+    if (t.accent)     vars.push(`--accent: ${t.accent};`);
+    if (t.accent2)    vars.push(`--accent-2: ${t.accent2};`);
+    if (t.accentSoft) vars.push(`--accent-soft: ${t.accentSoft};`);
+    if (t.bgColor)    vars.push(`--bg: ${t.bgColor};`);
+    if (t.bgSoft)     vars.push(`--bg-soft: ${t.bgSoft};`);
+    if (client.font)  vars.push(`--font: '${client.font}', ui-sans-serif, system-ui, sans-serif;`);
+
+    let inject = "";
+    if (client.font) {
+      const fontUrl = `https://fonts.googleapis.com/css2?family=${client.font.replace(/ /g, "+")}:wght@400;500;600;700;800&display=swap`;
+      inject += `  <link rel="stylesheet" href="${fontUrl}" />\n`;
+    }
+    if (vars.length) {
+      inject += `  <style>:root { ${vars.join(" ")} }</style>\n`;
+    }
+    if (inject) {
+      html = html.replace("</head>", inject + "</head>");
+    }
+  }
+
+  res.send(html);
 });
 
 // ── Login stranica ──

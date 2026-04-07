@@ -269,8 +269,6 @@ function populateServices() {
       window.idiNaKorak(hasDoctors ? 1 : 2);
     }
 
-    document.body.style.opacity = "1";
-
     const pozdrav = `Dobrodošli u ${clientConfig.brandName}! 👋\n\nJa sam vaš digitalni asistent. Mogu vam pomoći s informacijama o uslugama, cijenama i ordinaciji.\n\nO čemu želite saznati više?`;
 
     addBot(pozdrav);
@@ -279,7 +277,6 @@ function populateServices() {
     addQuickReplies();
 
   } catch (err) {
-    document.body.style.opacity = "1";
     console.error(err);
     addBot("Ne mogu učitati ordinaciju. Provjeri clientId.");
   }
