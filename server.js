@@ -37,12 +37,23 @@ const bookingLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const adminLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuta
+  max: 60,             // max 60 admin zahtjeva/min po IP-u
+  message: { ok: false, error: "Previše zahtjeva." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ── Middleware ──
 app.set("trust proxy", 1); // potrebno za Railway/reverse proxy (rate limiter)
 app.use(express.json({ limit: "20kb" })); // ograničava veličinu tijela zahtjeva
 app.use(express.static("public"));
 app.use((req, res, next) => {
   res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
 });
 
@@ -107,9 +118,14 @@ app.get("/booking/:clientId", (req, res) => {
   res.send(html);
 });
 
-// ── Login stranica ──
-app.get("/login/:clientId", (req, res) => {
+// ── Generic admin login stranica ──
+app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Backward compat — stari linkovi s clientId u URL-u
+app.get("/login/:clientId", (req, res) => {
+  res.redirect(301, "/admin");
 });
 
 // ── Admin login API ──
@@ -261,6 +277,8 @@ ${servicesText || "- (nije definirano)"}
       ],
     });
 
+    if (!completion.choices?.length)
+      return res.status(500).json({ reply: "Chatbot je trenutno nedostupan." });
     res.json({ reply: completion.choices[0].message.content });
   } catch (err) {
     console.error("FAQ ERROR:", err);
@@ -296,8 +314,16 @@ app.post("/booking", bookingLimiter, async (req, res) => {
     const client = loadClient(safeClientId);
     if (!client) return res.status(404).json({ ok: false, error: "Client not found" });
 
-    // Pronađi ime doktora (ako postoji)
+    // Validacija usluge — mora biti u listi klijenta
+    const allowedServices = (client.services || []).map(s => s.name);
+    if (allowedServices.length > 0 && !allowedServices.includes(safeService))
+      return res.status(400).json({ ok: false, error: "Neispravna usluga." });
+
+    // Validacija doktora — mora biti u listi klijenta
     const doctors = client.doctors || [];
+    if (safeDoctorId && !doctors.some(d => d.id === safeDoctorId))
+      return res.status(400).json({ ok: false, error: "Doktor nije pronađen." });
+
     const doktor = doctors.find(d => d.id === safeDoctorId);
     const doktorNaziv = doktor ? doktor.name : null;
 
@@ -342,13 +368,8 @@ app.post("/booking", bookingLimiter, async (req, res) => {
 });
 
 
-// Admin — backwards-compat redirect (stari URL format s tokenom u URL-u)
-app.get("/admin/:clientId/:token", (req, res) => {
-  // Preusmjeri na novu rutu — JS u admin.html će pokupit token iz URL-a
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
-});
 
-app.get("/admin-data/:clientId", (req, res) => {
+app.get("/admin-data/:clientId", adminLimiter, (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
   if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
   const client = loadClient(clientId);
@@ -363,7 +384,7 @@ app.get("/admin-data/:clientId", (req, res) => {
 });
 
 // Admin — potvrdi ili predloži termin
-app.post("/admin-action", async (req, res) => {
+app.post("/admin-action", adminLimiter, async (req, res) => {
   try {
     const { clientId, token, id, akcija, termin } = req.body;
 
@@ -405,7 +426,7 @@ app.post("/admin-action", async (req, res) => {
 });
 
 // Admin — otkaži termin
-app.post("/admin-cancel", async (req, res) => {
+app.post("/admin-cancel", adminLimiter, async (req, res) => {
   try {
     const { clientId, token, id } = req.body;
     const safeClientId = sanitizeClientId(clientId);
@@ -433,7 +454,7 @@ app.post("/admin-cancel", async (req, res) => {
 });
 
 // Admin — kalendar (potvrđeni termini grupirani po datumu)
-app.get("/admin-kalendar/:clientId", (req, res) => {
+app.get("/admin-kalendar/:clientId", adminLimiter, (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
   if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
   const client = loadClient(clientId);

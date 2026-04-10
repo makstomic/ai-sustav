@@ -7,7 +7,9 @@ if (tokenFromUrl) sessionStorage.setItem("adminToken_" + clientId, tokenFromUrl)
 
 const adminToken = sessionStorage.getItem("adminToken_" + clientId);
 if (!adminToken) {
-  window.location.href = "/login/" + clientId;
+  window.location.href = "/admin";
+} else {
+  document.body.style.visibility = "visible";
 }
 
 const wrap = document.getElementById("zahtjevi");

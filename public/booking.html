@@ -4,6 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Rezervacija — Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/booking.css" />
 </head>
 <body data-korak="1">
@@ -40,8 +43,8 @@
           <span class="doctor-switcher-name" id="doctorIme">—</span>
           <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8250;</button>
         </div>
-        <div class="mob-dr-potvrdi">
-          <button class="mob-potvrdi-btn" onclick="window.idiNaKorak(2)">Nastavi &#8594;</button>
+        <div class="doctor-confirm-section" id="doctorConfirmSection">
+          <button class="doctor-confirm-btn" id="doctorConfirmBtn">Potvrdi odabir doktora</button>
         </div>
       </div>
 
@@ -75,10 +78,6 @@
         <input type="email" id="email" name="email" placeholder="Email adresa" required />
         <select id="service" name="service" required>
           <option value="" disabled selected>Odaberite uslugu</option>
-          <option>RTG snimanje</option>
-          <option>Ortopan</option>
-          <option>CBCT snimanje</option>
-          <option>Konzultacija</option>
         </select>
         <textarea id="note" name="note" placeholder="Napomena (opcionalno)" rows="2" style="resize:vertical;"></textarea>
         <button type="submit" class="submit-btn">Po&#353;alji zahtjev</button>
@@ -281,9 +280,13 @@
           if (d === danas.getDate() && mj === danas.getMonth() && god === danas.getFullYear()) el.classList.add('danas');
           if (odabraniDan && d === odabraniDan.d && mj === odabraniDan.mj && god === odabraniDan.god) el.classList.add('odabran');
           el.onclick = async () => {
+            // Odmah vizualno označi odabrani dan (samo swap klase, bez full re-rendera)
+            document.querySelector('.kal-dan.odabran')?.classList.remove('odabran');
+            el.classList.add('odabran');
+
             odabraniDan = {d, mj, god, danTjedna};
             odabraniTermin = null;
-            renderKalendar();
+
             const kljuc = `${god}-${String(mj+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const drId = typeof aktivniDoktorId === 'function' ? aktivniDoktorId() : '';
             const drParam = drId ? `?doctorId=${encodeURIComponent(drId)}` : '';
@@ -291,6 +294,7 @@
               const r = await fetch(`/termini/${_kalClientId}/${kljuc}${drParam}`);
               zauzetiDanas = r.ok ? await r.json() : [];
             } catch { zauzetiDanas = []; }
+
             renderTermini();
             azurirajBadge();
             if (window._isMobile()) {

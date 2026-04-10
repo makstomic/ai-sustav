@@ -26,17 +26,51 @@ function promijeniDoktora(smjer) {
   if (sviDoktori.length === 0) return;
   aktivniDrIdx = (aktivniDrIdx + smjer + sviDoktori.length) % sviDoktori.length;
   document.getElementById("doctorIme").textContent = sviDoktori[aktivniDrIdx]?.name || "—";
-  // Reset kalendara za novog doktora
   if (typeof window._resetKalendar === "function") window._resetKalendar();
+  if (typeof window._resetDoctorConfirm === "function") window._resetDoctorConfirm();
 }
 
 function initDoctorSwitcher(doctors) {
   sviDoktori = doctors || [];
   if (sviDoktori.length === 0) return;
+
   const sw = document.getElementById("doctorSwitcher");
   if (sw) sw.style.display = "flex";
   const imeEl = document.getElementById("doctorIme");
   if (imeEl) imeEl.textContent = sviDoktori[0]?.name || "—";
+
+  const confirmSection = document.getElementById("doctorConfirmSection");
+  const confirmBtn = document.getElementById("doctorConfirmBtn");
+  if (confirmSection) confirmSection.style.display = "block";
+  if (!confirmBtn) return;
+
+  function setConfirmed(confirmed) {
+    if (confirmed) {
+      const name = sviDoktori[aktivniDrIdx]?.name || "Doktor";
+      confirmBtn.innerHTML = `<span>✓ ${name}</span><span class="dr-reset-x" id="drResetX">✕</span>`;
+      confirmBtn.classList.add("potvrden");
+      document.getElementById("drResetX").addEventListener("click", (e) => {
+        e.stopPropagation();
+        setConfirmed(false);
+      });
+    } else {
+      confirmBtn.textContent = "Potvrdi odabir doktora";
+      confirmBtn.classList.remove("potvrden");
+    }
+  }
+
+  confirmBtn.addEventListener("click", () => {
+    if (confirmBtn.classList.contains("potvrden")) return;
+    setConfirmed(true);
+    if (window._isMobile && window._isMobile()) {
+      window.idiNaKorak(2);
+    } else {
+      document.querySelector(".kalendar")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+
+  // Reset potvrde kad se promijeni doktor strelicom
+  window._resetDoctorConfirm = () => setConfirmed(false);
 }
 
 // ── Chat bubble helpers ──
@@ -100,6 +134,11 @@ async function loadConfig() {
     document.getElementById("kontakt-sati").style.display = "flex";
   }
 
+
+  // Page naslov
+  const pageTitleEl = document.querySelector('.page-title');
+  if (pageTitleEl) pageTitleEl.textContent = clientConfig.pageTitle || clientConfig.brandName || 'Rezervacija termina';
+  document.title = `Rezervacija — ${clientConfig.brandName || 'Ordinacija'}`;
 
   // Chat header
   document.getElementById("chatHeaderTitle").textContent = `${clientConfig.brandName} — Asistent`;
@@ -244,7 +283,6 @@ function addQuickReplies() {
 function populateServices() {
   const select = document.getElementById("service");
   const services = clientConfig.services || [];
-  if (!services.length) return;
 
   select.innerHTML = '<option value="" disabled selected>Odaberite uslugu</option>';
   services.forEach(({ name }) => {

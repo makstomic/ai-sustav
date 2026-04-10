@@ -23,4 +23,7 @@ try {
   db.exec("ALTER TABLE requests ADD COLUMN doctorId TEXT NOT NULL DEFAULT ''");
 } catch (_) { /* stupac već postoji */ }
 
+// Index za brže upite po clientId
+db.exec("CREATE INDEX IF NOT EXISTS idx_clientId ON requests(clientId)");
+
 module.exports = db;
