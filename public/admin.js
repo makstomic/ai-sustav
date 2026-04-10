@@ -165,13 +165,13 @@ function prikaziZahtjeve() {
 
 // ── Akcije ──
 async function potvrdi(id) {
-  const termin = prompt("Upiši potvrđeni termin (npr. 15.03. u 10:00):");
-  if (!termin) return;
+  const zahtjev = sviZahtjevi.find(z => z.id == id);
+  if (!zahtjev) return;
 
   await fetch("/admin-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId, token: adminToken, id, akcija: "potvrdi", termin }),
+    body: JSON.stringify({ clientId, token: adminToken, id, akcija: "potvrdi", termin: zahtjev.date }),
   });
 
   alert("Potvrda poslana pacijentu!");

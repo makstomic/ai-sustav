@@ -342,11 +342,15 @@ app.post("/booking", bookingLimiter, async (req, res) => {
       safeDate,
       safeService,
       safeNote || "—",
-      new Date().toLocaleString("hr-HR"),
+      new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" }),
       safeDoctorId
     );
 
-    await sendMail({
+    // Zahtjev je u bazi — odmah vrati uspjeh korisniku
+    res.json({ ok: true });
+
+    // Mail šaljemo nakon odgovora — greška maila ne utječe na korisnika
+    sendMail({
       to:      toEmail,
       subject: `Novi zahtjev — ${client.brandName} — ${safeName}`,
       text:
@@ -359,12 +363,10 @@ app.post("/booking", bookingLimiter, async (req, res) => {
         `Usluga:     ${safeService}\n` +
         `Napomena:   ${safeNote || "—"}\n\n` +
         `Termin se ne potvrđuje automatski — potrebna ručna potvrda ordinacije.`,
-    });
-
-    res.json({ ok: true });
+    }).catch(err => console.error("BOOKING MAIL ERROR:", err));
   } catch (err) {
     console.error("BOOKING ERROR:", err);
-    res.status(500).json({ ok: false });
+    res.status(500).json({ ok: false, error: "Greška pri slanju zahtjeva." });
   }
 });
 
