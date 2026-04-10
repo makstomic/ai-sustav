@@ -5,6 +5,7 @@ const fs         = require("fs");
 const OpenAI     = require("openai");
 const { Resend } = require("resend");
 const rateLimit  = require("express-rate-limit");
+const cron       = require("node-cron");
 const db         = require("./database");
 
 const app  = express();
@@ -502,6 +503,50 @@ app.get("/termini/:clientId/:datum", (req, res) => {
     .filter(Boolean);
 
   res.json(zauzeti);
+});
+
+// ── Dnevni podsjetnik — svaki dan u 9:00 ──
+cron.schedule("0 9 * * *", async () => {
+  const sutra = new Date();
+  sutra.setDate(sutra.getDate() + 1);
+  const dan  = String(sutra.getDate()).padStart(2, "0");
+  const mjes = String(sutra.getMonth() + 1).padStart(2, "0");
+  const god  = sutra.getFullYear();
+
+  // Traži sve potvrđene termine čiji datum počinje s "DD.MM.YYYY."
+  const pattern = `${dan}.${mjes}.${god}.%`;
+  const termini = db.prepare(
+    "SELECT * FROM requests WHERE status = 'potvrdjeno' AND date LIKE ?"
+  ).all(pattern);
+
+  console.log(`[REMINDER] ${dan}.${mjes}.${god}. — pronađeno ${termini.length} sutrašnjih termina`);
+
+  for (const t of termini) {
+    const client = loadClient(t.clientId);
+    if (!client) continue;
+
+    const vrijemeMatch = t.date.match(/(\d{2}:\d{2})$/);
+    const vrijeme = vrijemeMatch ? vrijemeMatch[1] : "";
+
+    try {
+      await sendMail({
+        to:      t.email,
+        subject: `Podsjetnik za termin — ${client.brandName}`,
+        text:
+          `Poštovani ${t.name},\n\n` +
+          `Podsjećamo vas da imate termin sutra.\n\n` +
+          `Datum i vrijeme: ${t.date}\n` +
+          `Usluga: ${t.service}\n\n` +
+          (t.doctorId && client.doctors?.find(d => d.id === t.doctorId)
+            ? `Doktor: ${client.doctors.find(d => d.id === t.doctorId).name}\n\n`
+            : "") +
+          `Do viđenja,\n${client.brandName}`,
+      });
+      console.log(`[REMINDER] Poslan podsjetnik → ${t.email}`);
+    } catch (err) {
+      console.error(`[REMINDER] Greška za ${t.email}:`, err.message);
+    }
+  }
 });
 
 app.listen(PORT, () => {
