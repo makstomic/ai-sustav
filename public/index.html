@@ -295,7 +295,6 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      margin-bottom: 36px;
       flex-wrap: wrap;
     }
 
@@ -377,9 +376,127 @@
        Mockup — Booking tab (bm-)
        Replicira točan izgled booking.html + booking.css
        ======================== */
-    .bm-page-head { text-align: center; padding: 24px 20px 0; }
-    .bm-page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-    .bm-page-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    /* Device toggle */
+    .preview-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .device-toggle {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .device-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .device-btn.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(15,23,42,0.08);
+    }
+
+    /* Phone frame */
+    .phone-view {
+      display: none;
+      justify-content: center;
+      padding: 24px 0 8px;
+    }
+    .phone-view.aktivan { display: flex; }
+    .phone-device {
+      width: 340px;
+      height: 680px;
+      background: #1c1c1e;
+      border-radius: 44px;
+      padding: 10px;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.07);
+      position: relative;
+    }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 36px;
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 24px;
+      background: #1c1c1e;
+      border-radius: 0 0 14px 14px;
+      z-index: 10;
+    }
+    .phone-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .bm-page-head {
+      text-align: center;
+      padding: 20px 20px 16px;
+      background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(13,148,136,0.07), transparent 70%), #f8fafc;
+    }
+    .bm-page-title { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+
+    /* Doctor switcher u mockupu */
+    .bm-doctor-sw {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .bm-doctor-name { flex: 1; text-align: center; font-size: 13px; font-weight: 700; }
+    .bm-doctor-arrow {
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 9px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--text);
+      font-family: var(--font);
+    }
+    .bm-doctor-confirm {
+      margin: 10px 16px;
+      width: calc(100% - 32px);
+      padding: 9px 14px;
+      background: transparent;
+      color: #0d9488;
+      border: 1.5px solid #0d9488;
+      border-radius: 10px;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .bm-doctor-confirm:hover { background: #0d9488; color: #fff; }
 
     .bm-layout {
       width: min(900px, calc(100% - 32px));
@@ -1652,11 +1769,23 @@
         <p class="section-sub" style="margin: 0 auto;">Pogledajte kako izgleda Ordinova sustav — od booking forme do admin panela.</p>
       </div>
 
-      <!-- Tab navigacija -->
-      <div class="tab-nav" role="tablist">
-        <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-booking" onclick="switchTab('booking', this)">Booking forma</button>
-        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-ai" onclick="switchTab('ai', this)">AI asistent</button>
-        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-admin" onclick="switchTab('admin', this)">Admin panel</button>
+      <!-- Tab navigacija + device toggle -->
+      <div class="preview-nav">
+        <div class="tab-nav" role="tablist">
+          <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-booking" onclick="switchTab('booking', this)">Booking forma</button>
+          <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-ai" onclick="switchTab('ai', this)">AI asistent</button>
+          <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-admin" onclick="switchTab('admin', this)">Admin panel</button>
+        </div>
+        <div class="device-toggle" id="deviceToggle">
+          <button class="device-btn active" id="btn-desktop" onclick="switchDevice('desktop', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
+            Desktop
+          </button>
+          <button class="device-btn" id="btn-mobile" onclick="switchDevice('mobile', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Mobitel
+          </button>
+        </div>
       </div>
 
       <!-- ---- Tab: Booking forma ---- -->
@@ -1674,8 +1803,15 @@
           <!-- Naslov stranice -->
           <div class="bm-page-head">
             <div class="bm-page-title">Demo ordinacija</div>
-            <div class="bm-page-sub">Rezervirajte termin u 30 sekundi</div>
           </div>
+
+          <!-- Doctor switcher -->
+          <div class="bm-doctor-sw">
+            <button class="bm-doctor-arrow">&#8592;</button>
+            <div class="bm-doctor-name">Dr. Marko Vrbić</div>
+            <button class="bm-doctor-arrow">&#8594;</button>
+          </div>
+          <button class="bm-doctor-confirm">&#10003; Dr. Marko Vrbić <span style="opacity:0.5;margin-left:6px;">&#xD7;</span></button>
 
           <!-- Glavni layout: 1.4fr 1fr -->
           <div class="bm-layout">
@@ -1701,33 +1837,33 @@
                   <div class="bm-kal-dan-naziv">SUB</div>
                   <div class="bm-kal-dan-naziv">NED</div>
                 </div>
-                <!-- Grid dana — Travanj 2026: 1. travnja = srijeda (offset 2) -->
+                <!-- Grid dana — Travanj 2026: 1. travnja = srijeda (offset 2), danas = 16, odabran = 23 -->
                 <div class="bm-kal-grid">
                   <div class="bm-kal-dan prazno"></div>
                   <div class="bm-kal-dan prazno"></div>
-                  <div class="bm-kal-dan danas">1</div>
-                  <div class="bm-kal-dan">2</div>
-                  <div class="bm-kal-dan">3</div>
+                  <div class="bm-kal-dan prosli">1</div>
+                  <div class="bm-kal-dan prosli">2</div>
+                  <div class="bm-kal-dan prosli">3</div>
                   <div class="bm-kal-dan prosli">4</div>
                   <div class="bm-kal-dan prosli">5</div>
-                  <div class="bm-kal-dan">6</div>
-                  <div class="bm-kal-dan">7</div>
-                  <div class="bm-kal-dan">8</div>
-                  <div class="bm-kal-dan odabran">9</div>
-                  <div class="bm-kal-dan">10</div>
+                  <div class="bm-kal-dan prosli">6</div>
+                  <div class="bm-kal-dan prosli">7</div>
+                  <div class="bm-kal-dan prosli">8</div>
+                  <div class="bm-kal-dan prosli">9</div>
+                  <div class="bm-kal-dan prosli">10</div>
                   <div class="bm-kal-dan prosli">11</div>
                   <div class="bm-kal-dan prosli">12</div>
-                  <div class="bm-kal-dan">13</div>
-                  <div class="bm-kal-dan">14</div>
-                  <div class="bm-kal-dan">15</div>
-                  <div class="bm-kal-dan">16</div>
+                  <div class="bm-kal-dan prosli">13</div>
+                  <div class="bm-kal-dan prosli">14</div>
+                  <div class="bm-kal-dan prosli">15</div>
+                  <div class="bm-kal-dan danas">16</div>
                   <div class="bm-kal-dan">17</div>
                   <div class="bm-kal-dan prosli">18</div>
                   <div class="bm-kal-dan prosli">19</div>
                   <div class="bm-kal-dan">20</div>
                   <div class="bm-kal-dan">21</div>
                   <div class="bm-kal-dan">22</div>
-                  <div class="bm-kal-dan">23</div>
+                  <div class="bm-kal-dan odabran">23</div>
                   <div class="bm-kal-dan">24</div>
                   <div class="bm-kal-dan prosli">25</div>
                   <div class="bm-kal-dan prosli">26</div>
@@ -1762,7 +1898,7 @@
 
               <!-- Forma za unos podataka -->
               <form class="bm-forma" onsubmit="return false;">
-                <div class="bm-odabir-badge">&#10003; Odabrano: 09.04.2026. u 10:00</div>
+                <div class="bm-odabir-badge">&#10003; Odabrano: 23.04.2026. u 10:00</div>
                 <input class="bm-input" type="text" placeholder="Ime i prezime" />
                 <input class="bm-input" type="email" placeholder="Email adresa" />
                 <select class="bm-select">
@@ -1866,8 +2002,13 @@
             <!-- Točna kopija booking stranice (isti bm- markup kao u Tab 1) -->
             <div class="bm-page-head">
               <div class="bm-page-title">Demo ordinacija</div>
-              <div class="bm-page-sub">Rezervirajte termin u 30 sekundi</div>
             </div>
+            <div class="bm-doctor-sw">
+              <button class="bm-doctor-arrow">&#8592;</button>
+              <div class="bm-doctor-name">Dr. Marko Vrbić</div>
+              <button class="bm-doctor-arrow">&#8594;</button>
+            </div>
+            <button class="bm-doctor-confirm">&#10003; Dr. Marko Vrbić <span style="opacity:0.5;margin-left:6px;">&#xD7;</span></button>
             <div class="bm-layout">
               <div class="bm-card">
                 <div class="bm-card-title">Odaberite termin</div>
@@ -1913,7 +2054,7 @@
                   </div>
                 </div>
                 <form class="bm-forma" onsubmit="return false;">
-                  <div class="bm-odabir-badge">&#10003; Odabrano: 09.04.2026. u 10:00</div>
+                  <div class="bm-odabir-badge">&#10003; Odabrano: 23.04.2026. u 10:00</div>
                   <input class="bm-input" type="text" placeholder="Ime i prezime" />
                   <input class="bm-input" type="email" placeholder="Email adresa" />
                   <select class="bm-select"><option>Odaberite uslugu</option><option>Opći pregled</option></select>
@@ -1971,6 +2112,16 @@
               <button class="ai-fab-btn"><span class="ai-fab-puls"></span>Pitajte asistenta</button>
             </div>
 
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Mobilni prikaz (phone frame s iframeom) ---- -->
+      <div class="phone-view" id="phoneView">
+        <div class="phone-device">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <iframe class="phone-iframe" src="/booking/vrbic" title="Booking forma — mobilni prikaz"></iframe>
           </div>
         </div>
       </div>
@@ -2394,6 +2545,37 @@
       // Označi odabrani gumb
       btnEl.classList.add('active');
       btnEl.setAttribute('aria-selected', 'true');
+    }
+
+    // Prebacivanje između desktop i mobilnog prikaza
+    function switchDevice(mode, btnEl) {
+      document.querySelectorAll('.device-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      btnEl.classList.add('active');
+
+      var phoneView = document.getElementById('phoneView');
+      var tabPanels = document.querySelectorAll('.tab-panel');
+      var tabNav    = document.querySelector('.tab-nav');
+
+      if (mode === 'mobile') {
+        // Prikaži phone frame, sakrij tab panele i tab nav
+        phoneView.classList.add('aktivan');
+        tabPanels.forEach(function(p) { p.style.display = 'none'; });
+        tabNav.style.visibility = 'hidden';
+      } else {
+        // Vrati desktop prikaz
+        phoneView.classList.remove('aktivan');
+        tabPanels.forEach(function(p) { p.style.display = ''; });
+        tabNav.style.visibility = '';
+        // Aktiviraj prvi aktivni tab panel
+        var activeBtn = document.querySelector('.tab-btn.active');
+        if (activeBtn) {
+          var panelId = activeBtn.getAttribute('aria-controls');
+          var panel = document.getElementById(panelId);
+          if (panel) panel.classList.add('active');
+        }
+      }
     }
 
     // Hamburger meni za mobitel
