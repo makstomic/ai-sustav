@@ -190,6 +190,8 @@
     const _kalClientId = window.location.pathname.split('/').pop();
     let zauzetiDanas = [];
     let workingHoursSchedule = {};
+    let doctorSchedules = {};       // { doctorId: { "1": "08:00-17:00", ... } }
+    let currentDayOverride = null;  // radno vrijeme specifično za odabrani dan/doktora
 
     window._isMobile = () => window.innerWidth <= 600;
 
@@ -244,8 +246,13 @@
       return termini;
     }
 
+    function aktivniDrRaspored() {
+      const drId = typeof aktivniDoktorId === 'function' ? aktivniDoktorId() : '';
+      return (drId && doctorSchedules[drId]) ? doctorSchedules[drId] : workingHoursSchedule;
+    }
+
     function jeRadniDan(danTjedna) {
-      return String(danTjedna) in workingHoursSchedule;
+      return String(danTjedna) in aktivniDrRaspored();
     }
 
     function renderKalendar() {
@@ -290,9 +297,28 @@
             const kljuc = `${god}-${String(mj+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const drId = typeof aktivniDoktorId === 'function' ? aktivniDoktorId() : '';
             const drParam = drId ? `?doctorId=${encodeURIComponent(drId)}` : '';
+            currentDayOverride = null;
             try {
               const r = await fetch(`/termini/${_kalClientId}/${kljuc}${drParam}`);
-              zauzetiDanas = r.ok ? await r.json() : [];
+              const podaci = r.ok ? await r.json() : {};
+              // backward compat: stari server vraćao je array
+              if (Array.isArray(podaci)) {
+                zauzetiDanas = podaci;
+              } else {
+                zauzetiDanas = podaci.zauzeti || [];
+                currentDayOverride = podaci.radnoVrijeme || null;
+                if (podaci.blokiranDan) {
+                  // Dan je blokiran — tretiraj kao zatvoren
+                  odabraniDan = null;
+                  odabraniTermin = null;
+                  el.classList.remove('odabran');
+                  el.classList.add('prosli');
+                  renderKalendar();
+                  renderTermini();
+                  azurirajBadge();
+                  return;
+                }
+              }
             } catch { zauzetiDanas = []; }
 
             renderTermini();
@@ -317,7 +343,7 @@
       sekcija.style.display = 'block';
       grid.innerHTML = '';
 
-      const raspon = workingHoursSchedule[String(odabraniDan.danTjedna)] || null;
+      const raspon = currentDayOverride || aktivniDrRaspored()[String(odabraniDan.danTjedna)] || null;
       const sviTermini = generirajTermine(raspon);
 
       sviTermini.forEach(t => {
@@ -379,8 +405,9 @@
     }
 
     // Kalendar se renderira tek kad booking.js postavi raspored
-    window.initKalendar = function(schedule) {
+    window.initKalendar = function(schedule, drSchedules) {
       workingHoursSchedule = schedule || {};
+      doctorSchedules = drSchedules || {};
       renderKalendar();
     };
 
@@ -389,6 +416,7 @@
       odabraniDan = null;
       odabraniTermin = null;
       zauzetiDanas = [];
+      currentDayOverride = null;
       renderKalendar();
       renderTermini();
       azurirajBadge();

@@ -442,14 +442,26 @@ app.post("/admin-cancel", adminLimiter, async (req, res) => {
     if (!zahtjev) return res.status(404).json({ ok: false });
 
     db.prepare("UPDATE requests SET status = 'otkazano' WHERE id = ?").run(id);
+    res.json({ ok: true });
 
-    await sendMail({
+    const doktor = (client.doctors || []).find(d => d.id === zahtjev.doctorId);
+    const bookingUrl = client.bookingUrl || "";
+    const linkBlok = bookingUrl
+      ? `\nNaručite se na novi termin putem naše online forme:\n${bookingUrl}\n\nPutem iste forme možete se naručiti i kod drugog dostupnog doktora.\n`
+      : `\nMolimo Vas da se javite ordinaciji za novi termin.\n`;
+
+    sendMail({
       to:      zahtjev.email,
       subject: `Otkazivanje termina — ${client.brandName}`,
-      text:    `Poštovani ${zahtjev.name},\n\nNažalost, Vaš termin je otkazan.\n\nDatum: ${zahtjev.date}\nUsluga: ${zahtjev.service}\n\nMolimo Vas da se javite ordinaciji za novi termin.\n\n${client.brandName}`,
-    });
-
-    res.json({ ok: true });
+      text:
+        `Poštovani ${zahtjev.name},\n\n` +
+        `Nažalost, Vaš termin je otkazan.\n\n` +
+        `Datum: ${zahtjev.date}\n` +
+        `Usluga: ${zahtjev.service}\n` +
+        (doktor ? `Doktor: ${doktor.name}\n` : "") +
+        linkBlok +
+        `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
+    }).catch(err => console.error("CANCEL MAIL ERROR:", err));
   } catch (err) {
     console.error("CANCEL ERROR:", err);
     res.status(500).json({ ok: false });
@@ -500,12 +512,223 @@ app.get("/termini/:clientId/:datum", (req, res) => {
     ? db.prepare("SELECT date FROM requests WHERE clientId = ? AND status = 'potvrdjeno' AND date LIKE ? AND doctorId = ?").all(clientId, likeUzorak, doctorId)
     : db.prepare("SELECT date FROM requests WHERE clientId = ? AND status = 'potvrdjeno' AND date LIKE ?").all(clientId, likeUzorak);
 
-  const zauzeti = zahtjevi
+  let zauzeti = zahtjevi
     .map(z => { const m = z.date.match(/(\d{2}:\d{2})$/); return m ? m[1] : null; })
     .filter(Boolean);
 
-  res.json(zauzeti);
+  // Iznimke — blokada dana ili slotova
+  const iznimke = db.prepare(
+    "SELECT * FROM schedule_exceptions WHERE clientId = ? AND doctorId = ? AND date = ?"
+  ).all(clientId, doctorId, datum);
+
+  const blokiranDan = iznimke.some(i => i.type === "block_day");
+  const blokiraniSlotovi = iznimke.filter(i => i.type === "block_slot" && i.time).map(i => i.time);
+  zauzeti = [...new Set([...zauzeti, ...blokiraniSlotovi])];
+
+  // Radno vrijeme specifično za doktora za taj dan
+  let radnoVrijeme = null;
+  if (doctorId) {
+    const dayOfWeek = new Date(datum).getDay();
+    const sched = db.prepare(
+      "SELECT startTime, endTime FROM doctor_schedules WHERE clientId = ? AND doctorId = ? AND dayOfWeek = ?"
+    ).get(clientId, doctorId, dayOfWeek);
+    if (sched) radnoVrijeme = `${sched.startTime}-${sched.endTime}`;
+  }
+
+  res.json({ zauzeti, blokiranDan, radnoVrijeme });
 });
+
+// Tjedno radno vrijeme po doktoru — javni endpoint za booking formu
+app.get("/doctor-schedule/:clientId", (req, res) => {
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
+  const client = loadClient(clientId);
+  if (!client) return res.status(404).json({ error: "Client not found" });
+
+  const doctors = client.doctors || [];
+  const result = {};
+  for (const doc of doctors) {
+    const rows = db.prepare(
+      "SELECT dayOfWeek, startTime, endTime FROM doctor_schedules WHERE clientId = ? AND doctorId = ?"
+    ).all(clientId, doc.id);
+    if (rows.length > 0) {
+      result[doc.id] = {};
+      for (const r of rows) {
+        result[doc.id][String(r.dayOfWeek)] = `${r.startTime}-${r.endTime}`;
+      }
+    }
+  }
+  res.json(result);
+});
+
+// Admin — dohvati raspored doktora
+app.get("/admin-raspored/:clientId", adminLimiter, (req, res) => {
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
+  const client = loadClient(clientId);
+  if (!client) return res.status(404).json({ error: "Client not found" });
+  if (req.query.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+
+  const doctorId = req.query.doctorId || "";
+  if (!doctorId) return res.status(400).json({ error: "doctorId obavezan." });
+
+  const rows = db.prepare(
+    "SELECT dayOfWeek, startTime, endTime FROM doctor_schedules WHERE clientId = ? AND doctorId = ?"
+  ).all(clientId, doctorId);
+
+  const schedule = {};
+  for (const r of rows) {
+    schedule[String(r.dayOfWeek)] = { startTime: r.startTime, endTime: r.endTime };
+  }
+  res.json({ schedule });
+});
+
+// Admin — spremi raspored doktora
+app.post("/admin-raspored", adminLimiter, (req, res) => {
+  const { clientId, token, doctorId, schedule } = req.body;
+  const safeClientId = sanitizeClientId(clientId);
+  if (!safeClientId) return res.status(400).json({ ok: false });
+  const client = loadClient(safeClientId);
+  if (!client) return res.status(404).json({ ok: false });
+  if (!token || token !== client.adminToken) return res.status(403).json({ ok: false });
+
+  const doctors = client.doctors || [];
+  if (!doctors.some(d => d.id === doctorId))
+    return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
+  if (typeof schedule !== "object" || Array.isArray(schedule))
+    return res.status(400).json({ ok: false });
+
+  const upsert = db.prepare(`
+    INSERT INTO doctor_schedules (clientId, doctorId, dayOfWeek, startTime, endTime)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(clientId, doctorId, dayOfWeek) DO UPDATE SET startTime=excluded.startTime, endTime=excluded.endTime
+  `);
+  const del = db.prepare(
+    "DELETE FROM doctor_schedules WHERE clientId = ? AND doctorId = ? AND dayOfWeek = ?"
+  );
+
+  db.transaction(() => {
+    for (let day = 0; day <= 6; day++) {
+      const entry = schedule[String(day)];
+      if (entry && entry.startTime && entry.endTime) {
+        upsert.run(safeClientId, doctorId, day, entry.startTime, entry.endTime);
+      } else {
+        del.run(safeClientId, doctorId, day);
+      }
+    }
+  })();
+
+  res.json({ ok: true });
+});
+
+// Admin — iznimke za mjesec
+app.get("/admin-iznimke/:clientId", adminLimiter, (req, res) => {
+  const clientId = sanitizeClientId(req.params.clientId);
+  if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
+  const client = loadClient(clientId);
+  if (!client) return res.status(404).json({ error: "Client not found" });
+  if (req.query.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+
+  const { doctorId = "", year, month } = req.query;
+  if (!year || !month) return res.status(400).json({ error: "year i month obavezni." });
+
+  const prefix = `${year}-${String(month).padStart(2, "0")}`;
+  const rows = db.prepare(
+    "SELECT * FROM schedule_exceptions WHERE clientId = ? AND doctorId = ? AND date LIKE ?"
+  ).all(clientId, doctorId, `${prefix}-%`);
+
+  res.json(rows);
+});
+
+// Admin — dodaj iznimku (+ auto-cancel konfliktnih termina s mailom pacijentu)
+app.post("/admin-iznimka", adminLimiter, async (req, res) => {
+  try {
+    const { clientId, token, doctorId = "", date, type, time, note = "" } = req.body;
+    const safeClientId = sanitizeClientId(clientId);
+    if (!safeClientId) return res.status(400).json({ ok: false });
+    const client = loadClient(safeClientId);
+    if (!client) return res.status(404).json({ ok: false });
+    if (!token || token !== client.adminToken) return res.status(403).json({ ok: false });
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+      return res.status(400).json({ ok: false, error: "Neispravan datum." });
+    if (!["block_day", "block_slot"].includes(type))
+      return res.status(400).json({ ok: false });
+    if (type === "block_slot" && !time)
+      return res.status(400).json({ ok: false, error: "Vrijeme obavezno." });
+
+    const doctors = client.doctors || [];
+    if (doctorId && !doctors.some(d => d.id === doctorId))
+      return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
+
+    if (type === "block_day") {
+      db.prepare(
+        "DELETE FROM schedule_exceptions WHERE clientId = ? AND doctorId = ? AND date = ? AND type = 'block_day'"
+      ).run(safeClientId, doctorId, date);
+    }
+
+    const r = db.prepare(
+      "INSERT INTO schedule_exceptions (clientId, doctorId, date, type, time, note) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(safeClientId, doctorId, date, type, time || null, note.slice(0, 200));
+
+    // Pronađi i otkaži konfliktne potvrđene termine
+    const [g, mj, d] = date.split("-");
+    const doktor = doctors.find(x => x.id === doctorId);
+    const bookingUrl = client.bookingUrl || "";
+    const linkBlok = bookingUrl
+      ? `\nNaručite se na novi termin putem naše online forme:\n${bookingUrl}\n\nPutem iste forme možete odabrati i drugog dostupnog doktora.\n`
+      : `\nMolimo Vas da se javite ordinaciji za novi termin.\n`;
+
+    let zahvaceni = [];
+    if (type === "block_day") {
+      const pat = `${d}.${mj}.${g}.%`;
+      zahvaceni = doctorId
+        ? db.prepare("SELECT * FROM requests WHERE clientId=? AND status='potvrdjeno' AND date LIKE ? AND doctorId=?").all(safeClientId, pat, doctorId)
+        : db.prepare("SELECT * FROM requests WHERE clientId=? AND status='potvrdjeno' AND date LIKE ?").all(safeClientId, pat);
+    } else if (type === "block_slot" && time) {
+      const exactPat = `${d}.${mj}.${g}. u ${time}`;
+      zahvaceni = doctorId
+        ? db.prepare("SELECT * FROM requests WHERE clientId=? AND status='potvrdjeno' AND date=? AND doctorId=?").all(safeClientId, exactPat, doctorId)
+        : db.prepare("SELECT * FROM requests WHERE clientId=? AND status='potvrdjeno' AND date=?").all(safeClientId, exactPat);
+    }
+
+    res.json({ ok: true, id: r.lastInsertRowid, otkazano: zahvaceni.length });
+
+    // Otkaži i obavijesti — async nakon odgovora
+    for (const z of zahvaceni) {
+      db.prepare("UPDATE requests SET status='otkazano' WHERE id=?").run(z.id);
+      sendMail({
+        to:      z.email,
+        subject: `Otkazivanje termina — ${client.brandName}`,
+        text:
+          `Poštovani ${z.name},\n\n` +
+          `Nažalost, Vaš termin je otkazan jer doktor nije dostupan u navedenom terminu.\n\n` +
+          `Datum: ${z.date}\n` +
+          `Usluga: ${z.service}\n` +
+          (doktor ? `Doktor: ${doktor.name}\n` : "") +
+          linkBlok +
+          `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
+      }).catch(err => console.error(`IZNIMKA MAIL ERROR (${z.email}):`, err));
+    }
+  } catch (err) {
+    console.error("IZNIMKA ERROR:", err);
+    res.status(500).json({ ok: false });
+  }
+});
+
+// Admin — ukloni iznimku
+app.post("/admin-iznimka-delete", adminLimiter, (req, res) => {
+  const { clientId, token, id } = req.body;
+  const safeClientId = sanitizeClientId(clientId);
+  if (!safeClientId) return res.status(400).json({ ok: false });
+  const client = loadClient(safeClientId);
+  if (!client) return res.status(404).json({ ok: false });
+  if (!token || token !== client.adminToken) return res.status(403).json({ ok: false });
+
+  db.prepare("DELETE FROM schedule_exceptions WHERE id = ? AND clientId = ?").run(id, safeClientId);
+  res.json({ ok: true });
+});
+
 
 // ── Dnevni podsjetnik — svaki dan u 9:00 ──
 cron.schedule("0 9 * * *", async () => {

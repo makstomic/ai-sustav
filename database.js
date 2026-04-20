@@ -26,4 +26,32 @@ try {
 // Index za brže upite po clientId
 db.exec("CREATE INDEX IF NOT EXISTS idx_clientId ON requests(clientId)");
 
+// Tjedno radno vrijeme po doktoru
+db.exec(`
+  CREATE TABLE IF NOT EXISTS doctor_schedules (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    clientId  TEXT    NOT NULL,
+    doctorId  TEXT    NOT NULL,
+    dayOfWeek INTEGER NOT NULL,
+    startTime TEXT    NOT NULL,
+    endTime   TEXT    NOT NULL,
+    UNIQUE(clientId, doctorId, dayOfWeek)
+  )
+`);
+
+// Iznimke — blokada dana ili pojedinog slota
+db.exec(`
+  CREATE TABLE IF NOT EXISTS schedule_exceptions (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    clientId TEXT NOT NULL,
+    doctorId TEXT NOT NULL,
+    date     TEXT NOT NULL,
+    type     TEXT NOT NULL,
+    time     TEXT,
+    note     TEXT NOT NULL DEFAULT ''
+  )
+`);
+
+db.exec("CREATE INDEX IF NOT EXISTS idx_exceptions ON schedule_exceptions(clientId, doctorId, date)");
+
 module.exports = db;

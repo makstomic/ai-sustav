@@ -299,7 +299,17 @@ function populateServices() {
     await loadConfig();
     populateServices();
     initDoctorSwitcher(clientConfig.doctors || []);
-    if (typeof window.initKalendar === 'function') window.initKalendar(clientConfig.workingHoursSchedule || {});
+
+    // Učitaj rasporede doktora iz baze (ako postoje)
+    let drSchedules = {};
+    if ((clientConfig.doctors || []).length > 0) {
+      try {
+        const r = await fetch(`/doctor-schedule/${clientId}`);
+        if (r.ok) drSchedules = await r.json();
+      } catch { /* koristi clinic default */ }
+    }
+
+    if (typeof window.initKalendar === 'function') window.initKalendar(clientConfig.workingHoursSchedule || {}, drSchedules);
 
     // Postavi inicijalni korak na mobilnom
     if (window._isMobile && window._isMobile() && window.idiNaKorak) {
