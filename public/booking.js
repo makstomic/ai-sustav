@@ -160,6 +160,11 @@ async function askFAQ(message) {
 // ── Booking forma ──
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+  const privacyCheck = document.getElementById("privacyCheck");
+  if (privacyCheck && !privacyCheck.checked) {
+    bookingStatus.textContent = "Za rezervaciju termina potrebno je prihvatiti Privacy Policy.";
+    return;
+  }
   bookingStatus.textContent = "Šaljem...";
 
   const payload = {
@@ -182,7 +187,7 @@ form.addEventListener("submit", async (e) => {
 
     if (data.ok) {
       bookingStatus.textContent =
-        "Zaprimili smo zahtjev. Ordinacija će se javiti mailom s potvrdom ili alternativom.";
+        "Zaprimili smo zahtjev. Ordinacija će se javiti mailom s potvrdom ili alternativom. Vaši podaci obrađuju se sukladno Privacy Policy.";
       form.reset();
     } else {
       bookingStatus.textContent = "Greška pri slanju. Pokušaj opet.";

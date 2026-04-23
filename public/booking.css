@@ -393,6 +393,29 @@ body {
   display: none;
 }
 
+.privacy-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-top: 4px;
+}
+.privacy-check input { cursor: pointer; accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0; }
+.privacy-check a { color: var(--accent); text-decoration: underline; }
+
+.booking-footer {
+  text-align: center;
+  padding: 20px 16px;
+  font-size: 11px;
+  color: rgba(100,116,139,0.6);
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.booking-footer a { color: var(--accent); opacity: 0.7; text-decoration: none; }
+.booking-footer a:hover { opacity: 1; }
+
 .submit-btn {
   width: 100%;
   padding: 14px;

@@ -299,7 +299,10 @@ async function spremiRaspored() {
   });
   const data = await res.json();
   if (data.ok) {
-    alert("Raspored spremljen.");
+    const poruka = data.otkazano > 0
+      ? `Raspored spremljen.\n\nAutomatski otkazano ${data.otkazano} potvrđenih termina koji više ne odgovaraju novom rasporedu. Pacijenti su obaviješteni mailom.`
+      : "Raspored spremljen.";
+    alert(poruka);
     rvSchedule = schedule;
     renderRasporedView(doktor);
   } else {

@@ -80,6 +80,10 @@
           <option value="" disabled selected>Odaberite uslugu</option>
         </select>
         <textarea id="note" name="note" placeholder="Napomena (opcionalno)" rows="2" style="resize:vertical;"></textarea>
+        <label class="privacy-check">
+          <input type="checkbox" id="privacyCheck" checked />
+          <span>Prihvaćam <a href="/privacy-policy.html" target="_blank">Privacy Policy</a></span>
+        </label>
         <button type="submit" class="submit-btn">Po&#353;alji zahtjev</button>
       </form>
       <p class="status" id="bookingStatus"></p>
@@ -346,11 +350,17 @@
       const raspon = currentDayOverride || aktivniDrRaspored()[String(odabraniDan.danTjedna)] || null;
       const sviTermini = generirajTermine(raspon);
 
+      const sadMin = odabraniDan && odabraniDan.d === danas.getDate() && odabraniDan.mj === danas.getMonth() && odabraniDan.god === danas.getFullYear()
+        ? danas.getHours() * 60 + danas.getMinutes()
+        : -1;
+
       sviTermini.forEach(t => {
         const el = document.createElement('div');
         el.className = 'termin';
         el.textContent = t;
-        if (zauzetiDanas.includes(t)) {
+        const [tH, tM] = t.split(':').map(Number);
+        const jeProsaoSat = sadMin >= 0 && tH * 60 + tM <= sadMin;
+        if (zauzetiDanas.includes(t) || jeProsaoSat) {
           el.classList.add('zauzet');
         } else {
           if (odabraniTermin === t) el.classList.add('odabran');
@@ -377,7 +387,7 @@
       if (odabraniDan && odabraniTermin) {
         const datumStr = `${String(odabraniDan.d).padStart(2,'0')}.${String(odabraniDan.mj+1).padStart(2,'0')}.${odabraniDan.god}. u ${odabraniTermin}`;
         const drIme = typeof window.aktivniDoktorIme === 'function' ? window.aktivniDoktorIme() : '';
-        const drPart = drIme ? `Dr. ${drIme}, ` : '';
+        const drPart = drIme ? `${drIme}, ` : '';
         badge.style.display = 'block';
         badge.textContent = `\u2713 Odabrano: ${drPart}${datumStr}`;
         dateInput.value = datumStr;
@@ -425,5 +435,8 @@
   </script>
 
   <script src="/booking.js"></script>
+  <footer class="booking-footer">
+    &copy; Ordinova &nbsp;&middot;&nbsp; <a href="/privacy-policy.html" target="_blank">Privacy Policy</a>
+  </footer>
 </body>
 </html>

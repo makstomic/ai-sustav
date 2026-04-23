@@ -570,7 +570,50 @@ app.post("/admin-raspored", adminLimiter, async (req, res) => {
       pgClient.release();
     }
 
-    res.json({ ok: true });
+    // Pronađi potvrđene termine ovog doktora koji padaju izvan novog rasporeda
+    const { rows: potvrdjeni } = await pool.query(
+      "SELECT * FROM requests WHERE clientid = $1 AND doctorid = $2 AND status = 'potvrdjeno'",
+      [safeClientId, doctorId]
+    );
+
+    const konflikti = potvrdjeni.filter(z => {
+      const match = z.date.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\.\s+u\s+(\d{2}):(\d{2})/);
+      if (!match) return false;
+      const [, dan, mjes, god, sati, min] = match;
+      const datum = new Date(parseInt(god), parseInt(mjes) - 1, parseInt(dan));
+      const dayOfWeek = datum.getDay();
+      const entry = schedule[String(dayOfWeek)];
+      if (!entry) return true; // doktor taj dan više ne radi
+      const [startH, startM] = entry.startTime.split(":").map(Number);
+      const [endH, endM]     = entry.endTime.split(":").map(Number);
+      const terminMin = parseInt(sati) * 60 + parseInt(min);
+      return terminMin < startH * 60 + startM || terminMin >= endH * 60 + endM;
+    });
+
+    res.json({ ok: true, otkazano: konflikti.length });
+
+    // Otkaži konflikte i obavijesti pacijente async nakon odgovora
+    const doktor = doctors.find(d => d.id === doctorId);
+    const bookingUrl = client.bookingUrl || "";
+    const linkBlok = bookingUrl
+      ? `\nNaručite se na novi termin putem naše online forme:\n${bookingUrl}\n`
+      : `\nMolimo Vas da se javite ordinaciji za novi termin.\n`;
+
+    for (const z of konflikti) {
+      await pool.query("UPDATE requests SET status = 'otkazano' WHERE id = $1", [z.id]);
+      sendMail({
+        to:      z.email,
+        subject: `Otkazivanje termina — ${client.brandName}`,
+        text:
+          `Poštovani ${z.name},\n\n` +
+          `Nažalost, Vaš termin je otkazan zbog promjene rasporeda ordinacije.\n\n` +
+          `Datum: ${z.date}\n` +
+          `Usluga: ${z.service}\n` +
+          (doktor ? `Doktor: ${doktor.name}\n` : "") +
+          linkBlok +
+          `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
+      }).catch(err => console.error(`RASPORED CANCEL MAIL ERROR (${z.email}):`, err));
+    }
   } catch (err) {
     console.error("ADMIN RASPORED POST ERROR:", err);
     res.status(500).json({ ok: false });
