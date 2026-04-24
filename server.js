@@ -30,7 +30,7 @@ const faqLimiter = rateLimit({
 
 const bookingLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  max: 10,
   message: { ok: false, error: "Previše zahtjeva. Pokušajte za sat vremena." },
   standardHeaders: true,
   legacyHeaders: false,
