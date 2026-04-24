@@ -161,10 +161,13 @@ async function askFAQ(message) {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const privacyCheck = document.getElementById("privacyCheck");
+  const privacyHint  = document.getElementById("privacyHint");
   if (privacyCheck && !privacyCheck.checked) {
-    bookingStatus.textContent = "Za rezervaciju termina potrebno je prihvatiti Privacy Policy.";
+    if (privacyHint) privacyHint.style.display = "block";
+    privacyCheck.closest("label")?.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
+  if (privacyHint) privacyHint.style.display = "none";
   bookingStatus.textContent = "Šaljem...";
 
   const payload = {

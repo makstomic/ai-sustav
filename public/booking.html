@@ -81,9 +81,10 @@
         </select>
         <textarea id="note" name="note" placeholder="Napomena (opcionalno)" rows="2" style="resize:vertical;"></textarea>
         <label class="privacy-check">
-          <input type="checkbox" id="privacyCheck" checked />
-          <span>Prihvaćam <a href="/privacy-policy.html" target="_blank">Privacy Policy</a></span>
+          <input type="checkbox" id="privacyCheck" required />
+          <span>Prihvaćam <a href="/privacy-policy.html" target="_blank">Privacy Policy</a> <span class="privacy-required">*</span></span>
         </label>
+        <p class="privacy-hint" id="privacyHint" style="display:none;">Morate prihvatiti Privacy Policy za nastavak.</p>
         <button type="submit" class="submit-btn">Po&#353;alji zahtjev</button>
       </form>
       <p class="status" id="bookingStatus"></p>

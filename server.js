@@ -287,6 +287,18 @@ app.post("/booking", bookingLimiter, async (req, res) => {
         `Napomena:   ${safeNote || "—"}\n\n` +
         `Termin se ne potvrđuje automatski — potrebna ručna potvrda ordinacije.`,
     }).catch(err => console.error("BOOKING MAIL ERROR:", err));
+
+    sendMail({
+      to:      safeEmail,
+      subject: `Zaprimili smo vaš zahtjev — ${client.brandName}`,
+      text:
+        `Poštovani ${safeName},\n\n` +
+        `Hvala na zahtjevu za termin. Vaš zahtjev je zaprimljen i ordinacija će vas kontaktirati mailom s potvrdom ili prijedlogom alternativnog termina.\n\n` +
+        (doktorNaziv ? `Doktor:  ${doktorNaziv}\n` : "") +
+        `Datum:   ${safeDate}\n` +
+        `Usluga:  ${safeService}\n\n` +
+        `Lijep pozdrav,\n${client.brandName}`,
+    }).catch(err => console.error("PATIENT CONFIRM MAIL ERROR:", err));
   } catch (err) {
     console.error("BOOKING ERROR:", err);
     res.status(500).json({ ok: false, error: "Greška pri slanju zahtjeva." });
