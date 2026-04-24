@@ -20,6 +20,20 @@ function sanitizeClientId(clientId) {
   return clientId;
 }
 
+function sanitizeCssValue(val) {
+  if (typeof val !== "string") return null;
+  // Dopusti samo sigurne CSS vrijednosti: hex boje, rgb/rgba, words, spaces, commas, dots, slashes, parens, %
+  if (/[<>"'`{}\\;]/.test(val)) return null;
+  return val.slice(0, 100);
+}
+
+function sanitizeFontName(val) {
+  if (typeof val !== "string") return null;
+  // Samo slova, brojevi, razmaci i crtice
+  if (!/^[a-zA-Z0-9 -]+$/.test(val)) return null;
+  return val.slice(0, 60);
+}
+
 const faqLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 15,
@@ -70,6 +84,12 @@ function mapRow(r) {
   return { ...r, clientId: r.clientid, doctorId: r.doctorid };
 }
 
+function extractToken(req) {
+  const auth = req.headers["authorization"];
+  if (auth && auth.startsWith("Bearer ")) return auth.slice(7);
+  return req.query.token || req.body?.token || null;
+}
+
 function loadClient(clientId) {
   const filePath = path.join(__dirname, "clients", `${clientId}.json`);
   if (!fs.existsSync(filePath)) return null;
@@ -106,16 +126,23 @@ app.get("/booking/:clientId", (req, res) => {
   if (client) {
     const t = client.theme || {};
     const vars = [];
-    if (t.accent)     vars.push(`--accent: ${t.accent};`);
-    if (t.accent2)    vars.push(`--accent-2: ${t.accent2};`);
-    if (t.accentSoft) vars.push(`--accent-soft: ${t.accentSoft};`);
-    if (t.bgColor)    vars.push(`--bg: ${t.bgColor};`);
-    if (t.bgSoft)     vars.push(`--bg-soft: ${t.bgSoft};`);
-    if (client.font)  vars.push(`--font: '${client.font}', ui-sans-serif, system-ui, sans-serif;`);
+    const safeAccent     = sanitizeCssValue(t.accent);
+    const safeAccent2    = sanitizeCssValue(t.accent2);
+    const safeAccentSoft = sanitizeCssValue(t.accentSoft);
+    const safeBgColor    = sanitizeCssValue(t.bgColor);
+    const safeBgSoft     = sanitizeCssValue(t.bgSoft);
+    const safeFont       = sanitizeFontName(client.font);
+
+    if (safeAccent)     vars.push(`--accent: ${safeAccent};`);
+    if (safeAccent2)    vars.push(`--accent-2: ${safeAccent2};`);
+    if (safeAccentSoft) vars.push(`--accent-soft: ${safeAccentSoft};`);
+    if (safeBgColor)    vars.push(`--bg: ${safeBgColor};`);
+    if (safeBgSoft)     vars.push(`--bg-soft: ${safeBgSoft};`);
+    if (safeFont)       vars.push(`--font: '${safeFont}', ui-sans-serif, system-ui, sans-serif;`);
 
     let inject = "";
-    if (client.font) {
-      const fontUrl = `https://fonts.googleapis.com/css2?family=${client.font.replace(/ /g, "+")}:wght@400;500;600;700;800&display=swap`;
+    if (safeFont) {
+      const fontUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(safeFont).replace(/%20/g, "+")}:wght@400;500;600;700;800&display=swap`;
       inject += `  <link rel="stylesheet" href="${fontUrl}" />\n`;
     }
     if (vars.length) {
@@ -342,7 +369,7 @@ app.get("/admin-data/:clientId", adminLimiter, async (req, res) => {
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
-    if (req.query.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+    if (extractToken(req) !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
     const { rows } = await pool.query(
       "SELECT * FROM requests WHERE clientid = $1 ORDER BY id DESC",
@@ -550,7 +577,7 @@ app.get("/admin-raspored/:clientId", adminLimiter, async (req, res) => {
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
-    if (req.query.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+    if (extractToken(req) !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
     const doctorId = req.query.doctorId || "";
     if (!doctorId) return res.status(400).json({ error: "doctorId obavezan." });
@@ -669,7 +696,7 @@ app.get("/admin-iznimke/:clientId", adminLimiter, async (req, res) => {
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
-    if (req.query.token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+    if (extractToken(req) !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
     const { doctorId = "", year, month } = req.query;
     if (!year || !month) return res.status(400).json({ error: "year i month obavezni." });

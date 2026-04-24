@@ -234,7 +234,7 @@ async function ucitajRasporedTab() {
   }
   const doktor = sviDoktori[rvDoktorIdx];
   const [rasporedRes, iznimkeRows] = await Promise.all([
-    fetch(`/admin-raspored/${clientId}?token=${adminToken}&doctorId=${encodeURIComponent(doktor.id)}`).then(r => r.json()),
+    fetch(`/admin-raspored/${clientId}?doctorId=${encodeURIComponent(doktor.id)}`, { headers: { "Authorization": `Bearer ${adminToken}` } }).then(r => r.json()),
     ucitajRvIznimke(doktor.id),
   ]);
   rvSchedule = rasporedRes.schedule || {};
@@ -243,7 +243,8 @@ async function ucitajRasporedTab() {
 
 async function ucitajRvIznimke(doctorId) {
   const res = await fetch(
-    `/admin-iznimke/${clientId}?token=${adminToken}&doctorId=${encodeURIComponent(doctorId)}&year=${rvGodina}&month=${rvMjesec + 1}`
+    `/admin-iznimke/${clientId}?doctorId=${encodeURIComponent(doctorId)}&year=${rvGodina}&month=${rvMjesec + 1}`,
+    { headers: { "Authorization": `Bearer ${adminToken}` } }
   );
   const rows = await res.json();
   rvIznimke = {};
@@ -500,7 +501,7 @@ function renderRasporedView(doktor) {
 
 // ── Init zahtjevi ──
 async function ucitajZahtjeve() {
-  const dataRes = await fetch(`/admin-data/${clientId}?token=${adminToken}`);
+  const dataRes = await fetch(`/admin-data/${clientId}`, { headers: { "Authorization": `Bearer ${adminToken}` } });
 
   if (dataRes.status === 403) {
     sessionStorage.removeItem("adminToken_" + clientId);
@@ -535,8 +536,8 @@ async function ucitajZahtjeve() {
 async function ucitajKalendar() {
   try {
     const aktivniDoktor = sviDoktori[aktivniDoktorIdx];
-    const doctorParam = aktivniDoktor ? `&doctorId=${encodeURIComponent(aktivniDoktor.id)}` : "";
-    const res = await fetch(`/admin-kalendar/${clientId}?token=${adminToken}${doctorParam}`);
+    const doctorParam = aktivniDoktor ? `?doctorId=${encodeURIComponent(aktivniDoktor.id)}` : "";
+    const res = await fetch(`/admin-kalendar/${clientId}${doctorParam}`, { headers: { "Authorization": `Bearer ${adminToken}` } });
     kalendarData = await res.json();
   } catch {
     kalendarData = {};
