@@ -24,14 +24,33 @@
     "6": "08:00-14:00"
   },
   "doctors": [
-    { "id": "dr_novak", "name": "Dr. Ana Novak" },
-    { "id": "dr_petrovic", "name": "Dr. Ivan Petrović" }
+    {
+      "id": "dr_novak",
+      "name": "Dr. Ana Novak"
+    },
+    {
+      "id": "dr_petrovic",
+      "name": "Dr. Ivan Petrović"
+    }
   ],
   "services": [
-    { "name": "Opći pregled", "price": "" },
-    { "name": "Kontrolni pregled", "price": "" },
-    { "name": "Specijalistički pregled", "price": "" },
-    { "name": "Konzultacija", "price": "" }
+    {
+      "name": "Opći pregled",
+      "price": ""
+    },
+    {
+      "name": "Kontrolni pregled",
+      "price": ""
+    },
+    {
+      "name": "Specijalistički pregled",
+      "price": ""
+    },
+    {
+      "name": "Konzultacija",
+      "price": ""
+    }
   ],
-  "systemPrompt": "Ti si profesionalni AI asistent za Demo ordinaciju.\nJezik: hrvatski. Stil: kratko, jasno, profesionalno.\n\nPodaci o ordinaciji:\n- Lokacija: Ilica 42, 10000, Zagreb\n- Telefon: 01 234 5678\n- Radno vrijeme: Pon–Pet 08:00–20:00 | Sub 08:00–14:00\n\nUsluge koje ordinacija nudi:\n- Opći pregled\n- Kontrolni pregled\n- Specijalistički pregled\n- Konzultacija\n\nNAPOMENA: Ovo je demo prikaz sustava Ordinova.\n\nTvoj zadatak je pružati informacije o uslugama, lokaciji i radnom vremenu, a za naručivanje uvijek preusmjeravati na online formu."
+  "systemPrompt": "Ti si profesionalni AI asistent za Demo ordinaciju.\nJezik: hrvatski. Stil: kratko, jasno, profesionalno.\n\nPodaci o ordinaciji:\n- Lokacija: Ilica 42, 10000, Zagreb\n- Telefon: 01 234 5678\n- Radno vrijeme: Pon–Pet 08:00–20:00 | Sub 08:00–14:00\n\nUsluge koje ordinacija nudi:\n- Opći pregled\n- Kontrolni pregled\n- Specijalistički pregled\n- Konzultacija\n\nNAPOMENA: Ovo je demo prikaz sustava Ordinova.\n\nTvoj zadatak je pružati informacije o uslugama, lokaciji i radnom vremenu, a za naručivanje uvijek preusmjeravati na online formu.",
+  "adminPasswordHash": "$2a$12$C94KzG.MIrtxitsVjbbwUumrUhND87bKwexEX3OcZhCu9kleumx8C"
 }

@@ -2,6 +2,7 @@ require("dotenv").config();
 const express    = require("express");
 const path       = require("path");
 const fs         = require("fs");
+const bcrypt     = require("bcryptjs");
 const OpenAI     = require("openai");
 const { Resend } = require("resend");
 const rateLimit  = require("express-rate-limit");
@@ -43,6 +44,14 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: "Previše zahtjeva." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "20kb" }));
 app.use(express.static("public"));
@@ -51,6 +60,8 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   next();
 });
 
@@ -126,14 +137,25 @@ app.get("/login/:clientId", (req, res) => {
   res.redirect(301, "/admin");
 });
 
-app.post("/admin-login", (req, res) => {
+app.post("/admin-login", adminLimiter, async (req, res) => {
   const { clientId, password } = req.body;
   const safeClientId = sanitizeClientId(clientId);
   if (!safeClientId) return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
+  if (typeof password !== "string" || password.length === 0 || password.length > 200)
+    return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
   const client = loadClient(safeClientId);
   if (!client) return res.status(404).json({ ok: false, error: "Ordinacija nije pronađena." });
-  if (!password || password !== client.adminToken)
-    return res.status(403).json({ ok: false, error: "Pogrešna lozinka." });
+
+  let ok = false;
+  if (client.adminPasswordHash) {
+    ok = await bcrypt.compare(password, client.adminPasswordHash);
+  } else {
+    // Fallback: direktna usporedba dok se ne pokrene hash-passwords.js
+    ok = password === client.adminToken;
+    if (ok) console.warn(`[SECURITY] ${safeClientId}: lozinka nije hashirana — pokreni hash-passwords.js`);
+  }
+
+  if (!ok) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
   res.json({ ok: true, token: client.adminToken, brandName: client.brandName, doctors: client.doctors || [] });
 });
 
@@ -183,7 +205,7 @@ app.post("/faq", faqLimiter, async (req, res) => {
 
     const safeHistory = Array.isArray(history)
       ? history
-          .filter(m => m && typeof m.role === "string" && typeof m.content === "string")
+          .filter(m => m && ["user", "assistant"].includes(m.role) && typeof m.content === "string" && m.content.length <= 1000)
           .slice(-10)
       : [];
 
@@ -438,7 +460,7 @@ app.get("/admin-kalendar/:clientId", adminLimiter, async (req, res) => {
   }
 });
 
-app.get("/termini/:clientId/:datum", async (req, res) => {
+app.get("/termini/:clientId/:datum", publicLimiter, async (req, res) => {
   try {
     const clientId = sanitizeClientId(req.params.clientId);
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
@@ -485,7 +507,7 @@ app.get("/termini/:clientId/:datum", async (req, res) => {
   }
 });
 
-app.get("/doctor-schedule/:clientId", async (req, res) => {
+app.get("/doctor-schedule/:clientId", publicLimiter, async (req, res) => {
   try {
     const clientId = sanitizeClientId(req.params.clientId);
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
