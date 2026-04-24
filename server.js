@@ -137,7 +137,16 @@ app.get("/login/:clientId", (req, res) => {
   res.redirect(301, "/admin");
 });
 
-app.post("/admin-login", adminLimiter, async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { ok: false, error: "Previše neuspjelih pokušaja. Pokušajte za 15 minuta." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+});
+
+app.post("/admin-login", loginLimiter, async (req, res) => {
   const { clientId, password } = req.body;
   const safeClientId = sanitizeClientId(clientId);
   if (!safeClientId) return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
@@ -168,7 +177,7 @@ app.get("/config/:clientId", (req, res) => {
   if (!clientId) return res.status(400).json({ error: "Neispravan ID." });
   const client = loadClient(clientId);
   if (!client) return res.status(404).json({ error: "Client not found" });
-  const { adminToken: _omit, clinicEmail: _omit2, ...publicData } = client;
+  const { adminToken: _omit, adminPasswordHash: _omit3, clinicEmail: _omit2, ...publicData } = client;
   res.json(publicData);
 });
 
