@@ -80,11 +80,6 @@
           <option value="" disabled selected>Odaberite uslugu</option>
         </select>
         <textarea id="note" name="note" placeholder="Napomena (opcionalno)" rows="2" style="resize:vertical;"></textarea>
-        <label class="privacy-check">
-          <input type="checkbox" id="privacyCheck" required />
-          <span>Prihvaćam <a href="/privacy-policy.html" target="_blank">Privacy Policy</a> <span class="privacy-required">*</span></span>
-        </label>
-        <p class="privacy-hint" id="privacyHint" style="display:none;">Morate prihvatiti Privacy Policy za nastavak.</p>
         <button type="submit" class="submit-btn">Po&#353;alji zahtjev</button>
       </form>
       <p class="status" id="bookingStatus"></p>
@@ -433,6 +428,35 @@
       azurirajBadge();
     };
 
+  </script>
+
+  <!-- Privacy Policy modal -->
+  <div id="privacyModal" class="pp-overlay">
+    <div class="pp-modal">
+      <div class="pp-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--accent)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h2 class="pp-title">Vaša privatnost</h2>
+      <p class="pp-text">Za rezervaciju termina prikupljamo vaše ime, email adresu i podatke o terminu. Podaci se koriste isključivo u svrhu zakazivanja i ne dijele se s trećim stranama.</p>
+      <a href="/privacy-policy.html" target="_blank" class="pp-link">Pročitajte Privacy Policy &#8594;</a>
+      <button id="ppAcceptBtn" class="pp-btn">Razumijem i prihvaćam</button>
+      <p class="pp-note">Nastavkom korištenja prihvaćate obradu podataka u navedene svrhe.</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const key = 'pp_v2_' + (window.location.pathname.split('/').pop() || 'default');
+      if (localStorage.getItem(key)) return;
+      const modal = document.getElementById('privacyModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      document.getElementById('ppAcceptBtn').addEventListener('click', function() {
+        localStorage.setItem(key, '1');
+        modal.classList.add('pp-hiding');
+        setTimeout(function() { modal.style.display = 'none'; }, 350);
+      });
+    })();
   </script>
 
   <script src="/booking.js"></script>

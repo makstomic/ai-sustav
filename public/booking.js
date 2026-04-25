@@ -160,14 +160,6 @@ async function askFAQ(message) {
 // ── Booking forma ──
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const privacyCheck = document.getElementById("privacyCheck");
-  const privacyHint  = document.getElementById("privacyHint");
-  if (privacyCheck && !privacyCheck.checked) {
-    if (privacyHint) privacyHint.style.display = "block";
-    privacyCheck.closest("label")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    return;
-  }
-  if (privacyHint) privacyHint.style.display = "none";
   bookingStatus.textContent = "Šaljem...";
 
   const payload = {
