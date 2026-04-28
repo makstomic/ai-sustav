@@ -1,10 +1,6 @@
 const dijelovi = window.location.pathname.split("/");
 const clientId = dijelovi[2];
 
-// Podrška za stari URL format (/admin/clientId/token)
-const tokenFromUrl = dijelovi[3];
-if (tokenFromUrl) sessionStorage.setItem("adminToken_" + clientId, tokenFromUrl);
-
 const adminToken = sessionStorage.getItem("adminToken_" + clientId);
 if (!adminToken) {
   window.location.href = "/admin";
@@ -183,28 +179,38 @@ async function potvrdi(id) {
   const zahtjev = sviZahtjevi.find(z => z.id == id);
   if (!zahtjev) return;
 
-  await fetch("/admin-action", {
+  const res = await fetch("/admin-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, token: adminToken, id, akcija: "potvrdi", termin: zahtjev.date }),
   });
+  const data = await res.json();
 
-  alert("Potvrda poslana pacijentu!");
-  ucitajZahtjeve();
+  if (data.ok) {
+    alert("Potvrda poslana pacijentu!");
+    ucitajZahtjeve();
+  } else {
+    alert("Greška pri slanju potvrde.");
+  }
 }
 
 async function predlozi(id) {
   const termin = prompt("Upiši prijedlog termina (npr. 16.03. u 14:00):");
   if (!termin) return;
 
-  await fetch("/admin-action", {
+  const res = await fetch("/admin-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, token: adminToken, id, akcija: "predlozi", termin }),
   });
+  const data = await res.json();
 
-  alert("Prijedlog poslan pacijentu!");
-  ucitajZahtjeve();
+  if (data.ok) {
+    alert("Prijedlog poslan pacijentu!");
+    ucitajZahtjeve();
+  } else {
+    alert("Greška pri slanju prijedloga.");
+  }
 }
 
 async function otkazi(id) {

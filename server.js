@@ -96,18 +96,29 @@ function loadClient(clientId) {
   return JSON.parse(fs.readFileSync(filePath, "utf-8"));
 }
 
-async function sendMail({ to, subject, text }) {
+async function sendMail({ to, subject, text, from, replyTo }) {
   const { data, error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM,
+    from: from || "Ordinova <info@ordinova.app>",
     to,
     subject,
     text,
+    ...(replyTo ? { reply_to: replyTo } : {}),
   });
   if (error) {
     console.error("RESEND ERROR:", error);
     throw new Error(error.message || "Mail nije poslan");
   }
   return data;
+}
+
+function sendPatientMail(client, { to, subject, text }) {
+  return sendMail({
+    to,
+    subject,
+    text,
+    from:    `${client.brandName} <info@ordinova.app>`,
+    replyTo: client.clinicEmail || process.env.CLINIC_EMAIL,
+  });
 }
 
 // ── RUTE ──
@@ -348,7 +359,7 @@ app.post("/booking", bookingLimiter, async (req, res) => {
         `Termin se ne potvrđuje automatski — potrebna ručna potvrda ordinacije.`,
     }).catch(err => console.error("BOOKING MAIL ERROR:", err));
 
-    sendMail({
+    sendPatientMail(client, {
       to:      safeEmail,
       subject: `Zaprimili smo vaš zahtjev — ${client.brandName}`,
       text:
@@ -417,7 +428,7 @@ app.post("/admin-action", adminLimiter, async (req, res) => {
       ? `Poštovani ${zahtjev.name},\n\nVaš termin je potvrđen.\n\nDatum i vrijeme: ${termin.trim()}\nUsluga: ${zahtjev.service}\n\nDo videnja,\n${client.brandName}`
       : `Poštovani ${zahtjev.name},\n\nNažalost traženi termin nije dostupan.\n\nPredlažemo: ${termin.trim()}\n\nAko vam odgovara, javite nam se na povratni mail.\n\n${client.brandName}`;
 
-    await sendMail({ to: zahtjev.email, subject, text });
+    await sendPatientMail(client, { to: zahtjev.email, subject, text });
     res.json({ ok: true });
   } catch (err) {
     console.error("ADMIN ACTION ERROR:", err);
@@ -450,7 +461,7 @@ app.post("/admin-cancel", adminLimiter, async (req, res) => {
       ? `\nNaručite se na novi termin putem naše online forme:\n${bookingUrl}\n\nPutem iste forme možete se naručiti i kod drugog dostupnog doktora.\n`
       : `\nMolimo Vas da se javite ordinaciji za novi termin.\n`;
 
-    sendMail({
+    sendPatientMail(client, {
       to:      zahtjev.email,
       subject: `Otkazivanje termina — ${client.brandName}`,
       text:
@@ -474,8 +485,7 @@ app.get("/admin-kalendar/:clientId", adminLimiter, async (req, res) => {
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
-    const token = req.query.token || req.params.token;
-    if (token !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
+    if (extractToken(req) !== client.adminToken) return res.status(403).json({ error: "Zabranjen pristup" });
 
     const doctorId = req.query.doctorId || "";
     const { rows } = doctorId
@@ -673,7 +683,7 @@ app.post("/admin-raspored", adminLimiter, async (req, res) => {
 
     for (const z of konflikti) {
       await pool.query("UPDATE requests SET status = 'otkazano' WHERE id = $1", [z.id]);
-      sendMail({
+      sendPatientMail(client, {
         to:      z.email,
         subject: `Otkazivanje termina — ${client.brandName}`,
         text:
@@ -773,7 +783,7 @@ app.post("/admin-iznimka", adminLimiter, async (req, res) => {
 
     for (const z of zahvaceni) {
       await pool.query("UPDATE requests SET status='otkazano' WHERE id=$1", [z.id]);
-      sendMail({
+      sendPatientMail(client, {
         to:      z.email,
         subject: `Otkazivanje termina — ${client.brandName}`,
         text:
@@ -926,7 +936,7 @@ cron.schedule("0 9 * * *", async () => {
     if (!client) continue;
 
     try {
-      await sendMail({
+      await sendPatientMail(client, {
         to:      t.email,
         subject: `Podsjetnik za termin — ${client.brandName}`,
         text:
