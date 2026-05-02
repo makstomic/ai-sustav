@@ -3,8 +3,8 @@ const { pool }              = require("../database");
 const { sendPatientMail }   = require("../lib/mail");
 const { loadClient }        = require("../lib/utils");
 
-// ── Podsjetnik dan prije u 09:00 ──
-cron.schedule("0 9 * * *", async () => {
+// ── Podsjetnik dan prije u 09:00 Zagreb ──
+cron.schedule("0 7 * * *", { timezone: "Europe/Zagreb" }, async () => {
   const sutra = new Date();
   sutra.setDate(sutra.getDate() + 1);
   const dan  = String(sutra.getDate()).padStart(2, "0");
@@ -43,7 +43,7 @@ cron.schedule("0 9 * * *", async () => {
 });
 
 // ── Podsjetnik 2 sata prije (svaki sat u :00 i :30) ──
-cron.schedule("0,30 * * * *", async () => {
+cron.schedule("0,30 * * * *", { timezone: "Europe/Zagreb" }, async () => {
   const target = new Date(Date.now() + 2 * 60 * 60 * 1000);
   const targetTime = `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}`;
   const dan  = String(target.getDate()).padStart(2, "0");
@@ -85,7 +85,7 @@ cron.schedule("0,30 * * * *", async () => {
 });
 
 // ── Mjesečno brisanje starih zapisa (GDPR retencija — 24 mjeseca) ──
-cron.schedule("0 3 1 * *", async () => {
+cron.schedule("0 3 1 * *", { timezone: "Europe/Zagreb" }, async () => {
   const granica = new Date();
   granica.setMonth(granica.getMonth() - 24);
   try {

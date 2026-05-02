@@ -53,7 +53,7 @@ router.get("/booking/:clientId", (req, res) => {
 });
 
 // ── Config (bez tajnih polja) ──
-router.get("/config/:clientId", (req, res) => {
+router.get("/config/:clientId", publicLimiter, (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
   if (!clientId) return res.status(400).json({ error: "Neispravan ID." });
   const client = loadClient(clientId);

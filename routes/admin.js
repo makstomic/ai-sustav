@@ -31,7 +31,7 @@ router.post("/admin-login", loginLimiter, async (req, res) => {
     return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
 
   const client = loadClient(safeClientId);
-  if (!client) return res.status(404).json({ ok: false, error: "Ordinacija nije pronađena." });
+  if (!client) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
   let ok = false;
   if (client.adminPasswordHash) {
