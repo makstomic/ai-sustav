@@ -88,6 +88,15 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
     const zahtjev = rows[0];
     if (!zahtjev) return res.status(404).json({ ok: false });
 
+    if (akcija === "potvrdi") {
+      const { rows: konflikt } = await pool.query(
+        "SELECT id FROM requests WHERE clientid = $1 AND doctorid = $2 AND date = $3 AND status = 'potvrdjeno' AND id != $4",
+        [safeClientId, zahtjev.doctorid, zahtjev.date, id]
+      );
+      if (konflikt.length > 0)
+        return res.status(409).json({ ok: false, error: "Taj termin je već potvrđen drugom pacijentu." });
+    }
+
     const noviStatus = akcija === "potvrdi" ? "potvrdjeno" : "predlozeno";
     await pool.query("UPDATE requests SET status = $1 WHERE id = $2", [noviStatus, id]);
 

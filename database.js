@@ -53,6 +53,13 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_exceptions ON schedule_exceptions(clientId, doctorId, date)
   `);
 
+  // Sprječava dva potvrđena termina za isti slot
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_confirmed_slot
+    ON requests(clientid, doctorid, date)
+    WHERE status = 'potvrdjeno'
+  `);
+
   console.log("[DB] PostgreSQL tablice inicijalizirane.");
 }
 
