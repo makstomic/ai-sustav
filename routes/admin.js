@@ -93,8 +93,20 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
         "SELECT id FROM requests WHERE clientid = $1 AND doctorid = $2 AND date = $3 AND status = 'potvrdjeno' AND id != $4",
         [safeClientId, zahtjev.doctorid, zahtjev.date, id]
       );
-      if (konflikt.length > 0)
+      if (konflikt.length > 0) {
+        sendPatientMail(client, {
+          to:      zahtjev.email,
+          subject: `Traženi termin nije dostupan — ${client.brandName}`,
+          text:
+            `Poštovani ${zahtjev.name},\n\n` +
+            `Nažalost, traženi termin (${zahtjev.date}) nije više dostupan jer ga je u međuvremenu rezervirao drugi pacijent.\n\n` +
+            (client.bookingUrl
+              ? `Molimo vas da odaberete drugi termin putem naše online forme:\n${client.bookingUrl}\n\n`
+              : `Molimo vas da nas kontaktirate za novi termin.\n\n`) +
+            `Ispričavamo se na neugodnosti.\n${client.brandName}`,
+        }).catch(err => console.error("KONFLIKT MAIL ERROR:", err));
         return res.status(409).json({ ok: false, error: "Taj termin je već potvrđen drugom pacijentu." });
+      }
     }
 
     const noviStatus = akcija === "potvrdi" ? "potvrdjeno" : "predlozeno";

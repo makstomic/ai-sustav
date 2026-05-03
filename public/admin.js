@@ -189,6 +189,9 @@ async function potvrdi(id) {
   if (data.ok) {
     alert("Potvrda poslana pacijentu!");
     ucitajZahtjeve();
+  } else if (res.status === 409) {
+    alert("Termin je već zauzet. Pacijentu je poslan mail s obavijesti.");
+    ucitajZahtjeve();
   } else {
     alert("Greška pri slanju potvrde.");
   }
