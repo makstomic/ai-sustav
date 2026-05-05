@@ -87,7 +87,7 @@ function promijeniDoktora(smjer) {
 function promijeniTab(tab) {
   aktivniTab = tab;
 
-  ["cekanje", "povijest", "kalendar", "radno-vrijeme"].forEach(t => {
+  ["cekanje", "povijest", "kalendar", "radno-vrijeme", "telefon"].forEach(t => {
     const el = document.getElementById(`nav-${t}`);
     if (el) el.classList.toggle("active", t === tab);
   });
@@ -97,6 +97,7 @@ function promijeniTab(tab) {
     povijest: "Povijest",
     kalendar: "Kalendar",
     "radno-vrijeme": "Radno vrijeme",
+    telefon: "Unos s telefona",
   };
   const titleEl = document.getElementById("adminTitle");
   if (titleEl) titleEl.textContent = naslovi[tab] || "Admin";
@@ -109,6 +110,8 @@ function promijeniTab(tab) {
     if (rvGodina === null) rvGodina = new Date().getFullYear();
     if (rvMjesec === null) rvMjesec = new Date().getMonth();
     ucitajRasporedTab();
+  } else if (tab === "telefon") {
+    renderTelefonTab();
   } else {
     prikaziZahtjeve();
   }
@@ -526,6 +529,7 @@ async function ucitajZahtjeve() {
     if (cfgRes.ok) {
       const cfg = await cfgRes.json();
       workingHoursSchedule = cfg.workingHoursSchedule || {};
+      window._clientServices = (cfg.services || []).map(s => s.name);
     }
   } catch { workingHoursSchedule = {}; }
 
@@ -677,6 +681,163 @@ function napraviTermine(dateKey) {
       <div class="termini-naslov">Termini — ${esc(hrDatum)}</div>
       <div class="termini-grid">${slotsHTML}</div>
     </div>`;
+}
+
+// ── Telefon tab ──
+
+function renderTelefonTab() {
+  const services = (window._clientServices || []).map(s =>
+    `<option value="${esc(s)}">${esc(s)}</option>`
+  ).join("");
+
+  const doktorSelect = sviDoktori.length > 0
+    ? `<div>
+        <label class="tel-label">Doktor</label>
+        <select class="tel-select" id="tel-doktor" onchange="ucitajTelefonTermine()">
+          ${sviDoktori.map(d => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join("")}
+        </select>
+       </div>`
+    : `<input type="hidden" id="tel-doktor" value="">`;
+
+  const danas = new Date().toISOString().split("T")[0];
+
+  wrap.innerHTML = `
+    <div class="tel-card">
+      <div class="tel-naslov">Unos termina s telefona</div>
+      <div class="tel-opis">Termini uneseni ovdje odmah su potvrđeni i blokiraju slot u online kalendaru.</div>
+
+      <div class="tel-grid">
+        ${doktorSelect}
+
+        <div>
+          <label class="tel-label">Datum</label>
+          <input type="date" class="tel-input" id="tel-datum" value="${danas}" min="${danas}" onchange="ucitajTelefonTermine()">
+        </div>
+
+        <div>
+          <label class="tel-label">Termin</label>
+          <select class="tel-select" id="tel-termin">
+            <option value="">Učitavam...</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="tel-label">Ime i prezime pacijenta</label>
+          <input type="text" class="tel-input" id="tel-ime" placeholder="npr. Ana Kovač">
+        </div>
+
+        <div>
+          <label class="tel-label">Usluga</label>
+          <select class="tel-select" id="tel-usluga">
+            <option value="" disabled selected>Odaberite uslugu</option>
+            ${services}
+          </select>
+        </div>
+
+        <div>
+          <label class="tel-label">Telefon (opcionalno)</label>
+          <input type="text" class="tel-input" id="tel-telefon" placeholder="npr. 091 234 5678">
+        </div>
+
+        <div>
+          <label class="tel-label">Napomena (opcionalno)</label>
+          <input type="text" class="tel-input" id="tel-napomena" placeholder="Slobodan unos">
+        </div>
+      </div>
+
+      <button class="tel-submit" onclick="submitTelefonBooking()">Potvrdi i zapiši termin</button>
+      <div class="tel-status" id="tel-status"></div>
+    </div>
+  `;
+
+  ucitajTelefonTermine();
+}
+
+async function ucitajTelefonTermine() {
+  const datum  = document.getElementById("tel-datum")?.value;
+  const drId   = document.getElementById("tel-doktor")?.value || "";
+  const select = document.getElementById("tel-termin");
+  if (!datum || !select) return;
+
+  select.innerHTML = `<option value="">Učitavam...</option>`;
+
+  try {
+    const drParam = drId ? `?doctorId=${encodeURIComponent(drId)}` : "";
+    const res = await fetch(`/termini/${clientId}/${datum}${drParam}`);
+    const podaci = res.ok ? await res.json() : {};
+    const zauzeti = podaci.zauzeti || [];
+
+    const dayOfWeek = new Date(datum).getDay();
+    let raspon = podaci.radnoVrijeme || workingHoursSchedule[String(dayOfWeek)] || null;
+
+    const sviTermini = raspon ? generirajTermine(raspon) : [];
+    const slobodni = sviTermini.filter(t => !zauzeti.includes(t));
+
+    if (slobodni.length === 0) {
+      select.innerHTML = `<option value="">Nema slobodnih termina</option>`;
+    } else {
+      select.innerHTML = slobodni.map(t => `<option value="${t}">${t}</option>`).join("");
+    }
+  } catch {
+    select.innerHTML = `<option value="">Greška pri učitavanju</option>`;
+  }
+}
+
+async function submitTelefonBooking() {
+  const datum    = document.getElementById("tel-datum")?.value;
+  const termin   = document.getElementById("tel-termin")?.value;
+  const ime      = document.getElementById("tel-ime")?.value.trim();
+  const usluga   = document.getElementById("tel-usluga")?.value;
+  const drId     = document.getElementById("tel-doktor")?.value || "";
+  const tel      = document.getElementById("tel-telefon")?.value.trim();
+  const napomena = document.getElementById("tel-napomena")?.value.trim();
+  const statusEl = document.getElementById("tel-status");
+
+  statusEl.className = "tel-status";
+  statusEl.textContent = "";
+
+  if (!datum || !termin || !ime || !usluga) {
+    statusEl.className = "tel-status error";
+    statusEl.textContent = "Popunite sva obavezna polja.";
+    return;
+  }
+
+  const [g, mj, d] = datum.split("-");
+  const datumHR = `${d}.${mj}.${g}. u ${termin}`;
+
+  const submitBtn = document.querySelector(".tel-submit");
+  submitBtn.disabled = true;
+
+  try {
+    const res = await fetch("/admin-phone-booking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId, token: adminToken,
+        doctorId: drId, date: datumHR,
+        name: ime, service: usluga,
+        note: [tel ? `Tel: ${tel}` : "", napomena].filter(Boolean).join(" | ") || "—",
+      }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      statusEl.className = "tel-status ok";
+      statusEl.textContent = `✓ Termin upisan: ${ime}, ${datumHR}`;
+      document.getElementById("tel-ime").value = "";
+      document.getElementById("tel-telefon").value = "";
+      document.getElementById("tel-napomena").value = "";
+      await ucitajTelefonTermine();
+    } else {
+      statusEl.className = "tel-status error";
+      statusEl.textContent = data.error || "Greška pri upisu termina.";
+    }
+  } catch {
+    statusEl.className = "tel-status error";
+    statusEl.textContent = "Greška pri spajanju na server.";
+  } finally {
+    submitBtn.disabled = false;
+  }
 }
 
 ucitajZahtjeve();

@@ -434,6 +434,56 @@ router.post("/admin-iznimka-delete", adminLimiter, async (req, res) => {
   }
 });
 
+// ── Ručni unos termina s telefona ──
+router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
+  try {
+    const { clientId, token, doctorId = "", date, name, service, note = "—" } = req.body;
+
+    const safeClientId = sanitizeClientId(clientId);
+    if (!safeClientId) return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
+    const client = loadClient(safeClientId);
+    if (!client) return res.status(404).json({ ok: false });
+    if (!token || token !== client.adminToken) return res.status(403).json({ ok: false, error: "Zabranjen pristup." });
+
+    if (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 100)
+      return res.status(400).json({ ok: false, error: "Neispravan naziv pacijenta." });
+    if (typeof date !== "string" || date.trim().length === 0 || date.length > 50)
+      return res.status(400).json({ ok: false, error: "Datum nije odabran." });
+    if (typeof service !== "string" || service.trim().length === 0 || service.length > 100)
+      return res.status(400).json({ ok: false, error: "Usluga nije odabrana." });
+
+    const allowedServices = (client.services || []).map(s => s.name);
+    if (allowedServices.length > 0 && !allowedServices.includes(service.trim()))
+      return res.status(400).json({ ok: false, error: "Neispravna usluga." });
+
+    const doctors = client.doctors || [];
+    if (doctorId && !doctors.some(d => d.id === doctorId))
+      return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
+
+    // Provjeri konflikt s već potvrđenim terminom
+    const { rows: konflikt } = await pool.query(
+      "SELECT id FROM requests WHERE clientid = $1 AND doctorid = $2 AND date = $3 AND status = 'potvrdjeno'",
+      [safeClientId, doctorId, date.trim()]
+    );
+    if (konflikt.length > 0)
+      return res.status(409).json({ ok: false, error: "Taj termin je već zauzet." });
+
+    const primljeno = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
+
+    await pool.query(
+      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'potvrdjeno', $8, $9)`,
+      [Date.now(), safeClientId, name.trim(), "—", date.trim(), service.trim(),
+       typeof note === "string" ? note.trim().slice(0, 500) : "—", primljeno, doctorId]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("PHONE BOOKING ERROR:", err);
+    res.status(500).json({ ok: false, error: "Greška pri upisu termina." });
+  }
+});
+
 // ── Test mail (samo localhost) ──
 router.get("/test-mail", async (req, res) => {
   const ip = req.ip || req.socket.remoteAddress;
