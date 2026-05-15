@@ -11,6 +11,48 @@ const { sendMail, sendPatientMail }                         = require("../lib/ma
 const { sanitizeClientId, sanitizeCssValue, sanitizeFontName, loadClient } = require("../lib/utils");
 const { faqLimiter, bookingLimiter, publicLimiter }         = require("../lib/limiters");
 
+async function getClinicDoctors(clientId, client) {
+  let { rows } = await pool.query(
+    "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1 ORDER BY displayorder, id",
+    [clientId]
+  );
+  if (rows.length === 0 && (client.doctors || []).length > 0) {
+    for (let i = 0; i < client.doctors.length; i++) {
+      const d = client.doctors[i];
+      await pool.query(
+        `INSERT INTO clinic_doctors (clientid, doctorid, name, displayorder) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+        [clientId, d.id, d.name, i]
+      );
+    }
+    ({ rows } = await pool.query(
+      "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1 ORDER BY displayorder, id",
+      [clientId]
+    ));
+  }
+  return rows;
+}
+
+async function getClinicServices(clientId, client) {
+  let { rows } = await pool.query(
+    "SELECT name, duration FROM clinic_services WHERE clientid = $1 ORDER BY displayorder, id",
+    [clientId]
+  );
+  if (rows.length === 0 && (client.services || []).length > 0) {
+    for (let i = 0; i < client.services.length; i++) {
+      const s = client.services[i];
+      await pool.query(
+        `INSERT INTO clinic_services (clientid, name, duration, displayorder) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+        [clientId, s.name, s.duration || 30, i]
+      );
+    }
+    ({ rows } = await pool.query(
+      "SELECT name, duration FROM clinic_services WHERE clientid = $1 ORDER BY displayorder, id",
+      [clientId]
+    ));
+  }
+  return rows;
+}
+
 // ── Booking stranica s temom klijenta ──
 router.get("/booking/:clientId", (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
@@ -53,13 +95,24 @@ router.get("/booking/:clientId", (req, res) => {
 });
 
 // ── Config (bez tajnih polja) ──
-router.get("/config/:clientId", publicLimiter, (req, res) => {
-  const clientId = sanitizeClientId(req.params.clientId);
-  if (!clientId) return res.status(400).json({ error: "Neispravan ID." });
-  const client = loadClient(clientId);
-  if (!client) return res.status(404).json({ error: "Client not found" });
-  const { adminToken: _omit, adminPasswordHash: _omit2, clinicEmail: _omit3, ...publicData } = client;
-  res.json(publicData);
+router.get("/config/:clientId", publicLimiter, async (req, res) => {
+  try {
+    const clientId = sanitizeClientId(req.params.clientId);
+    if (!clientId) return res.status(400).json({ error: "Neispravan ID." });
+    const client = loadClient(clientId);
+    if (!client) return res.status(404).json({ error: "Client not found" });
+
+    const { adminToken: _omit, adminPasswordHash: _omit2, clinicEmail: _omit3, ...publicData } = client;
+
+    const [doctors, services] = await Promise.all([
+      getClinicDoctors(clientId, client),
+      getClinicServices(clientId, client),
+    ]);
+    res.json({ ...publicData, doctors, services });
+  } catch (err) {
+    console.error("CONFIG ERROR:", err);
+    res.status(500).json({ error: "Greška." });
+  }
 });
 
 // ── FAQ chatbot ──
@@ -81,8 +134,9 @@ router.post("/faq", faqLimiter, async (req, res) => {
           .slice(-10)
       : [];
 
-    const servicesText = (client.services || [])
-      .map(s => `- ${s.name}${s.price ? `: ${s.price}` : ""}`)
+    const dbServices = await getClinicServices(safeClientId, client);
+    const servicesText = dbServices
+      .map(s => `- ${s.name}${s.duration ? ` (${s.duration} min)` : ""}`)
       .join("\n");
 
     const systemPrompt = client.systemPrompt ? client.systemPrompt.trim() : `
@@ -143,15 +197,19 @@ router.post("/booking", bookingLimiter, async (req, res) => {
     const client = loadClient(safeClientId);
     if (!client) return res.status(404).json({ ok: false, error: "Client not found" });
 
-    const allowedServices = (client.services || []).map(s => s.name);
+    const [dbDoctors, dbServices] = await Promise.all([
+      getClinicDoctors(safeClientId, client),
+      getClinicServices(safeClientId, client),
+    ]);
+
+    const allowedServices = dbServices.map(s => s.name);
     if (allowedServices.length > 0 && !allowedServices.includes(safeService))
       return res.status(400).json({ ok: false, error: "Neispravna usluga." });
 
-    const doctors = client.doctors || [];
-    if (safeDoctorId && !doctors.some(d => d.id === safeDoctorId))
+    if (safeDoctorId && !dbDoctors.some(d => d.id === safeDoctorId))
       return res.status(400).json({ ok: false, error: "Doktor nije pronađen." });
 
-    const doktor      = doctors.find(d => d.id === safeDoctorId);
+    const doktor      = dbDoctors.find(d => d.id === safeDoctorId);
     const doktorNaziv = doktor ? doktor.name : null;
     const toEmail     = client.clinicEmail || process.env.CLINIC_EMAIL;
     const primljeno   = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
@@ -232,12 +290,31 @@ router.get("/termini/:clientId/:datum", publicLimiter, async (req, res) => {
 
     let radnoVrijeme = null;
     if (doctorId) {
-      const dayOfWeek = new Date(datum).getDay();
-      const { rows: schedRows } = await pool.query(
+      const datObj   = new Date(datum);
+      const dayOfWeek = datObj.getDay();
+      // ISO week number: neparni = tjedan A, parni = tjedan B
+      const d = new Date(datObj); d.setHours(0,0,0,0);
+      d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+      const week1 = new Date(d.getFullYear(), 0, 4);
+      const isoWeek = 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+      const isWeekA = isoWeek % 2 !== 0;
+
+      // Proba tjedan B (dbDay = dayOfWeek + 10), fallback na A
+      const dbDay = isWeekA ? dayOfWeek : dayOfWeek + 10;
+      const { rows: s1 } = await pool.query(
         "SELECT starttime, endtime FROM doctor_schedules WHERE clientid = $1 AND doctorid = $2 AND dayofweek = $3",
-        [clientId, doctorId, dayOfWeek]
+        [clientId, doctorId, dbDay]
       );
-      if (schedRows[0]) radnoVrijeme = `${schedRows[0].starttime}-${schedRows[0].endtime}`;
+      if (s1[0]) {
+        radnoVrijeme = `${s1[0].starttime}-${s1[0].endtime}`;
+      } else if (!isWeekA) {
+        // Nema tjedan B za taj dan — fallback na tjedan A
+        const { rows: s2 } = await pool.query(
+          "SELECT starttime, endtime FROM doctor_schedules WHERE clientid = $1 AND doctorid = $2 AND dayofweek = $3",
+          [clientId, doctorId, dayOfWeek]
+        );
+        if (s2[0]) radnoVrijeme = `${s2[0].starttime}-${s2[0].endtime}`;
+      }
     }
 
     res.json({ zauzeti, blokiranDan, radnoVrijeme });
@@ -255,7 +332,7 @@ router.get("/doctor-schedule/:clientId", publicLimiter, async (req, res) => {
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
 
-    const doctors = client.doctors || [];
+    const doctors = await getClinicDoctors(clientId, client);
     const result = {};
     for (const doc of doctors) {
       const { rows } = await pool.query(
@@ -263,10 +340,14 @@ router.get("/doctor-schedule/:clientId", publicLimiter, async (req, res) => {
         [clientId, doc.id]
       );
       if (rows.length > 0) {
-        result[doc.id] = {};
+        const weekA = {}, weekB = {};
         for (const r of rows) {
-          result[doc.id][String(r.dayofweek)] = `${r.starttime}-${r.endtime}`;
+          if (r.dayofweek >= 10) weekB[String(r.dayofweek - 10)] = `${r.starttime}-${r.endtime}`;
+          else                   weekA[String(r.dayofweek)]       = `${r.starttime}-${r.endtime}`;
         }
+        result[doc.id] = Object.keys(weekB).length > 0
+          ? { weekA, weekB }
+          : weekA;
       }
     }
     res.json(result);

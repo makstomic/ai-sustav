@@ -15,14 +15,6 @@
   "location": "Podsusedska aleja 10a, 10000, Zagreb",
   "phone": "01 3492 410",
   "workingHours": "Pon–Pet: 08:00–20:00 | Sub: 08:00–13:00",
-  "workingHoursSchedule": {
-    "1": "08:00-20:00",
-    "2": "08:00-20:00",
-    "3": "08:00-20:00",
-    "4": "08:00-20:00",
-    "5": "08:00-20:00",
-    "6": "08:00-13:00"
-  },
   "doctors": [
     {
       "id": "dr_vrbic",
@@ -34,7 +26,7 @@
     }
   ],
   "services": [
-   {
+    {
       "name": "Konzultacije",
       "price": ""
     },
@@ -54,8 +46,6 @@
       "name": "Oralna kirurgija",
       "price": ""
     }
-    
   ],
-  "systemPrompt": "Ti si profesionalni AI asistent za Dentalnu ordinaciju Ivana Vrbić.\nJezik: hrvatski. Stil: kratko, jasno, profesionalno.\n\nPodaci o ordinaciji:\n- Lokacija: Podsusedska aleja 10a, 10000, Zagreb\n- Telefon: 01 3492 410\n- Radno vrijeme: Pon–Pet 08:00–20:00 | Sub 08:00–13:00\n\nUsluge koje ordinacija nudi:\n- Estetska stomatologija\n- Endodoncija\n- Implantologija\n- Oralna kirurgija\n\nNapomena o cijenama: Ordinacija ne objavljuje javni cjenik. Kada korisnik pita za cijenu, ljubazno objasni da cijene ovise o individualnoj situaciji pacijenta te ga pozovi da nazove ordinaciju na 01 3492 410 ili dođe na konzultacije.\n\nNAGLASAK: Ne primaš rezervacije termina! Kada korisnik želi naručiti termin, uvijek ga preusmjeri na online formu s kalendarom dostupnu na stranici.\n\nTvoj zadatak je pružati točne informacije o uslugama, lokaciji i radnom vremenu, a za naručivanje uvijek preusmjeravati na online formu.",
   "adminPasswordHash": "$2a$12$wIolriwA/9tpwk6D1w.6CO6reJDisyOpmiSXzpaXgFRmPCRUL9EgC"
 }

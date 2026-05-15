@@ -48,12 +48,19 @@
         </div>
       </div>
 
-      <div class="kalendar mob-k2">
+      <!-- Odabir usluge — prikazuje se kad se učita config -->
+      <div class="usluga-sekcija mob-k2" id="uslugaSekcija" style="display:none;">
+        <div class="usluga-sekcija-label">Usluga</div>
+        <div class="usluga-chips" id="uslugaChips"></div>
+      </div>
+
+      <div class="kalendar mob-k3">
         <div class="kal-nav">
           <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">&#8249;</button>
           <div class="kal-mjesec" id="kal-naslov"></div>
           <button class="kal-nav-btn" onclick="promijeniMjesec(1)">&#8250;</button>
         </div>
+        <div id="kalUpozorenje" class="kal-upozorenje" style="display:none;">Odaberite uslugu prije odabira termina</div>
         <div class="kal-dani-nazivi">
           <div class="kal-dan-naziv">PON</div>
           <div class="kal-dan-naziv">UTO</div>
@@ -76,9 +83,8 @@
         <input type="hidden" id="date" name="date" />
         <input type="text" id="name" name="name" placeholder="Ime i prezime" required />
         <input type="email" id="email" name="email" placeholder="Email adresa" required />
-        <select id="service" name="service" required>
-          <option value="" disabled selected>Odaberite uslugu</option>
-        </select>
+        <input type="tel" id="phone" name="phone" placeholder="Broj mobitela (opcionalno)" />
+        <input type="hidden" id="service" name="service">
         <textarea id="note" name="note" placeholder="Napomena (opcionalno)" rows="2" style="resize:vertical;"></textarea>
         <button type="submit" class="submit-btn">Po&#353;alji zahtjev</button>
       </form>
@@ -98,8 +104,8 @@
               <div class="step-line"></div>
             </div>
             <div class="step-body">
-              <div class="step-title">Odaberite datum</div>
-              <div class="step-desc">Kliknite slobodan radni dan u kalendaru</div>
+              <div class="step-title">Odaberite doktora</div>
+              <div class="step-desc">Potvrdite odabir gumbom ispod</div>
             </div>
           </div>
           <div class="step">
@@ -108,13 +114,23 @@
               <div class="step-line"></div>
             </div>
             <div class="step-body">
-              <div class="step-title">Odaberite termin</div>
-              <div class="step-desc">Prikazuju se dostupni sati za odabrani dan</div>
+              <div class="step-title">Odaberite uslugu</div>
+              <div class="step-desc">Kliknite željenu uslugu</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-left">
+              <div class="step-num">3</div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-body">
+              <div class="step-title">Odaberite datum i termin</div>
+              <div class="step-desc">Kliknite slobodan dan pa termin</div>
             </div>
           </div>
           <div class="step last">
             <div class="step-left">
-              <div class="step-num">3</div>
+              <div class="step-num">4</div>
             </div>
             <div class="step-body">
               <div class="step-title">Po&#353;aljite zahtjev</div>
@@ -246,13 +262,30 @@
       return termini;
     }
 
-    function aktivniDrRaspored() {
-      const drId = typeof aktivniDoktorId === 'function' ? aktivniDoktorId() : '';
-      return (drId && doctorSchedules[drId]) ? doctorSchedules[drId] : workingHoursSchedule;
+    function getISOWeek(date) {
+      const d = new Date(date); d.setHours(0,0,0,0);
+      d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+      const week1 = new Date(d.getFullYear(), 0, 4);
+      return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
-    function jeRadniDan(danTjedna) {
-      return String(danTjedna) in aktivniDrRaspored();
+    function aktivniDrRasporedZaDatum(datum) {
+      const drId = typeof aktivniDoktorId === 'function' ? aktivniDoktorId() : '';
+      const drData = doctorSchedules[drId];
+      if (!drData) return {};
+      if (drData.weekA) {
+        const isWeekA = getISOWeek(datum) % 2 !== 0;
+        return isWeekA ? drData.weekA : (drData.weekB || drData.weekA);
+      }
+      return drData;
+    }
+
+    function aktivniDrRaspored() {
+      return aktivniDrRasporedZaDatum(new Date());
+    }
+
+    function jeRadniDan(datum) {
+      return String(datum.getDay()) in aktivniDrRasporedZaDatum(datum);
     }
 
     function renderKalendar() {
@@ -279,7 +312,7 @@
         const datObj = new Date(god, mj, d);
         const danTjedna = datObj.getDay();
         const jeProsli = datObj < new Date(danas.getFullYear(), danas.getMonth(), danas.getDate());
-        const jeZatvoren = !jeRadniDan(danTjedna);
+        const jeZatvoren = !jeRadniDan(datObj);
 
         if (jeProsli || jeZatvoren) {
           el.classList.add('prosli');
@@ -287,6 +320,13 @@
           if (d === danas.getDate() && mj === danas.getMonth() && god === danas.getFullYear()) el.classList.add('danas');
           if (odabraniDan && d === odabraniDan.d && mj === odabraniDan.mj && god === odabraniDan.god) el.classList.add('odabran');
           el.onclick = async () => {
+            if (typeof window.eUslugaOdabrana === 'function' && !window.eUslugaOdabrana()) {
+              const upo = document.getElementById('kalUpozorenje');
+              if (upo) { upo.style.display = 'block'; upo.classList.add('shake'); setTimeout(() => upo.classList.remove('shake'), 400); }
+              document.getElementById('uslugaSekcija')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              return;
+            }
+            document.getElementById('kalUpozorenje').style.display = 'none';
             // Odmah vizualno označi odabrani dan (samo swap klase, bez full re-rendera)
             document.querySelector('.kal-dan.odabran')?.classList.remove('odabran');
             el.classList.add('odabran');

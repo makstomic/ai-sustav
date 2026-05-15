@@ -81,6 +81,68 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* ---------- Usluga chips ---------- */
+.usluga-sekcija {
+  padding: 0 18px 16px;
+}
+
+.usluga-sekcija-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted, #888);
+  margin-bottom: 8px;
+}
+
+.usluga-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.usluga-chip {
+  padding: 7px 14px;
+  border: 1.5px solid var(--border, #d1d5db);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text, #1e2a38);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.usluga-chip:hover { border-color: var(--accent); color: var(--accent); }
+.usluga-chip.aktivan {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.kal-upozorenje {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #92400e;
+  text-align: center;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.kal-upozorenje.shake { animation: shake 0.4s ease; }
+
 /* ---------- Doctor confirm ---------- */
 .doctor-confirm-section {
   display: none;

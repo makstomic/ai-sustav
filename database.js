@@ -53,11 +53,46 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_exceptions ON schedule_exceptions(clientId, doctorId, date)
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS clinic_doctors (
+      id           SERIAL PRIMARY KEY,
+      clientId     TEXT   NOT NULL,
+      doctorId     TEXT   NOT NULL,
+      name         TEXT   NOT NULL,
+      displayOrder INT    NOT NULL DEFAULT 0,
+      UNIQUE(clientId, doctorId)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS clinic_services (
+      id           SERIAL PRIMARY KEY,
+      clientId     TEXT   NOT NULL,
+      name         TEXT   NOT NULL,
+      duration     INT    NOT NULL DEFAULT 30,
+      displayOrder INT    NOT NULL DEFAULT 0,
+      UNIQUE(clientId, name)
+    )
+  `);
+
   // Sprječava dva potvrđena termina za isti slot
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_confirmed_slot
     ON requests(clientid, doctorid, date)
     WHERE status = 'potvrdjeno'
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token     TEXT        PRIMARY KEY,
+      clientid  TEXT        NOT NULL,
+      createdat TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expiresat TIMESTAMPTZ NOT NULL
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sessions_clientid ON sessions(clientid)
   `);
 
   console.log("[DB] PostgreSQL tablice inicijalizirane.");

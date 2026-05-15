@@ -1,6 +1,8 @@
 require("dotenv").config();
-const express = require("express");
-const path    = require("path");
+const express      = require("express");
+const path         = require("path");
+const cookieParser = require("cookie-parser");
+const morgan       = require("morgan");
 
 const { initDb } = require("./database");
 
@@ -8,7 +10,9 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 app.set("trust proxy", 1);
+app.use(morgan("dev"));
 app.use(express.json({ limit: "20kb" }));
+app.use(cookieParser());
 app.use(express.static("public"));
 app.use((req, res, next) => {
   res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
@@ -33,7 +37,7 @@ require("./jobs/cron");
 initDb()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server radi na http://localhost:${PORT}/booking/vrbic`);
+      console.log(`Server radi na http://localhost:${PORT}/admin`);
     });
   })
   .catch(err => {

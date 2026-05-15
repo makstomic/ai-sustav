@@ -204,7 +204,6 @@
       const data = await res.json();
 
       if (data.ok) {
-        sessionStorage.setItem("adminToken_" + clientId, data.token);
         window.location.href = `/admin/${clientId}`;
       } else {
         errEl.textContent = data.error || "Pogrešan ID klinike ili lozinka.";

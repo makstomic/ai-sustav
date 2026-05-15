@@ -160,8 +160,17 @@ async function askFAQ(message) {
 // ── Booking forma ──
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+
+  if (!window.eUslugaOdabrana()) {
+    bookingStatus.textContent = "Odaberite uslugu prije slanja zahtjeva.";
+    document.getElementById("uslugaSekcija")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return;
+  }
+
   bookingStatus.textContent = "Šaljem...";
 
+  const phoneVal = document.getElementById("phone")?.value.trim() || "";
+  const noteVal  = document.getElementById("note").value.trim();
   const payload = {
     clientId,
     doctorId: aktivniDoktorId(),
@@ -169,7 +178,7 @@ form.addEventListener("submit", async (e) => {
     email:   document.getElementById("email").value.trim(),
     date:    document.getElementById("date").value.trim(),
     service: document.getElementById("service").value.trim(),
-    note:    document.getElementById("note").value.trim(),
+    note:    [phoneVal ? `Tel: ${phoneVal}` : "", noteVal].filter(Boolean).join(" | "),
   };
 
   try {
@@ -279,18 +288,41 @@ function addQuickReplies() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// ── Odabir usluge ──
+window.eUslugaOdabrana = function() {
+  return !!(document.getElementById("service")?.value);
+};
+
+window.odaberiUslugu = function(name) {
+  const inp = document.getElementById("service");
+  if (inp) inp.value = name;
+  document.querySelectorAll(".usluga-chip").forEach(c =>
+    c.classList.toggle("aktivan", c.dataset.name === name)
+  );
+  document.getElementById("kalUpozorenje").style.display = "none";
+  if (window._isMobile && window._isMobile()) window.idiNaKorak(3);
+};
+
 // ── Popuni usluge iz configa ──
 function populateServices() {
-  const select = document.getElementById("service");
   const services = clientConfig.services || [];
+  const chipsEl  = document.getElementById("uslugaChips");
+  if (!chipsEl) return;
 
-  select.innerHTML = '<option value="" disabled selected>Odaberite uslugu</option>';
   services.forEach(({ name }) => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "usluga-chip";
+    btn.textContent = name;
+    btn.dataset.name = name;
+    btn.addEventListener("click", () => window.odaberiUslugu(name));
+    chipsEl.appendChild(btn);
   });
+
+  if (services.length > 0) {
+    const sekcija = document.getElementById("uslugaSekcija");
+    if (sekcija) sekcija.style.display = "";
+  }
 }
 
 // INIT
@@ -309,12 +341,13 @@ function populateServices() {
       } catch { /* koristi clinic default */ }
     }
 
-    if (typeof window.initKalendar === 'function') window.initKalendar(clientConfig.workingHoursSchedule || {}, drSchedules);
+    if (typeof window.initKalendar === 'function') window.initKalendar({}, drSchedules);
 
     // Postavi inicijalni korak na mobilnom
     if (window._isMobile && window._isMobile() && window.idiNaKorak) {
-      const hasDoctors = (clientConfig.doctors || []).length > 0;
-      window.idiNaKorak(hasDoctors ? 1 : 2);
+      const hasDoctors  = (clientConfig.doctors  || []).length > 0;
+      const hasServices = (clientConfig.services || []).length > 0;
+      window.idiNaKorak(hasDoctors ? 1 : hasServices ? 2 : 3);
     }
 
     const pozdrav = `Dobrodošli u ${clientConfig.brandName}! 👋\n\nJa sam vaš digitalni asistent. Mogu vam pomoći s informacijama o uslugama, cijenama i ordinaciji.\n\nO čemu želite saznati više?`;

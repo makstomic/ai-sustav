@@ -14,9 +14,11 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.8.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
+    "morgan": "^1.10.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.13",
     "openai": "^6.16.0",

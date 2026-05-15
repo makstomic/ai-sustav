@@ -6,22 +6,21 @@
   <title>Admin — Ordinova</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>body { visibility: hidden; }</style>
   <style>
-    /* ========================
-       Varijable
-       ======================== */
     :root {
-      --bg: #ffffff;
-      --surface: #f8fafc;
-      --text: #0f172a;
-      --muted: #64748b;
-      --accent: #0d9488;
-      --accent-2: #0f766e;
-      --accent-soft: rgba(13, 148, 136, 0.10);
-      --border: rgba(15, 23, 42, 0.10);
-      --shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 8px 24px rgba(15, 23, 42, 0.07);
+      --bg:           #ffffff;
+      --surface:      #e5e7eb;
+      --text:         #1e2a38;
+      --muted:        #5F5E5A;
+      --muted-2:      #888780;
+      --accent:       #14B89A;
+      --accent-2:     #0e9e84;
+      --accent-soft:  rgba(20,184,154,0.10);
+      --border:       #B4B2A9;
+      --border-light: #D3D1C7;
+      --danger:       #dc2626;
       --font: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     }
 
@@ -31,37 +30,33 @@
     body {
       font-family: var(--font);
       color: var(--text);
-      background: var(--surface);
+      background: #ffffff;
       display: flex;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* ========================
-       Sidebar
-       ======================== */
+    /* ── Sidebar ── */
     #sidebar {
       width: 220px;
-      background: #0f172a;
+      background: #1e2a38;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
       position: fixed;
       top: 0; left: 0; bottom: 0;
       z-index: 20;
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
     }
 
-    /* Logo + naziv ordinacije */
     .sidebar-logo {
       padding: 20px 20px 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
     }
 
     .sidebar-logo-text {
       font-size: 16px;
-      font-weight: 800;
+      font-weight: 700;
       color: #fff;
       letter-spacing: -0.3px;
     }
@@ -70,14 +65,13 @@
 
     .sidebar-brand {
       font-size: 11.5px;
-      color: rgba(255, 255, 255, 0.38);
+      color: rgba(255,255,255,0.38);
       margin-top: 5px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    /* Navigacijske sekcije */
     .sidebar-nav {
       flex: 1;
       padding: 10px 0;
@@ -89,11 +83,10 @@
       font-weight: 700;
       letter-spacing: 0.09em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.22);
+      color: rgba(255,255,255,0.22);
       padding: 14px 20px 5px;
     }
 
-    /* Nav item */
     .sidebar-item {
       display: flex;
       align-items: center;
@@ -101,7 +94,7 @@
       padding: 10px 20px 10px 17px;
       font-size: 13px;
       font-weight: 500;
-      color: rgba(255, 255, 255, 0.48);
+      color: rgba(255,255,255,0.48);
       cursor: pointer;
       transition: background 0.12s, color 0.12s;
       border-left: 3px solid transparent;
@@ -109,26 +102,19 @@
     }
 
     .sidebar-item:hover {
-      color: rgba(255, 255, 255, 0.82);
-      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255,255,255,0.82);
+      background: rgba(255,255,255,0.05);
     }
 
     .sidebar-item.active {
       color: #fff;
-      background: rgba(13, 148, 136, 0.16);
+      background: rgba(20,184,154,0.16);
       border-left-color: var(--accent);
     }
 
-    .sidebar-item svg {
-      width: 15px;
-      height: 15px;
-      flex-shrink: 0;
-      opacity: 0.6;
-    }
-
+    .sidebar-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.6; }
     .sidebar-item.active svg { opacity: 1; }
 
-    /* Badge broj na nav itemu */
     .nav-badge {
       margin-left: auto;
       background: var(--accent);
@@ -141,23 +127,11 @@
       text-align: center;
     }
 
-    /* ========================
-       Topbar (hamburger + naslov)
-       ======================== */
+    /* ── Topbar ── */
     #topbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: #fff;
-      border-bottom: 1px solid var(--border);
-      height: 58px;
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-      gap: 14px;
+      display: none;
     }
 
-    /* Hamburger gumb — vidljiv samo na mobitelu */
     #menuToggle {
       display: none;
       flex-direction: column;
@@ -171,35 +145,16 @@
 
     #menuToggle span {
       display: block;
-      width: 20px;
-      height: 2px;
+      width: 20px; height: 2px;
       background: var(--text);
       border-radius: 2px;
-      transition: all 0.2s;
     }
 
-    #adminTitle {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-    }
+    #adminTitle { font-size: 14px; font-weight: 600; color: var(--text); }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .topbar-ordinacija { font-size: 12px; color: var(--muted); display: none; }
 
-    .topbar-right {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .topbar-ordinacija {
-      font-size: 12px;
-      color: var(--muted);
-      display: none;
-    }
-
-    /* ========================
-       Glavni sadržaj
-       ======================== */
+    /* ── Main ── */
     #main {
       margin-left: 220px;
       flex: 1;
@@ -208,423 +163,716 @@
       min-height: 100vh;
     }
 
-    #content {
-      padding: 28px 24px;
-      flex: 1;
+    #content { padding: 24px; flex: 1; }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--bg);
+      border: 1px solid #e0e2e6;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
     }
 
-    /* ========================
-       Zahtjev kartice
-       ======================== */
-    #zahtjevi {
-      max-width: 100%;
-    }
+    .panel + .panel { margin-top: 20px; }
 
-    .zahtjev-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 20px 24px;
-      margin-bottom: 12px;
-    }
-
-    .zahtjev-header {
+    .panel-head {
+      padding: 0 22px;
+      border-bottom: 1px solid #d1d5db;
+      background: #e5e7eb;
       display: flex;
+      align-items: stretch;
       justify-content: space-between;
+      min-height: 48px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head--padded {
       align-items: center;
-      margin-bottom: 14px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
+      padding: 13px 22px;
+      min-height: auto;
     }
 
-    .zahtjev-ime {
-      font-size: 15px;
-      font-weight: 600;
+    .panel-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .panel-meta { font-size: 12px; color: var(--muted); }
+    .panel-meta-inline { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .btn-ghost {
+      padding: 5px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 500;
       color: var(--text);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.1s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    .filter-bar-right { display: flex; align-items: center; gap: 8px; }
+
+    .filter-bar {
+      padding: 10px 22px;
+      border-bottom: 1px solid var(--border);
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
     }
 
-    .zahtjev-datum {
+    .filter-bar-left { display: flex; align-items: center; gap: 12px; }
+    .filter-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    /* Tab group */
+    .tab-group { display: flex; }
+
+    .tab {
+      padding: 5px 13px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-right: none;
+      font-size: 12px;
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--font);
+      font-weight: 500;
+      transition: background 0.1s;
+    }
+
+    .tab:last-child { border-right: 1px solid var(--border); }
+    .tab.is-active { background: var(--accent); color: #fff; border-color: var(--accent); position: relative; z-index: 1; }
+
+    /* Status tabs inside panel */
+    .status-tabs { display: flex; height: 100%; }
+
+    .status-tab {
+      padding: 0 18px;
+      height: 48px;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border-light);
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      position: relative;
+      font-family: var(--font);
+      font-weight: 500;
+      white-space: nowrap;
+      transition: color 0.12s;
+    }
+
+    .status-tab:last-child { border-right: none; }
+    .status-tab.is-active { color: var(--text); font-weight: 600; }
+    .status-tab.is-active::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .status-tab-count {
+      font-size: 10px;
+      padding: 1px 6px;
+      background: #f1efe8;
+      color: var(--muted);
+      border: 1px solid var(--border-light);
+      font-weight: 400;
+    }
+
+    .status-tab.is-active .status-tab-count {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(20,184,154,0.3);
+    }
+
+    /* ── Request rows ── */
+    .request-row {
+      display: grid;
+      grid-template-columns: 110px 1fr auto;
+      gap: 22px;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border-light);
+      align-items: flex-start;
+      background: var(--bg);
+    }
+
+    .request-row:last-child { border-bottom: none; }
+    .request-row.is-muted { opacity: 0.65; }
+
+    .when {
+      border-left: 2px solid var(--accent);
+      padding: 1px 0 1px 11px;
+    }
+
+    .when--muted { border-left-color: var(--border); }
+    .when-date { font-size: 13px; font-weight: 600; color: var(--text); }
+    .when-time { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .req-info { min-width: 0; }
+
+    .req-name-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 5px;
+    }
+
+    .req-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .req-contact { font-size: 12px; color: var(--muted); }
+
+    .req-service {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border-light);
+    }
+
+    .req-source {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+
+    .req-source--telefon { background: #eff6ff; color: #1d4ed8; }
+
+    .req-note {
+      margin-top: 8px;
+      padding: 2px 0 2px 10px;
+      border-left: 2px solid var(--border-light);
       font-size: 12px;
       color: var(--muted);
+      line-height: 1.5;
     }
 
-    .zahtjev-row {
-      display: grid;
-      grid-template-columns: 100px 1fr;
-      font-size: 13.5px;
-      padding: 5px 0;
-      border-bottom: 1px solid var(--border);
+    .req-note-label { color: var(--text); font-weight: 600; margin-right: 3px; }
+
+    .req-field { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .req-field strong { color: var(--text); font-weight: 500; }
+
+    .req-status-meta { font-size: 11px; color: var(--muted); text-align: right; min-width: 120px; }
+    .req-status-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+
+    /* Action buttons */
+    .req-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .req-btn-group { display: flex; }
+
+    .btn-odbij {
+      padding: 7px 13px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-right: none;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.1s;
     }
 
-    .zahtjev-row:last-of-type { border-bottom: none; }
+    .btn-odbij:hover { background: var(--surface); }
 
-    .zahtjev-label { color: var(--muted); font-weight: 500; }
-    .zahtjev-value { color: var(--text); }
-
-    .zahtjev-akcije {
-      display: flex;
-      gap: 10px;
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border);
-    }
-
-    .btn-potvrdi {
-      flex: 1;
-      padding: 10px;
+    .btn-prihvati {
+      padding: 7px 13px;
       background: var(--accent);
       color: #fff;
+      border: 1px solid var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.1s;
+    }
+
+    .btn-prihvati:hover { background: var(--accent-2); }
+
+    .btn-otkazi-termin {
+      padding: 7px 13px;
+      background: var(--bg);
+      color: var(--danger);
+      border: 1px solid var(--border-light);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.1s;
+    }
+
+    .btn-otkazi-termin:hover { background: #fef2f2; border-color: var(--danger); }
+
+    /* Reject form */
+    .reject-form { margin-top: 5px; display: none; flex-direction: column; gap: 4px; width: 200px; }
+    .reject-form.is-open { display: flex; }
+
+    .reject-textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      font-family: var(--font);
+      color: var(--text);
+      resize: none;
+      min-height: 52px;
+    }
+
+    .reject-textarea:focus { outline: none; border-color: var(--accent); }
+
+    .reject-submit {
+      padding: 5px 11px;
+      background: var(--text);
+      color: #fff;
       border: none;
-      border-radius: 4px;
-      font-size: 13.5px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: var(--font);
-      transition: background 0.15s;
-    }
-
-    .btn-potvrdi:hover { background: var(--accent-2); }
-
-    .btn-predlozi {
-      flex: 1;
-      padding: 10px;
-      background: transparent;
-      color: var(--accent);
-      border: 1.5px solid var(--accent);
-      border-radius: 4px;
-      font-size: 13.5px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: var(--font);
-      transition: all 0.15s;
-    }
-
-    .btn-predlozi:hover { background: var(--accent-soft); }
-
-    .status-badge {
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font);
+      align-self: flex-end;
+    }
+
+    /* Status badges */
+    .status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
       letter-spacing: 0.03em;
     }
 
-    .status-potvrdjeno { background: #dcfce7; color: #166534; }
-    .status-predlozeno { background: #fef9c3; color: #854d0e; }
-    .status-otkazano   { background: #fee2e2; color: #991b1b; }
+    .badge-potvrdjeno { background: #dcfce7; color: #166534; }
+    .badge-odbijeno   { background: #fee2e2; color: #991b1b; }
+    .badge-otkazano   { background: #fef9c3; color: #854d0e; }
 
-    .btn-otkazi {
-      padding: 10px;
-      background: transparent;
-      color: #dc2626;
-      border: 1.5px solid #dc2626;
-      border-radius: 4px;
-      font-size: 13.5px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: var(--font);
-      transition: all 0.15s;
-    }
-
-    .btn-otkazi:hover { background: #fee2e2; }
+    .prazno { padding: 48px 22px; text-align: center; font-size: 13px; color: var(--muted); }
 
     /* Doctor switcher */
     .doctor-switcher {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      background: #fff;
+      gap: 8px;
+      margin-bottom: 16px;
+      background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 10px 16px;
-      max-width: 100%;
+      padding: 9px 14px;
     }
 
     .doctor-switcher-label {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 10px;
+      font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       flex-shrink: 0;
     }
 
-    .doctor-switcher-name {
-      flex: 1;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-    }
+    .doctor-switcher-name { flex: 1; text-align: center; font-size: 13px; font-weight: 600; color: var(--text); }
 
     .doctor-arrow {
       background: none;
-      border: 1.5px solid var(--border);
-      border-radius: 4px;
-      padding: 4px 10px;
-      font-size: 15px;
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      font-size: 14px;
       cursor: pointer;
       color: var(--text);
-      transition: all 0.12s;
-      flex-shrink: 0;
+      font-family: var(--font);
+      transition: all 0.1s;
     }
 
-    .doctor-arrow:hover {
-      border-color: var(--accent);
-      color: var(--accent);
+    .doctor-arrow:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Kalendar ── */
+    .kal-container {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      border: 1px solid #e0e2e6;
     }
 
-    .prazno {
-      text-align: center;
-      color: var(--muted);
+    .kal-container .filter-bar {
+      border-radius: 0;
+    }
+
+    .kal-mjes {
       font-size: 14px;
-      margin-top: 48px;
-    }
-
-    /* ========================
-       Kalendar — side-by-side layout
-       ======================== */
-    .kal-wrap {
-      max-width: 100%;
-    }
-
-    /* Lijevo kalendar, desno termini */
-    .kal-layout {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 20px;
-      align-items: start;
-    }
-
-    @media (max-width: 680px) {
-      .kal-layout { grid-template-columns: 1fr; }
-    }
-
-
-    /* Placeholder kad nije odabran dan */
-    .kal-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      height: 100%;
-      min-height: 200px;
-      background: #fff;
-      border: 1px dashed var(--border);
-      border-radius: 4px;
-      color: var(--muted);
-      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 140px;
       text-align: center;
-      padding: 32px;
-    }
-
-    .kal-placeholder svg { color: rgba(100,116,139,0.3); }
-
-    .kal-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
     }
 
     .kal-nav-btn {
       background: transparent;
-      border: 1.5px solid var(--accent);
-      color: var(--accent);
-      border-radius: 4px;
-      padding: 6px 14px;
+      border: 1px solid #9ca3af;
+      color: #374151;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       font-family: var(--font);
-      transition: all 0.15s;
+      transition: all 0.15s ease;
     }
+    .kal-nav-btn:hover { border-color: #374151; color: #111827; background: #f3f4f6; }
 
-    .kal-nav-btn:hover { background: var(--accent); color: #fff; }
-
-    .kal-mjes {
-      font-size: 15px;
-      font-weight: 700;
+    /* Segmented control za doktor tabove u kalendaru */
+    .seg-ctrl {
+      display: flex;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .seg-btn {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .seg-btn.is-active {
+      background: #ffffff;
       color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
     }
-
-    .kal-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 16px;
-    }
+    .seg-btn:hover:not(.is-active) { color: var(--text); background: rgba(255,255,255,0.5); }
 
     .kal-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
     }
 
     .kal-header-dan {
+      padding: 12px 12px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #4b5563;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: #d1d5db;
+      border-right: 1px solid #b8bcc4;
+      border-bottom: 1px solid #b8bcc4;
+      text-align: center;
+    }
+    .kal-header-dan:last-child { border-right: none; }
+
+    .kal-dan {
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 12px;
+      border-right: 1px solid #c9cdd4;
+      border-bottom: 1px solid #c9cdd4;
+      cursor: pointer;
+      background: #f3f4f6;
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+      position: relative;
+    }
+    .kal-dan:nth-child(7n) { border-right: none; }
+    .kal-dan:hover:not(.kal-prazan) {
+      background: rgba(20,184,154,0.10);
+      z-index: 1;
+    }
+    .kal-dan:active:not(.kal-prazan) { background: rgba(20,184,154,0.16); }
+
+    .kal-dan.kal-vikend       { background: #dde0e5; }
+    .kal-dan.kal-prazan       { background: #d8dbe0; cursor: default; opacity: 0.7; }
+    .kal-dan.kal-danas        { background: rgba(20,184,154,0.12) !important; }
+    .kal-dan.kal-odabran      { background: rgba(20,184,154,0.12) !important; outline: 2px solid #9ca3af; outline-offset: -2px; z-index: 2; }
+    .kal-dan.kal-blokiran-dan { background: #fee2e2 !important; }
+    .kal-dan.kal-ima-slot-blokada { background: #fef9c3 !important; }
+
+    .kal-dan-num {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+    .kal-dan.kal-vikend .kal-dan-num,
+    .kal-dan.kal-prazan .kal-dan-num { color: var(--muted-2); font-weight: 500; }
+    .kal-dan.kal-danas .kal-dan-num  { background: var(--accent); color: #fff; }
+
+    .kal-count {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      align-self: flex-start;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.9;
+    }
+    .kal-count-label { display: none; }
+
+    /* Detail panel ispod kalendara */
+    .kal-detail-panel {
+      margin-top: 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      border: 1px solid #e0e2e6;
+    }
+
+    .termin-row {
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      gap: 20px;
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      align-items: center;
+      background: #fafafa;
+      transition: background 0.12s ease;
+    }
+    .termin-row:last-child { border-bottom: none; }
+    .termin-row:hover { background: #f3f4f6; }
+
+    .termin-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      border-left: 3px solid var(--accent);
+      padding: 3px 0 3px 12px;
+      line-height: 1.3;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .termin-info { min-width: 0; }
+    .termin-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 5px; line-height: 1.3; }
+    .termin-meta { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; line-height: 1.4; }
+    .termin-meta-dot { color: #c8cacd; }
+
+    .btn-otkazi-mali {
+      padding: 6px 14px;
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-otkazi-mali:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+
+    .kal-empty-state {
+      padding: 52px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      background: #fafafa;
+      line-height: 1.6;
+    }
+    .kal-empty-state-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.4; }
+
+    /* ── Radno vrijeme ── */
+    .rv-panel {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      border: 1px solid #e0e2e6;
+    }
+
+    .rv-tablica-wrap {
+      padding: 20px 24px 0;
+      overflow-x: auto;
+    }
+
+    .rv-tablica {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .rv-th {
+      background: #d1d5db;
+      color: #4b5563;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 10px 8px;
+      text-align: center;
+      border-right: 1px solid #b8bcc4;
+      border-bottom: 1px solid #b8bcc4;
+    }
+    .rv-th:last-child { border-right: none; }
+    .rv-th-name {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .rv-neradan-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #6b7280;
+      cursor: pointer;
+      user-select: none;
+    }
+    .rv-neradan-cb {
+      width: 12px; height: 12px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .rv-td {
+      padding: 14px 10px;
+      border-right: 1px solid rgba(0,0,0,0.06);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      background: #f3f4f6;
+      vertical-align: top;
+      transition: background 0.15s;
+    }
+    .rv-td:last-child { border-right: none; }
+    .rv-td-neradan { background: #dde0e5; }
+    .rv-td-label {
+      background: #e5e7eb;
       text-align: center;
       font-size: 11px;
       font-weight: 700;
+      color: #6b7280;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      vertical-align: middle;
+      border-right: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .rv-time-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+    .rv-time-group:last-child { margin-bottom: 0; }
+
+    .rv-time-label {
+      font-size: 10px;
+      font-weight: 600;
       color: var(--muted);
-      padding: 6px 0;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-    }
-
-    .kal-dan {
-      aspect-ratio: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      position: relative;
-      transition: background 0.12s;
-      border: 1px solid transparent;
-      color: var(--text);
-      user-select: none;
-      min-height: 36px;
-    }
-
-    .kal-dan:hover:not(.kal-prazan) { background: rgba(0, 0, 0, 0.05); }
-    .kal-dan.kal-odabran { background: var(--accent) !important; color: #fff !important; }
-    .kal-dan.kal-danas   { border-color: var(--accent); }
-    .kal-dan.kal-prazan  { cursor: default; }
-
-    .kal-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--accent);
-      position: absolute;
-      bottom: 3px;
-    }
-
-    .kal-odabran .kal-dot { background: #fff; }
-
-    .termini-wrap {
-      margin-top: 16px;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 20px 24px;
-    }
-
-    .termini-naslov {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .termini-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 8px;
-    }
-
-    .termin-slot {
-      padding: 9px 12px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .termin-slot.zauzet {
-      opacity: 0.42;
-      text-decoration: line-through;
-      color: var(--muted);
-      background: #f5f5f5;
-    }
-
-    .termin-info {
-      font-size: 11px;
-      color: var(--muted);
-      text-decoration: none;
-      display: block;
-      margin-top: 3px;
-      font-weight: 400;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* ========================
-       Radno vrijeme tab
-       ======================== */
-    .rv-wrap { width: 100%; }
-
-    .rv-sekcija {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 20px 24px;
-      margin-bottom: 20px;
-    }
-
-    .rv-sekcija-naslov {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .rv-dan-row {
-      display: grid;
-      grid-template-columns: 100px 40px 1fr;
-      align-items: center;
-      gap: 12px;
-      padding: 9px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .rv-dan-row:last-of-type { border-bottom: none; }
-
-    .rv-dan-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .rv-dan-inputs {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: opacity 0.15s;
-    }
-
-    .rv-dan-inputs input[type="time"] {
-      padding: 6px 10px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      font-size: 13px;
-      font-family: var(--font);
-      color: var(--text);
-      width: 108px;
-    }
-
-    .rv-dan-sep {
-      font-size: 12px;
-      color: var(--muted);
+      width: 18px;
       flex-shrink: 0;
     }
 
-    .rv-toggle {
-      width: 36px;
-      height: 20px;
-      appearance: none;
-      -webkit-appearance: none;
+    .rv-time-part {
+      width: 34px;
+      padding: 5px 2px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--font);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      color: var(--text);
+      background: #fff;
+      -moz-appearance: textfield;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .rv-time-part::-webkit-inner-spin-button,
+    .rv-time-part::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .rv-time-part:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
+    }
+    .rv-time-part:disabled {
+      background: transparent;
+      border-color: transparent;
+      color: #aab0ba;
+      cursor: not-allowed;
+    }
+    .rv-time-colon {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6b7280;
+      margin: 0 -1px;
+      line-height: 1;
+    }
+    .rv-td-neradan .rv-time-colon { color: #bcc0c8; }
+    .rv-apply-all-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      font-family: var(--font);
+      color: var(--accent);
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 5px;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      transition: background 0.12s, color 0.12s;
+    }
+    .rv-apply-all-btn:hover { background: var(--accent); color: #fff; }
+    .rv-alt-section { margin-top: 20px; }
+    .rv-alt-section-label {
+      padding: 10px 24px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+    }
+
+    .rv-alt-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .rv-alt-switch {
+      width: 36px; height: 20px;
+      appearance: none; -webkit-appearance: none;
       background: #cbd5e1;
       border-radius: 999px;
       cursor: pointer;
@@ -632,10 +880,8 @@
       transition: background 0.15s;
       flex-shrink: 0;
     }
-
-    .rv-toggle:checked { background: var(--accent); }
-
-    .rv-toggle::after {
+    .rv-alt-switch:checked { background: var(--accent); }
+    .rv-alt-switch::after {
       content: '';
       position: absolute;
       width: 14px; height: 14px;
@@ -643,407 +889,309 @@
       border-radius: 50%;
       top: 3px; left: 3px;
       transition: left 0.15s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .rv-alt-switch:checked::after { left: 19px; }
+
+    .rv-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-light);
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 20px;
     }
 
-    .rv-toggle:checked::after { left: 19px; }
-
     .rv-spremi-btn {
-      margin-top: 16px;
-      padding: 10px 24px;
+      padding: 9px 24px;
       background: var(--accent);
       color: #fff;
       border: none;
-      border-radius: 4px;
-      font-size: 13.5px;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       font-family: var(--font);
-      transition: background 0.15s;
+      transition: background 0.12s;
     }
-
     .rv-spremi-btn:hover { background: var(--accent-2); }
 
-    /* Iznimke */
-    .iznimka-item {
+    /* ── Telefon tab ── */
+    .tel-panel {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      border: 1px solid #e0e2e6;
+    }
+
+    .tel-body {
+      padding: 20px 24px 4px;
       display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: #fff;
-      margin-bottom: 8px;
-      font-size: 13px;
+      flex-direction: column;
+      gap: 20px;
     }
 
-    .iznimka-datum { font-weight: 600; color: var(--text); min-width: 96px; }
-    .iznimka-tip   { flex: 1; color: var(--muted); }
+    .tel-section { display: flex; flex-direction: column; }
 
-    .btn-iznimka-delete {
-      background: none;
-      border: none;
-      color: #dc2626;
-      cursor: pointer;
-      font-size: 15px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      transition: background 0.12s;
-      font-family: var(--font);
-    }
-
-    .btn-iznimka-delete:hover { background: #fee2e2; }
-
-    /* Iznimka — dan panel */
-    .iznimke-panel {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 18px 20px;
-    }
-
-    .iznimke-panel-naslov {
-      font-size: 13px;
+    .tel-section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
       font-weight: 700;
-      color: var(--text);
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
     }
 
-    .iznimke-panel-btn {
-      width: 100%;
-      padding: 9px 14px;
-      border-radius: 4px;
-      font-size: 13px;
+    .tel-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .tel-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+    .tel-label {
+      display: block;
+      font-size: 11px;
       font-weight: 600;
-      cursor: pointer;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+    }
+
+    .tel-input, .tel-select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
       font-family: var(--font);
-      transition: all 0.15s;
-      margin-bottom: 8px;
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      appearance: none;
     }
 
-    .iznimke-panel-btn.blokira {
-      background: #fee2e2;
-      color: #dc2626;
-      border: 1.5px solid #fca5a5;
+    .tel-input:focus, .tel-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
     }
 
-    .iznimke-panel-btn.blokira:hover { background: #fecaca; }
-
-    .iznimke-panel-btn.ukloni-blokadu {
-      background: #dcfce7;
-      color: #166534;
-      border: 1.5px solid #86efac;
+    .tel-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F5E5A' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      cursor: pointer;
     }
 
-    .iznimke-panel-btn.ukloni-blokadu:hover { background: #bbf7d0; }
-
-    .iznimke-slot-row {
+    .tel-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-light);
+      background: #e5e7eb;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .tel-submit {
+      padding: 9px 24px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
       font-size: 13px;
-    }
-
-    .iznimke-slot-row:last-child { border-bottom: none; }
-
-    .iznimke-slot-time { font-weight: 500; color: var(--text); }
-
-    .iznimke-slot-time.blokiran {
-      text-decoration: line-through;
-      color: var(--muted);
-    }
-
-    .btn-blokira-slot {
-      font-size: 11px;
       font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 4px;
+      font-family: var(--font);
       cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.12s;
+    }
+
+    .tel-submit:hover { background: var(--accent-2); }
+    .tel-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .tel-status { font-size: 12px; font-weight: 500; min-height: 18px; }
+    .tel-status.ok { color: #166534; }
+    .tel-status.error { color: #dc2626; }
+
+    /* ── Postavke tab ── */
+    .post-panel {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      border: 1px solid #e0e2e6;
+    }
+
+    .post-panel + .post-panel { margin-top: 20px; }
+
+    .post-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-light);
+      gap: 12px;
+      background: #fafafa;
+    }
+
+    .post-item:last-child { border-bottom: none; }
+
+    .post-item-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .post-item-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      color: var(--muted);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .post-item-del {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--muted);
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
       font-family: var(--font);
       transition: all 0.12s;
-      border: 1.5px solid;
+      flex-shrink: 0;
     }
 
-    .btn-blokira-slot.aktivan {
-      background: #fee2e2;
-      color: #dc2626;
+    .post-item-del:hover {
+      background: #fef2f2;
       border-color: #fca5a5;
+      color: var(--danger);
     }
 
-    .btn-blokira-slot.aktivan:hover { background: #fecaca; }
+    .post-add-form {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-light);
+      background: #f3f4f6;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
 
-    .btn-blokira-slot.neaktivan {
-      background: transparent;
+    .post-input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .post-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
+    }
+
+    .post-select {
+      padding: 8px 28px 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--text);
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F5E5A' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+      appearance: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s;
+    }
+
+    .post-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
+    }
+
+    .post-add-btn {
+      padding: 8px 18px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.12s;
+    }
+
+    .post-add-btn:hover { background: var(--accent-2); }
+
+    .post-empty {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
       color: var(--muted);
-      border-color: var(--border);
+      background: #fafafa;
     }
 
-    .btn-blokira-slot.neaktivan:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* Boje na iznimke kalendaru */
-    .kal-dan.kal-blokiran-dan { background: #fee2e2 !important; color: #dc2626 !important; }
-    .kal-dan.kal-ima-slot-blokada { background: #fef9c3 !important; }
-
-    @media (max-width: 680px) {
-      .rv-dan-row { grid-template-columns: 80px 36px 1fr; gap: 8px; }
-      .rv-dan-inputs input[type="time"] { width: 90px; font-size: 12px; }
+    .post-status {
+      font-size: 12px;
+      color: var(--danger);
+      min-height: 16px;
+      padding: 4px 24px 0;
     }
 
-    /* ========================
-       Overlay (mobilni meni)
-       ======================== */
+    /* ── Overlay ── */
     #overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0,0,0,0.4);
       z-index: 15;
     }
 
     #overlay.aktivan { display: block; }
 
-    /* ========================
-       Responsivnost
-       ======================== */
+    /* ── Responsive ── */
     @media (max-width: 768px) {
-      #sidebar {
-        transform: translateX(-100%);
-      }
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.otvoren { transform: translateX(0); }
+      #main { margin-left: 0; }
+      #menuToggle { display: flex; }
+      .topbar-ordinacija { display: block; }
+      #content { padding: 14px; }
 
-      #sidebar.otvoren {
-        transform: translateX(0);
-      }
+      .request-row { grid-template-columns: 90px 1fr; gap: 12px; }
+      .req-actions { grid-column: 1 / -1; flex-direction: row; }
 
-      #main {
-        margin-left: 0;
-      }
-
-      #menuToggle {
-        display: flex;
-      }
-
-      .topbar-ordinacija {
-        display: block;
-      }
+      /* kal-layout removed */
+      .rv-dan-row { grid-template-columns: 90px 36px 1fr; gap: 8px; }
+      .tel-grid-3, .tel-grid-4 { grid-template-columns: 1fr; }
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      * { transition: none !important; }
+    @media (max-width: 480px) {
+      .status-tab { padding: 0 12px; font-size: 12px; }
+      .kal-dan { min-height: 64px; }
     }
 
-    /* ========================
-       Telefon — ručni unos
-       ======================== */
-    .tel-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 24px 28px;
-      max-width: 560px;
-    }
-
-    .tel-naslov {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    .tel-opis {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 22px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .tel-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .tel-grid .tel-full { grid-column: 1 / -1; }
-
-    .tel-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 6px;
-    }
-
-    .tel-input, .tel-select, .tel-textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      font-size: 13.5px;
-      font-family: var(--font);
-      color: var(--text);
-      background: #fff;
-      transition: border-color 0.15s;
-      appearance: none;
-      -webkit-appearance: none;
-    }
-
-    .tel-input:focus, .tel-select:focus, .tel-textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .tel-select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
-    }
-
-    .tel-textarea { resize: vertical; min-height: 72px; }
-
-    .tel-submit {
-      margin-top: 20px;
-      width: 100%;
-      padding: 12px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: var(--font);
-      transition: background 0.15s;
-    }
-
-    .tel-submit:hover { background: var(--accent-2); }
-    .tel-submit:disabled { opacity: 0.55; cursor: not-allowed; }
-
-    .tel-status {
-      margin-top: 14px;
-      font-size: 13px;
-      font-weight: 500;
-      text-align: center;
-      min-height: 20px;
-    }
-
-    .tel-status.ok    { color: #166534; }
-    .tel-status.error { color: #dc2626; }
-
-    @media (max-width: 560px) {
-      .tel-card { padding: 18px 16px; }
-      .tel-grid { grid-template-columns: 1fr; }
-      .tel-grid .tel-full { grid-column: 1; }
-    }
-
-    /* ========================
-       Mobile optimizacija (≤ 768px)
-       ======================== */
-    @media (max-width: 768px) {
-      #content {
-        padding: 16px 14px;
-      }
-
-      /* Zahtjev kartice — kompaktnije */
-      .zahtjev-card {
-        padding: 14px 16px;
-        margin-bottom: 10px;
-      }
-
-      .zahtjev-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-        margin-bottom: 10px;
-        padding-bottom: 10px;
-      }
-
-      .zahtjev-row {
-        grid-template-columns: 90px 1fr;
-        font-size: 13px;
-        padding: 6px 0;
-      }
-
-      .zahtjev-akcije {
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 12px;
-        padding-top: 12px;
-      }
-
-      .btn-potvrdi,
-      .btn-predlozi {
-        padding: 13px;
-        font-size: 14px;
-      }
-
-      /* Kalendar layout — već stacked, samo razmaci */
-      .kal-wrap {
-        max-width: 100%;
-      }
-
-      .kal-card {
-        padding: 12px;
-      }
-
-      .kal-dan {
-        min-height: 40px;
-        font-size: 13px;
-      }
-
-      /* Termini grid — manji minimum da stanu na ekran */
-      .termini-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 6px;
-      }
-
-      .termini-wrap {
-        padding: 14px 16px;
-      }
-
-      /* Topbar — malo manji */
-      #topbar {
-        height: 52px;
-        padding: 0 16px;
-      }
-
-      #adminTitle {
-        font-size: 14px;
-      }
-    }
-
-    /* Extra mali ekrani (≤ 400px) */
-    @media (max-width: 400px) {
-      .zahtjev-row {
-        grid-template-columns: 80px 1fr;
-        font-size: 12px;
-      }
-
-      .kal-header-dan {
-        font-size: 9px;
-        padding: 4px 0;
-      }
-
-      .termini-grid {
-        grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
-      }
-    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   </style>
 </head>
 <body>
 
-  <!-- Overlay za zatvaranje mobilnog menija -->
   <div id="overlay" onclick="zatvoriMeni()"></div>
 
-  <!-- ========================
-       Sidebar
-       ======================== -->
   <aside id="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-text">Ordin<span>ova</span></div>
@@ -1054,7 +1202,6 @@
       <div class="sidebar-section-label">Zahtjevi</div>
 
       <div class="sidebar-item active" id="nav-cekanje" onclick="promijeniTab('cekanje')">
-        <!-- Ikona: inbox -->
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
           <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>
@@ -1063,20 +1210,11 @@
         <span class="nav-badge" id="nav-pending-badge" style="display:none;"></span>
       </div>
 
-      <div class="sidebar-item" id="nav-povijest" onclick="promijeniTab('povijest')">
-        <!-- Ikona: povijest -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-        Povijest
-      </div>
-
       <div class="sidebar-section-label">Raspored</div>
 
       <div class="sidebar-item" id="nav-kalendar" onclick="promijeniTab('kalendar')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <rect x="3" y="4" width="18" height="18" rx="0"/>
           <line x1="16" y1="2" x2="16" y2="6"/>
           <line x1="8" y1="2" x2="8" y2="6"/>
           <line x1="3" y1="10" x2="21" y2="10"/>
@@ -1100,53 +1238,74 @@
         </svg>
         Telefon
       </div>
+
+      <div class="sidebar-section-label">Konfiguracija</div>
+
+      <div class="sidebar-item" id="nav-postavke" onclick="promijeniTab('postavke')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        Postavke
+      </div>
+
+      <div style="padding: 12px 12px 16px; margin-top: auto;">
+        <button onclick="odjava()" style="
+          width:100%; padding:9px 12px;
+          background:transparent; border:1px solid rgba(255,255,255,0.12);
+          border-radius:7px; color:rgba(255,255,255,0.45);
+          font-family:var(--font); font-size:12px; font-weight:500;
+          cursor:pointer; display:flex; align-items:center; gap:8px;
+          transition: all 0.15s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.color='rgba(255,255,255,0.75)'"
+           onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.45)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Odjava
+        </button>
+      </div>
     </nav>
   </aside>
 
-  <!-- ========================
-       Glavni sadržaj
-       ======================== -->
   <div id="main">
-
-    <!-- Topbar -->
     <div id="topbar">
       <button id="menuToggle" onclick="toggleMeni()" aria-label="Otvori meni">
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span>
       </button>
       <h2 id="adminTitle">Admin</h2>
       <div class="topbar-right">
         <span class="topbar-ordinacija" id="topbarOrdinacija"></span>
       </div>
     </div>
-
-    <!-- Content -->
     <div id="content">
       <div id="zahtjevi"></div>
     </div>
-
   </div>
 
   <script>
-    // Mobilni meni toggle
     function toggleMeni() {
-      const sidebar = document.getElementById("sidebar");
-      const overlay = document.getElementById("overlay");
-      sidebar.classList.toggle("otvoren");
-      overlay.classList.toggle("aktivan");
+      document.getElementById("sidebar").classList.toggle("otvoren");
+      document.getElementById("overlay").classList.toggle("aktivan");
     }
-
     function zatvoriMeni() {
       document.getElementById("sidebar").classList.remove("otvoren");
       document.getElementById("overlay").classList.remove("aktivan");
     }
-
-    // Zatvori meni pri kliku na nav item na mobitelu
     document.querySelectorAll(".sidebar-item").forEach(item => {
       item.addEventListener("click", () => {
         if (window.innerWidth <= 768) zatvoriMeni();
       });
+    });
+
+    // Close time pickers when clicking outside
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".time-picker")) {
+        document.querySelectorAll(".time-picker-drop.is-open").forEach(d => {
+          d.classList.remove("is-open");
+          d.previousElementSibling?.classList.remove("is-open");
+        });
+      }
     });
   </script>
 
