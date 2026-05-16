@@ -22,6 +22,14 @@ cron.schedule("0 7 * * *", async () => {
     const client = loadClient(t.clientid);
     if (!client) continue;
     try {
+      let doctorName = "";
+      if (t.doctorid) {
+        const { rows: dr } = await pool.query(
+          "SELECT name FROM clinic_doctors WHERE clientid = $1 AND doctorid = $2",
+          [t.clientid, t.doctorid]
+        );
+        if (dr[0]) doctorName = dr[0].name;
+      }
       await sendPatientMail(client, {
         to:      t.email,
         subject: `Podsjetnik za termin — ${client.brandName}`,
@@ -30,9 +38,7 @@ cron.schedule("0 7 * * *", async () => {
           `Podsjećamo vas da imate termin sutra.\n\n` +
           `Datum i vrijeme: ${t.date}\n` +
           `Usluga: ${t.service}\n\n` +
-          (t.doctorid && client.doctors?.find(d => d.id === t.doctorid)
-            ? `Doktor: ${client.doctors.find(d => d.id === t.doctorid).name}\n\n`
-            : "") +
+          (doctorName ? `Doktor: ${doctorName}\n\n` : "") +
           `Do viđenja,\n${client.brandName}`,
       });
       console.log(`[REMINDER 1d] Poslan → ${t.email}`);
@@ -64,6 +70,14 @@ cron.schedule("0,30 * * * *", async () => {
     const client = loadClient(t.clientid);
     if (!client) continue;
     try {
+      let doctorName = "";
+      if (t.doctorid) {
+        const { rows: dr } = await pool.query(
+          "SELECT name FROM clinic_doctors WHERE clientid = $1 AND doctorid = $2",
+          [t.clientid, t.doctorid]
+        );
+        if (dr[0]) doctorName = dr[0].name;
+      }
       await sendPatientMail(client, {
         to:      t.email,
         subject: `Podsjetnik — termin za 2 sata — ${client.brandName}`,
@@ -72,9 +86,7 @@ cron.schedule("0,30 * * * *", async () => {
           `Podsjećamo vas da imate termin za 2 sata.\n\n` +
           `Datum i vrijeme: ${t.date}\n` +
           `Usluga: ${t.service}\n\n` +
-          (t.doctorid && client.doctors?.find(d => d.id === t.doctorid)
-            ? `Doktor: ${client.doctors.find(d => d.id === t.doctorid).name}\n\n`
-            : "") +
+          (doctorName ? `Doktor: ${doctorName}\n\n` : "") +
           `Do viđenja,\n${client.brandName}`,
       });
       console.log(`[REMINDER 2h] Poslan → ${t.email}`);

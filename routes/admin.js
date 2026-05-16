@@ -332,7 +332,10 @@ router.post("/admin-raspored", adminLimiter, async (req, res) => {
 
     const { doctorId, schedule, scheduleB } = req.body;
 
-    const doctors = client.doctors || [];
+    const { rows: doctors } = await pool.query(
+      "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1",
+      [clientId]
+    );
     if (!doctors.some(d => d.id === doctorId))
       return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
     if (typeof schedule !== "object" || Array.isArray(schedule))
@@ -471,7 +474,10 @@ router.post("/admin-iznimka", adminLimiter, async (req, res) => {
     if (type === "block_slot" && !time)
       return res.status(400).json({ ok: false, error: "Vrijeme obavezno." });
 
-    const doctors = client.doctors || [];
+    const { rows: doctors } = await pool.query(
+      "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1",
+      [clientId]
+    );
     if (doctorId && !doctors.some(d => d.id === doctorId))
       return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
 
@@ -566,12 +572,16 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
     if (typeof service !== "string" || service.trim().length === 0 || service.length > 100)
       return res.status(400).json({ ok: false, error: "Usluga nije odabrana." });
 
-    const allowedServices = (client.services || []).map(s => s.name);
+    const [{ rows: dbDoctors }, { rows: dbServices }] = await Promise.all([
+      pool.query("SELECT doctorid AS id FROM clinic_doctors WHERE clientid = $1", [clientId]),
+      pool.query("SELECT name FROM clinic_services WHERE clientid = $1", [clientId]),
+    ]);
+
+    const allowedServices = dbServices.map(s => s.name);
     if (allowedServices.length > 0 && !allowedServices.includes(service.trim()))
       return res.status(400).json({ ok: false, error: "Neispravna usluga." });
 
-    const doctors = client.doctors || [];
-    if (doctorId && !doctors.some(d => d.id === doctorId))
+    if (doctorId && !dbDoctors.some(d => d.id === doctorId))
       return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
 
     const { rows: konflikt } = await pool.query(
