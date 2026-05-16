@@ -53,6 +53,107 @@ async function getClinicServices(clientId, client) {
   return rows;
 }
 
+// ── Booking server-side validation helpers ──
+
+function parseCroatianDate(str) {
+  const m = str.match(/^(\d{1,2})\.(\d{2})\.(\d{4})\.\s+u\s+(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  const [, d, mo, y, h, min] = m.map(Number);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || min > 59) return null;
+  return { year: y, month: mo, day: d, hours: h, minutes: min };
+}
+
+function nowZagreb() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "numeric", hour12: false,
+  }).formatToParts(new Date());
+  const get = type => parseInt(parts.find(p => p.type === type).value);
+  return { year: get("year"), month: get("month"), day: get("day"), hours: get("hour"), minutes: get("minute") };
+}
+
+function isInPast(parsed) {
+  const now = nowZagreb();
+  const pN  = parsed.year * 10000 + parsed.month * 100 + parsed.day;
+  const nN  = now.year   * 10000 + now.month   * 100 + now.day;
+  if (pN < nN) return true;
+  if (pN > nN) return false;
+  return (parsed.hours * 60 + parsed.minutes) <= (now.hours * 60 + now.minutes);
+}
+
+function isoWeekOf(year, month, day) {
+  const d = new Date(Date.UTC(year, month - 1, day));
+  d.setUTCDate(d.getUTCDate() + 3 - (d.getUTCDay() + 6) % 7);
+  const w1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d - w1) / 86400000 - 3 + (w1.getUTCDay() + 6) % 7) / 7);
+}
+
+function toMin(timeStr) {
+  const [h, m] = timeStr.split(":").map(Number);
+  return h * 60 + m;
+}
+
+async function validateSlot(clientId, doctorId, parsed, duration) {
+  const { year, month, day, hours, minutes } = parsed;
+  const slotMin = hours * 60 + minutes;
+  const slotEnd = slotMin + duration;
+
+  if (doctorId) {
+    const isoDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dow     = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    const isWeekA = isoWeekOf(year, month, day) % 2 !== 0;
+    const dbDay   = isWeekA ? dow : dow + 10;
+
+    let { rows: sched } = await pool.query(
+      "SELECT starttime, endtime FROM doctor_schedules WHERE clientid=$1 AND doctorid=$2 AND dayofweek=$3",
+      [clientId, doctorId, dbDay]
+    );
+    if (!sched[0] && !isWeekA) {
+      ({ rows: sched } = await pool.query(
+        "SELECT starttime, endtime FROM doctor_schedules WHERE clientid=$1 AND doctorid=$2 AND dayofweek=$3",
+        [clientId, doctorId, dow]
+      ));
+    }
+    if (!sched[0]) return "Doktor ne radi taj dan.";
+
+    const workStart = toMin(sched[0].starttime);
+    const workEnd   = toMin(sched[0].endtime);
+    if (slotMin < workStart || slotEnd > workEnd)
+      return "Termin je izvan radnog vremena.";
+
+    const { rows: exc } = await pool.query(
+      "SELECT type, time FROM schedule_exceptions WHERE clientid=$1 AND doctorid=$2 AND date=$3",
+      [clientId, doctorId, isoDate]
+    );
+    if (exc.some(e => e.type === "block_day"))
+      return "Taj dan nije dostupan.";
+    const slotStr = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    if (exc.some(e => e.type === "block_slot" && e.time === slotStr))
+      return "Taj termin nije dostupan.";
+  }
+
+  // Overlap check (duration-aware)
+  const datePfx = `${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}.${year}.%`;
+  const { rows: existing } = await pool.query(
+    `SELECT r.date, COALESCE(cs.duration, 30) AS duration
+     FROM requests r
+     LEFT JOIN clinic_services cs ON cs.clientid = r.clientid AND cs.name = r.service
+     WHERE r.clientid = $1 AND r.doctorid = $2 AND r.status = 'potvrdjeno' AND r.date LIKE $3`,
+    [clientId, doctorId, datePfx]
+  );
+  for (const row of existing) {
+    const tm = row.date.match(/u\s+(\d{2}):(\d{2})$/);
+    if (!tm) continue;
+    const exStart = parseInt(tm[1]) * 60 + parseInt(tm[2]);
+    const exEnd   = exStart + parseInt(row.duration);
+    if (slotMin < exEnd && exStart < slotEnd)
+      return "Taj termin je već zauzet.";
+  }
+
+  return null;
+}
+
 // ── Booking stranica s temom klijenta ──
 router.get("/booking/:clientId", (req, res) => {
   const clientId = sanitizeClientId(req.params.clientId);
@@ -208,6 +309,20 @@ router.post("/booking", bookingLimiter, async (req, res) => {
 
     if (safeDoctorId && !dbDoctors.some(d => d.id === safeDoctorId))
       return res.status(400).json({ ok: false, error: "Doktor nije pronađen." });
+
+    // ── Server-side termin validacija ──
+    const parsed = parseCroatianDate(safeDate);
+    if (!parsed)
+      return res.status(400).json({ ok: false, error: "Neispravan format datuma." });
+    if (isInPast(parsed))
+      return res.status(400).json({ ok: false, error: "Ne možete rezervirati termin u prošlosti." });
+
+    const svcData  = dbServices.find(s => s.name === safeService);
+    const duration = svcData?.duration || 30;
+
+    const slotError = await validateSlot(safeClientId, safeDoctorId, parsed, duration);
+    if (slotError)
+      return res.status(400).json({ ok: false, error: slotError });
 
     const doktor      = dbDoctors.find(d => d.id === safeDoctorId);
     const doktorNaziv = doktor ? doktor.name : null;
