@@ -384,6 +384,7 @@
       color: var(--text);
       border: 1px solid var(--border);
       border-right: none;
+      border-radius: 7px 0 0 7px;
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
@@ -398,6 +399,7 @@
       background: var(--accent);
       color: #fff;
       border: 1px solid var(--accent);
+      border-radius: 0 7px 7px 0;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -473,6 +475,7 @@
       margin-bottom: 16px;
       background: var(--bg);
       border: 1px solid var(--border);
+      border-radius: 8px;
       padding: 9px 14px;
     }
 
@@ -490,6 +493,7 @@
     .doctor-arrow {
       background: none;
       border: 1px solid var(--border);
+      border-radius: 6px;
       padding: 3px 10px;
       font-size: 14px;
       cursor: pointer;
@@ -1014,6 +1018,66 @@
     .tel-status { font-size: 12px; font-weight: 500; min-height: 18px; }
     .tel-status.ok { color: #166534; }
     .tel-status.error { color: #dc2626; }
+
+    /* ── Tel mini kalendar ── */
+    .tel-kal {
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+      user-select: none;
+    }
+    .tel-kal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+    .tel-kal-title { font-size: 11px; font-weight: 600; color: var(--text); }
+    .tel-kal-arrow {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 16px;
+      padding: 0 4px;
+      line-height: 1;
+      font-family: var(--font);
+      transition: color 0.1s;
+    }
+    .tel-kal-arrow:hover { color: var(--accent); }
+    .tel-kal-arrow:disabled { opacity: 0.25; cursor: default; }
+    .tel-kal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0;
+      padding: 4px 5px 5px;
+    }
+    .tel-kal-dow {
+      text-align: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      padding: 3px 0 4px;
+    }
+    .tel-kal-cell {
+      text-align: center;
+      padding: 4px 1px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.1s, color 0.1s;
+    }
+    .tel-kal-cell:hover:not(.tel-kal-past):not(.tel-kal-empty) { background: var(--accent-soft); color: var(--accent); }
+    .tel-kal-past { color: #c4c4c4; cursor: default; }
+    .tel-kal-empty { cursor: default; }
+    .tel-kal-today { font-weight: 700; color: var(--accent); }
+    .tel-kal-sel { background: var(--accent) !important; color: #fff !important; font-weight: 600; }
+    .tel-kal-sel:hover { background: var(--accent-2) !important; }
 
     /* ── Postavke tab ── */
     .post-panel {
