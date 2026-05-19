@@ -8,22 +8,28 @@ const pool = new Pool({
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS requests (
-      id        BIGINT PRIMARY KEY,
-      clientId  TEXT   NOT NULL,
-      name      TEXT   NOT NULL,
-      email     TEXT   NOT NULL,
-      date      TEXT   NOT NULL,
-      service   TEXT   NOT NULL,
-      note      TEXT   NOT NULL DEFAULT '—',
-      status    TEXT   NOT NULL DEFAULT 'na_cekanju',
-      primljeno TEXT   NOT NULL,
-      doctorId  TEXT   NOT NULL DEFAULT ''
+      id            BIGINT      PRIMARY KEY,
+      clientId      TEXT        NOT NULL,
+      name          TEXT        NOT NULL,
+      email         TEXT        NOT NULL,
+      date          TEXT        NOT NULL,
+      service       TEXT        NOT NULL,
+      note          TEXT        NOT NULL DEFAULT '—',
+      status        TEXT        NOT NULL DEFAULT 'na_cekanju',
+      primljeno     TEXT        NOT NULL,
+      doctorId      TEXT        NOT NULL DEFAULT '',
+      appointmentAt TIMESTAMPTZ,
+      createdAt     TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
 
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_clientId ON requests(clientId)
-  `);
+  // Dodaj nove stupce za postojeće baze (idempotentno)
+  await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS appointmentAt TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_clientId ON requests(clientId)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_requests_appointment ON requests(clientid, doctorid, appointmentat)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_requests_createdat ON requests(createdat)`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS doctor_schedules (

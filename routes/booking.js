@@ -8,7 +8,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const { pool }                                              = require("../database");
 const { sendMail, sendPatientMail }                         = require("../lib/mail");
-const { sanitizeClientId, sanitizeCssValue, sanitizeFontName, loadClient } = require("../lib/utils");
+const { sanitizeClientId, sanitizeCssValue, sanitizeFontName, loadClient, parseCroatianDate, parsedToTimestamp } = require("../lib/utils");
 const { faqLimiter, bookingLimiter, publicLimiter }         = require("../lib/limiters");
 
 async function getClinicDoctors(clientId, client) {
@@ -54,14 +54,6 @@ async function getClinicServices(clientId, client) {
 }
 
 // ── Booking server-side validation helpers ──
-
-function parseCroatianDate(str) {
-  const m = str.match(/^(\d{1,2})\.(\d{2})\.(\d{4})\.\s+u\s+(\d{2}):(\d{2})$/);
-  if (!m) return null;
-  const [, d, mo, y, h, min] = m.map(Number);
-  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || min > 59) return null;
-  return { year: y, month: mo, day: d, hours: h, minutes: min };
-}
 
 function nowZagreb() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -324,15 +316,17 @@ router.post("/booking", bookingLimiter, async (req, res) => {
     if (slotError)
       return res.status(400).json({ ok: false, error: slotError });
 
+    const appointmentAt = parsedToTimestamp(parsed);
+
     const doktor      = dbDoctors.find(d => d.id === safeDoctorId);
     const doktorNaziv = doktor ? doktor.name : null;
     const toEmail     = client.clinicEmail || process.env.CLINIC_EMAIL;
     const primljeno   = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
 
     await pool.query(
-      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'na_cekanju', $8, $9)`,
-      [Date.now(), safeClientId, safeName, safeEmail, safeDate, safeService, safeNote || "—", primljeno, safeDoctorId]
+      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId, appointmentAt)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'na_cekanju', $8, $9, $10)`,
+      [Date.now(), safeClientId, safeName, safeEmail, safeDate, safeService, safeNote || "—", primljeno, safeDoctorId, appointmentAt]
     );
 
     res.json({ ok: true });
