@@ -601,6 +601,28 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
        typeof note === "string" ? note.trim().slice(0, 500) : "—", primljeno, doctorId]
     );
 
+    if (safeEmail !== "—") {
+      let doctorName = "";
+      if (doctorId) {
+        const { rows: dr } = await pool.query(
+          "SELECT name FROM clinic_doctors WHERE clientid = $1 AND doctorid = $2",
+          [clientId, doctorId]
+        );
+        if (dr[0]) doctorName = dr[0].name;
+      }
+      sendPatientMail(client, {
+        to:      safeEmail,
+        subject: `Potvrda termina — ${client.brandName}`,
+        text:
+          `Poštovani ${name.trim()},\n\n` +
+          `Vaš termin je potvrđen.\n\n` +
+          (doctorName ? `Doktor:  ${doctorName}\n` : "") +
+          `Datum:   ${date.trim()}\n` +
+          `Usluga:  ${service.trim()}\n\n` +
+          `Lijep pozdrav,\n${client.brandName}`,
+      }).catch(err => console.error("PHONE BOOKING MAIL ERROR:", err));
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error("PHONE BOOKING ERROR:", err);
