@@ -165,6 +165,8 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
     await sendPatientMail(client, { to: zahtjev.email, subject, text });
     res.json({ ok: true });
   } catch (err) {
+    if (err.code === "23505")
+      return res.status(409).json({ ok: false, error: "Taj termin je upravo zauzet drugim rezervacijom." });
     console.error("ADMIN ACTION ERROR:", err);
     res.status(500).json({ ok: false });
   }
@@ -625,6 +627,8 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
 
     res.json({ ok: true });
   } catch (err) {
+    if (err.code === "23505")
+      return res.status(409).json({ ok: false, error: "Taj termin je upravo zauzet drugim rezervacijom." });
     console.error("PHONE BOOKING ERROR:", err);
     res.status(500).json({ ok: false, error: "Greška pri upisu termina." });
   }

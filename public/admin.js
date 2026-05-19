@@ -376,7 +376,7 @@ async function potvrdi(id) {
   const data = await res.json();
 
   if (data.ok) { alert("Potvrda poslana pacijentu!"); ucitajZahtjeve(); }
-  else if (res.status === 409) { alert("Termin je već zauzet. Pacijentu je poslan mail s obavijesti."); ucitajZahtjeve(); }
+  else if (res.status === 409) { alert(data.error || "Taj termin je već zauzet."); ucitajZahtjeve(); }
   else alert("Greška pri slanju potvrde.");
 }
 
