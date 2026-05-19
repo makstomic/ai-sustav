@@ -877,12 +877,8 @@ function renderTelefonTab() {
             ${doktorCell}
             <div>
               <label class="tel-label">Datum</label>
-              <input type="hidden" id="tel-datum" value="${danas}">
-              <div class="tel-kal-wrap" id="tel-kal-wrap">
-                <input type="text" class="tel-input" id="tel-datum-display" readonly
-                       style="cursor:pointer" onclick="telKalToggle(event)">
-                <div class="tel-kal" id="tel-kal" style="display:none"></div>
-              </div>
+              <input type="date" class="tel-input" id="tel-datum" value="${danas}" min="${danas}"
+                     onchange="ucitajTelefonTermine()">
             </div>
             <div>
               <label class="tel-label">Slobodan termin</label>
@@ -912,114 +908,6 @@ function renderTelefonTab() {
       </div>
     </div>`;
 
-  initTelKal();
-}
-
-// ── Tel mini kalendar ─────────────────────────────────────────────────────────
-
-let _telKalYear = null;
-let _telKalMonth = null;
-
-const _TEL_MONTHS = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj","Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
-
-function telFormatDatum(val) {
-  if (!val) return "";
-  const [y, m, d] = val.split("-");
-  return `${d}.${m}.${y}.`;
-}
-
-function initTelKal() {
-  const now = new Date();
-  _telKalYear = now.getFullYear();
-  _telKalMonth = now.getMonth();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  const val = `${now.getFullYear()}-${mm}-${dd}`;
-  const input = document.getElementById("tel-datum");
-  if (input) input.value = val;
-  const display = document.getElementById("tel-datum-display");
-  if (display) display.value = telFormatDatum(val);
-  ucitajTelefonTermine();
-  document.addEventListener("click", telKalOutsideClick, { once: false });
-}
-
-function telKalToggle(e) {
-  if (e) e.stopPropagation();
-  const kal = document.getElementById("tel-kal");
-  if (!kal) return;
-  if (kal.style.display === "none") {
-    renderTelKal();
-    kal.style.display = "block";
-  } else {
-    kal.style.display = "none";
-  }
-}
-
-function telKalOutsideClick(e) {
-  const wrap = document.getElementById("tel-kal-wrap");
-  if (wrap && !wrap.contains(e.target)) {
-    const kal = document.getElementById("tel-kal");
-    if (kal) kal.style.display = "none";
-  }
-}
-
-function renderTelKal() {
-  const kal = document.getElementById("tel-kal");
-  if (!kal) return;
-  const now = new Date();
-  const todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
-  const year = _telKalYear, month = _telKalMonth;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let firstDay = new Date(year, month, 1).getDay();
-  firstDay = (firstDay + 6) % 7; // Mon=0
-  const selectedVal = document.getElementById("tel-datum")?.value || "";
-  const canPrev = year > todayY || (year === todayY && month > todayM);
-  let cells = "";
-  for (let i = 0; i < firstDay; i++) cells += `<div class="tel-kal-cell tel-kal-empty"></div>`;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const isPast = year < todayY || (year === todayY && month < todayM) || (year === todayY && month === todayM && d < todayD);
-    const mm = String(month + 1).padStart(2, "0");
-    const dd = String(d).padStart(2, "0");
-    const val = `${year}-${mm}-${dd}`;
-    const isSel = val === selectedVal;
-    const isToday = year === todayY && month === todayM && d === todayD;
-    const cls = ["tel-kal-cell", isPast ? "tel-kal-past" : "", isSel ? "tel-kal-sel" : (isToday ? "tel-kal-today" : "")].filter(Boolean).join(" ");
-    const onclick = isPast ? "" : `onclick="telKalSelect('${val}')"`;
-    cells += `<div class="${cls}" ${onclick}>${d}</div>`;
-  }
-  kal.innerHTML = `
-    <div class="tel-kal-header">
-      <button class="tel-kal-arrow" ${canPrev ? "" : "disabled"} onclick="telKalPrev()">&#8249;</button>
-      <span class="tel-kal-title">${_TEL_MONTHS[month]} ${year}</span>
-      <button class="tel-kal-arrow" onclick="telKalNext()">&#8250;</button>
-    </div>
-    <div class="tel-kal-grid">
-      <div class="tel-kal-dow">Po</div><div class="tel-kal-dow">Ut</div><div class="tel-kal-dow">Sr</div>
-      <div class="tel-kal-dow">Če</div><div class="tel-kal-dow">Pe</div><div class="tel-kal-dow">Su</div>
-      <div class="tel-kal-dow">Ne</div>
-      ${cells}
-    </div>`;
-}
-
-function telKalPrev() {
-  _telKalMonth--;
-  if (_telKalMonth < 0) { _telKalMonth = 11; _telKalYear--; }
-  renderTelKal();
-}
-
-function telKalNext() {
-  _telKalMonth++;
-  if (_telKalMonth > 11) { _telKalMonth = 0; _telKalYear++; }
-  renderTelKal();
-}
-
-function telKalSelect(val) {
-  const input = document.getElementById("tel-datum");
-  if (input) input.value = val;
-  const display = document.getElementById("tel-datum-display");
-  if (display) display.value = telFormatDatum(val);
-  const kal = document.getElementById("tel-kal");
-  if (kal) kal.style.display = "none";
   ucitajTelefonTermine();
 }
 
