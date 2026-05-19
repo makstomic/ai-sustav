@@ -19,6 +19,7 @@ function setCookieSession(res, token) {
     httpOnly: true,
     secure:   isProduction,
     sameSite: "strict",
+    path:     "/",
     maxAge:   SESSION_DURATION_MS,
   });
 }
@@ -51,23 +52,21 @@ router.post("/admin-login", loginLimiter, async (req, res) => {
   const client = loadClient(safeClientId);
   if (!client) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
-  let ok = false;
-  if (client.adminPasswordHash) {
-    ok = await bcrypt.compare(password, client.adminPasswordHash);
-  } else {
-    ok = password === client.adminToken;
-    if (ok) console.warn(`[SECURITY] ${safeClientId}: lozinka nije hashirana — pokreni hash-passwords.js`);
+  if (!client.adminPasswordHash) {
+    logError("LOGIN SECURITY", new Error(`${safeClientId}: nema adminPasswordHash — pokreni hash-passwords.js`));
+    return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
   }
 
+  const ok = await bcrypt.compare(password, client.adminPasswordHash);
   if (!ok) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
   const token     = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
-  await pool.query(
-    "INSERT INTO sessions (token, clientid, expiresat) VALUES ($1, $2, $3)",
-    [token, safeClientId, expiresAt]
-  );
+  await Promise.all([
+    pool.query("INSERT INTO sessions (token, clientid, expiresat) VALUES ($1, $2, $3)", [token, safeClientId, expiresAt]),
+    pool.query("DELETE FROM sessions WHERE expiresat < NOW()"),
+  ]);
 
   setCookieSession(res, token);
   res.json({ ok: true, brandName: client.brandName, doctors: client.doctors || [] });
@@ -76,10 +75,19 @@ router.post("/admin-login", loginLimiter, async (req, res) => {
 // ── Logout ──
 router.post("/admin-logout", async (req, res) => {
   const token = req.cookies?.session;
-  if (token) {
+  if (token && /^[a-f0-9]{64}$/i.test(token)) {
     await pool.query("DELETE FROM sessions WHERE token = $1", [token]).catch(() => {});
   }
-  res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict" });
+  res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict", path: "/" });
+  res.json({ ok: true });
+});
+
+// ── Logout svih sessiona za klijenta ──
+router.post("/admin-logout-all", adminLimiter, async (req, res) => {
+  const session = await getSession(req, pool);
+  if (!session) return res.status(403).json({ ok: false });
+  await pool.query("DELETE FROM sessions WHERE clientid = $1", [session.clientid]);
+  res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict", path: "/" });
   res.json({ ok: true });
 });
 
