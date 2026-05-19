@@ -877,7 +877,7 @@ function renderTelefonTab() {
             ${doktorCell}
             <div>
               <label class="tel-label">Datum</label>
-              <input type="date" class="tel-input" id="tel-datum" value="${danas}" min="${danas}"
+              <input type="date" class="tel-input" id="tel-datum" value="${danas}" min="${danas}" max="9999-12-31"
                      onchange="ucitajTelefonTermine()">
             </div>
             <div>
