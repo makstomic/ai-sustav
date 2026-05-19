@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const { pool }            = require("../database");
-const { sendPatientMail } = require("../lib/mail");
+const { sendPatientMail, logEmail } = require("../lib/mail");
 const { loadClient }      = require("../lib/utils");
 const { logError }         = require("../lib/errorLog");
 
@@ -52,7 +52,7 @@ cron.schedule("0 9 * * *", async () => {
             (doctorName ? `Doktor: ${doctorName}\n\n` : "") +
             `Do viđenja,\n${client.brandName}`,
         });
-        console.log(`[REMINDER 1d] Poslan → ${t.email}`);
+        console.log(`[REMINDER 1d] Poslan → ${logEmail(t.email)}`);
       } catch (err) {
         logError("[REMINDER 1d] Mail greška", err);
       }
@@ -100,7 +100,7 @@ cron.schedule("0,30 * * * *", async () => {
             (doctorName ? `Doktor: ${doctorName}\n\n` : "") +
             `Do viđenja,\n${client.brandName}`,
         });
-        console.log(`[REMINDER 2h] Poslan → ${t.email}`);
+        console.log(`[REMINDER 2h] Poslan → ${logEmail(t.email)}`);
       } catch (err) {
         logError("[REMINDER 2h] Mail greška", err);
       }
