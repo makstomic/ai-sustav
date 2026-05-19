@@ -14,6 +14,35 @@ const { logError, getLog }                  = require("../lib/errorLog");
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
 const isProduction        = process.env.NODE_ENV === "production";
 
+// ── CSRF validacija ───────────────────────────────────────────────────────────
+// Svaki admin POST mora imati X-CSRF-Token header koji se podudara s tokenom
+// u bazi za tu sesiju. GET zahtjevi su izuzeti (samo čitaju podatke).
+async function csrfCheck(req, res, next) {
+  if (req.method === "GET") return next();
+  const session = await getSession(req, pool);
+  if (!session) return res.status(403).json({ ok: false, error: "Zabranjen pristup." });
+  const headerToken = req.headers["x-csrf-token"];
+  if (!headerToken || !/^[a-f0-9]{64}$/i.test(headerToken)) {
+    return res.status(403).json({ ok: false, error: "Neispravan CSRF token." });
+  }
+  const { rows } = await pool.query(
+    "SELECT csrftoken FROM sessions WHERE token = $1 AND expiresat > NOW()",
+    [req.cookies?.session]
+  );
+  if (!rows[0] || rows[0].csrftoken !== headerToken) {
+    return res.status(403).json({ ok: false, error: "Neispravan CSRF token." });
+  }
+  next();
+}
+
+// ── Audit log helper ──────────────────────────────────────────────────────────
+async function audit(clientId, action, requestId = null, detail = "") {
+  await pool.query(
+    "INSERT INTO audit_log (clientid, action, requestid, detail) VALUES ($1, $2, $3, $4)",
+    [clientId, action, requestId, detail]
+  ).catch(err => logError("AUDIT LOG", err));
+}
+
 function setCookieSession(res, token) {
   res.cookie("session", token, {
     httpOnly: true,
@@ -23,6 +52,13 @@ function setCookieSession(res, token) {
     maxAge:   SESSION_DURATION_MS,
   });
 }
+
+// ── CSRF router middleware — sve POST rute osim login/logout ─────────────────
+router.use((req, res, next) => {
+  if (req.method !== "POST") return next();
+  if (req.path === "/admin-login" || req.path === "/admin-logout") return next();
+  return csrfCheck(req, res, next);
+});
 
 // ── Statičke stranice ──
 router.get("/admin", (req, res) => {
@@ -61,15 +97,24 @@ router.post("/admin-login", loginLimiter, async (req, res) => {
   if (!ok) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
   const token     = crypto.randomBytes(32).toString("hex");
+  const csrfToken = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
   await Promise.all([
-    pool.query("INSERT INTO sessions (token, clientid, expiresat) VALUES ($1, $2, $3)", [token, safeClientId, expiresAt]),
+    pool.query(
+      "INSERT INTO sessions (token, clientid, csrftoken, expiresat) VALUES ($1, $2, $3, $4)",
+      [token, safeClientId, csrfToken, expiresAt]
+    ),
     pool.query("DELETE FROM sessions WHERE expiresat < NOW()"),
   ]);
 
+  await pool.query(
+    "INSERT INTO audit_log (clientid, action, detail) VALUES ($1, 'login', $2)",
+    [safeClientId, `ip:${req.ip}`]
+  );
+
   setCookieSession(res, token);
-  res.json({ ok: true, brandName: client.brandName, doctors: client.doctors || [] });
+  res.json({ ok: true, brandName: client.brandName, doctors: client.doctors || [], csrfToken });
 });
 
 // ── Logout ──
@@ -87,8 +132,21 @@ router.post("/admin-logout-all", adminLimiter, async (req, res) => {
   const session = await getSession(req, pool);
   if (!session) return res.status(403).json({ ok: false });
   await pool.query("DELETE FROM sessions WHERE clientid = $1", [session.clientid]);
+  await audit(session.clientid, "logout_all", null, `ip:${req.ip}`);
   res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict", path: "/" });
   res.json({ ok: true });
+});
+
+// ── CSRF token dohvat ──
+router.get("/admin-csrf", adminLimiter, async (req, res) => {
+  const token = req.cookies?.session;
+  if (!token || !/^[a-f0-9]{64}$/i.test(token)) return res.status(403).json({ ok: false });
+  const { rows } = await pool.query(
+    "SELECT csrftoken FROM sessions WHERE token = $1 AND expiresat > NOW()",
+    [token]
+  );
+  if (!rows[0]) return res.status(403).json({ ok: false });
+  res.json({ csrfToken: rows[0].csrftoken });
 });
 
 // ── Podaci (zahtjevi) ──
@@ -162,6 +220,7 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
 
     const noviStatus = akcija === "potvrdi" ? "potvrdjeno" : "predlozeno";
     await pool.query("UPDATE requests SET status = $1 WHERE id = $2", [noviStatus, id]);
+    await audit(clientId, akcija === "potvrdi" ? "confirm" : "propose", id, termin.trim());
 
     const subject = akcija === "potvrdi"
       ? `Potvrda termina — ${client.brandName}`
@@ -201,6 +260,7 @@ router.post("/admin-cancel", adminLimiter, async (req, res) => {
     if (!zahtjev) return res.status(404).json({ ok: false });
 
     await pool.query("UPDATE requests SET status = 'otkazano' WHERE id = $1", [id]);
+    await audit(clientId, "cancel", id);
     res.json({ ok: true });
 
     const doktor   = (client.doctors || []).find(d => d.id === zahtjev.doctorid);
@@ -248,6 +308,7 @@ router.post("/admin-odbij", adminLimiter, async (req, res) => {
 
     const safeReason = typeof reason === "string" ? reason.trim().slice(0, 500) : "";
     await pool.query("UPDATE requests SET status = 'odbijeno' WHERE id = $1", [id]);
+    await audit(clientId, "reject", id, safeReason);
     res.json({ ok: true });
 
     if (zahtjev.email && zahtjev.email !== "—") {
@@ -602,13 +663,14 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
     if (konflikt.length > 0)
       return res.status(409).json({ ok: false, error: "Taj termin je već zauzet." });
 
-    const primljeno = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
-    const safeEmail = typeof email === "string" && email.trim().length > 0 ? email.trim().slice(0, 200) : "—";
+    const primljeno  = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
+    const safeEmail  = typeof email === "string" && email.trim().length > 0 ? email.trim().slice(0, 200) : "—";
+    const bookingId  = Date.now();
 
     await pool.query(
       `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'potvrdjeno', $8, $9)`,
-      [Date.now(), clientId, name.trim(), safeEmail, date.trim(), service.trim(),
+      [bookingId, clientId, name.trim(), safeEmail, date.trim(), service.trim(),
        typeof note === "string" ? note.trim().slice(0, 500) : "—", primljeno, doctorId]
     );
 
@@ -634,6 +696,7 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
       }).catch(err => logError("PHONE BOOKING MAIL ERROR", err));
     }
 
+    await audit(clientId, "phone_booking", bookingId, `${date.trim()} | ${service.trim()}`);
     res.json({ ok: true });
   } catch (err) {
     if (err.code === "23505")
@@ -826,6 +889,22 @@ router.get("/admin-errors", adminLimiter, async (req, res) => {
   const session = await getSession(req, pool);
   if (!session) return res.status(403).json({ error: "Zabranjen pristup." });
   res.json(getLog());
+});
+
+// ── Audit log pregled ──
+router.get("/admin-audit", adminLimiter, async (req, res) => {
+  try {
+    const session = await getSession(req, pool);
+    if (!session) return res.status(403).json({ error: "Zabranjen pristup." });
+    const { rows } = await pool.query(
+      "SELECT * FROM audit_log WHERE clientid = $1 ORDER BY createdat DESC LIMIT 200",
+      [session.clientid]
+    );
+    res.json(rows);
+  } catch (err) {
+    logError("AUDIT LOG GET", err);
+    res.status(500).json({ error: "Greška." });
+  }
 });
 
 module.exports = router;

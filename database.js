@@ -106,15 +106,33 @@ async function initDb() {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sessions (
-      token     TEXT        PRIMARY KEY,
+      token      TEXT        PRIMARY KEY,
+      clientid   TEXT        NOT NULL,
+      csrftoken  TEXT        NOT NULL DEFAULT '',
+      createdat  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expiresat  TIMESTAMPTZ NOT NULL
+    )
+  `);
+
+  await pool.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS csrftoken TEXT NOT NULL DEFAULT ''`);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sessions_clientid ON sessions(clientid)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id        SERIAL      PRIMARY KEY,
       clientid  TEXT        NOT NULL,
-      createdat TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      expiresat TIMESTAMPTZ NOT NULL
+      action    TEXT        NOT NULL,
+      requestid BIGINT,
+      detail    TEXT        NOT NULL DEFAULT '',
+      createdat TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
 
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_sessions_clientid ON sessions(clientid)
+    CREATE INDEX IF NOT EXISTS idx_audit_clientid ON audit_log(clientid, createdat DESC)
   `);
 
   console.log("[DB] PostgreSQL tablice inicijalizirane.");
