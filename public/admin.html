@@ -1020,12 +1020,19 @@
     .tel-status.error { color: #dc2626; }
 
     /* ── Tel mini kalendar ── */
+    .tel-kal-wrap { position: relative; }
     .tel-kal {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: 50;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       overflow: hidden;
       background: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
       user-select: none;
+      min-width: 200px;
     }
     .tel-kal-header {
       display: flex;

@@ -878,7 +878,11 @@ function renderTelefonTab() {
             <div>
               <label class="tel-label">Datum</label>
               <input type="hidden" id="tel-datum" value="${danas}">
-              <div class="tel-kal" id="tel-kal"></div>
+              <div class="tel-kal-wrap" id="tel-kal-wrap">
+                <input type="text" class="tel-input" id="tel-datum-display" readonly
+                       style="cursor:pointer" onclick="telKalToggle(event)">
+                <div class="tel-kal" id="tel-kal" style="display:none"></div>
+              </div>
             </div>
             <div>
               <label class="tel-label">Slobodan termin</label>
@@ -918,16 +922,45 @@ let _telKalMonth = null;
 
 const _TEL_MONTHS = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj","Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
 
+function telFormatDatum(val) {
+  if (!val) return "";
+  const [y, m, d] = val.split("-");
+  return `${d}.${m}.${y}.`;
+}
+
 function initTelKal() {
   const now = new Date();
   _telKalYear = now.getFullYear();
   _telKalMonth = now.getMonth();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
+  const val = `${now.getFullYear()}-${mm}-${dd}`;
   const input = document.getElementById("tel-datum");
-  if (input) input.value = `${now.getFullYear()}-${mm}-${dd}`;
-  renderTelKal();
+  if (input) input.value = val;
+  const display = document.getElementById("tel-datum-display");
+  if (display) display.value = telFormatDatum(val);
   ucitajTelefonTermine();
+  document.addEventListener("click", telKalOutsideClick, { once: false });
+}
+
+function telKalToggle(e) {
+  if (e) e.stopPropagation();
+  const kal = document.getElementById("tel-kal");
+  if (!kal) return;
+  if (kal.style.display === "none") {
+    renderTelKal();
+    kal.style.display = "block";
+  } else {
+    kal.style.display = "none";
+  }
+}
+
+function telKalOutsideClick(e) {
+  const wrap = document.getElementById("tel-kal-wrap");
+  if (wrap && !wrap.contains(e.target)) {
+    const kal = document.getElementById("tel-kal");
+    if (kal) kal.style.display = "none";
+  }
 }
 
 function renderTelKal() {
@@ -983,7 +1016,10 @@ function telKalNext() {
 function telKalSelect(val) {
   const input = document.getElementById("tel-datum");
   if (input) input.value = val;
-  renderTelKal();
+  const display = document.getElementById("tel-datum-display");
+  if (display) display.value = telFormatDatum(val);
+  const kal = document.getElementById("tel-kal");
+  if (kal) kal.style.display = "none";
   ucitajTelefonTermine();
 }
 
