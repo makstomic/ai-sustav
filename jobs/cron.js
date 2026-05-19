@@ -2,6 +2,7 @@ const cron = require("node-cron");
 const { pool }            = require("../database");
 const { sendPatientMail } = require("../lib/mail");
 const { loadClient }      = require("../lib/utils");
+const { logError }         = require("../lib/errorLog");
 
 async function getDoctorName(clientId, doctorId) {
   if (!doctorId) return "";
@@ -53,11 +54,11 @@ cron.schedule("0 9 * * *", async () => {
         });
         console.log(`[REMINDER 1d] Poslan → ${t.email}`);
       } catch (err) {
-        console.error(`[REMINDER 1d] Greška za ${t.email}:`, err.message);
+        logError("[REMINDER 1d] Mail greška", err);
       }
     }
   } catch (err) {
-    console.error("[REMINDER 1d] Query greška:", err.message);
+    logError("[REMINDER 1d] Query greška", err);
   }
 }, { timezone: "Europe/Zagreb" });
 
@@ -101,11 +102,11 @@ cron.schedule("0,30 * * * *", async () => {
         });
         console.log(`[REMINDER 2h] Poslan → ${t.email}`);
       } catch (err) {
-        console.error(`[REMINDER 2h] Greška za ${t.email}:`, err.message);
+        logError("[REMINDER 2h] Mail greška", err);
       }
     }
   } catch (err) {
-    console.error("[REMINDER 2h] Query greška:", err.message);
+    logError("[REMINDER 2h] Query greška", err);
   }
 }, { timezone: "Europe/Zagreb" });
 
@@ -122,6 +123,6 @@ cron.schedule("0 3 1 * *", async () => {
     `);
     console.log(`[RETENCIJA] Obrisano ${rowCount} zapisa starijih od 24 mjeseca.`);
   } catch (err) {
-    console.error("[RETENCIJA] Greška:", err.message);
+    logError("[RETENCIJA] Greška", err);
   }
 }, { timezone: "Europe/Zagreb" });

@@ -4,7 +4,8 @@ const path         = require("path");
 const cookieParser = require("cookie-parser");
 const morgan       = require("morgan");
 
-const { initDb } = require("./database");
+const { initDb }   = require("./database");
+const { logError } = require("./lib/errorLog");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -34,6 +35,12 @@ app.use("/", require("./routes/gdpr"));
 
 require("./jobs/cron");
 
+// Global Express error handler — hvata sve neuhvaćene greške iz routeova
+app.use((err, req, res, next) => {
+  logError(`${req.method} ${req.path}`, err);
+  if (!res.headersSent) res.status(500).json({ ok: false, error: "Interna greška servera." });
+});
+
 initDb()
   .then(() => {
     app.listen(PORT, () => {
@@ -41,6 +48,6 @@ initDb()
     });
   })
   .catch(err => {
-    console.error("[DB] Greška pri inicijalizaciji:", err);
+    logError("DB init", err);
     process.exit(1);
   });

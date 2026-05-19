@@ -9,6 +9,7 @@ const { pool }                              = require("../database");
 const { sendMail, sendPatientMail }         = require("../lib/mail");
 const { sanitizeClientId, getSession, loadClient, mapRow } = require("../lib/utils");
 const { adminLimiter, loginLimiter }        = require("../lib/limiters");
+const { logError, getLog }                  = require("../lib/errorLog");
 
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
 const isProduction        = process.env.NODE_ENV === "production";
@@ -101,7 +102,7 @@ router.get("/admin-data/:clientId", adminLimiter, async (req, res) => {
     ]);
     res.json({ brandName: client.brandName, zahtjevi: rows.map(mapRow), doctors });
   } catch (err) {
-    console.error("ADMIN DATA ERROR:", err);
+    logError("ADMIN DATA ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -146,7 +147,7 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
               ? `Molimo vas da odaberete drugi termin putem naše online forme:\n${client.bookingUrl}\n\n`
               : `Molimo vas da nas kontaktirate za novi termin.\n\n`) +
             `Ispričavamo se na neugodnosti.\n${client.brandName}`,
-        }).catch(err => console.error("KONFLIKT MAIL ERROR:", err));
+        }).catch(err => logError("KONFLIKT MAIL ERROR", err));
         return res.status(409).json({ ok: false, error: "Taj termin je već potvrđen drugom pacijentu." });
       }
     }
@@ -167,7 +168,7 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
   } catch (err) {
     if (err.code === "23505")
       return res.status(409).json({ ok: false, error: "Taj termin je upravo zauzet drugim rezervacijom." });
-    console.error("ADMIN ACTION ERROR:", err);
+    logError("ADMIN ACTION ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -210,9 +211,9 @@ router.post("/admin-cancel", adminLimiter, async (req, res) => {
         (doktor ? `Doktor: ${doktor.name}\n` : "") +
         linkBlok +
         `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-    }).catch(err => console.error("CANCEL MAIL ERROR:", err));
+    }).catch(err => logError("CANCEL MAIL ERROR", err));
   } catch (err) {
-    console.error("CANCEL ERROR:", err);
+    logError("CANCEL ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -255,10 +256,10 @@ router.post("/admin-odbij", adminLimiter, async (req, res) => {
           (safeReason ? `Razlog: ${safeReason}\n\n` : "") +
           linkBlok +
           `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-      }).catch(err => console.error("ODBIJ MAIL ERROR:", err));
+      }).catch(err => logError("ODBIJ MAIL ERROR", err));
     }
   } catch (err) {
-    console.error("ODBIJ ERROR:", err);
+    logError("ODBIJ ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -290,7 +291,7 @@ router.get("/admin-kalendar/:clientId", adminLimiter, async (req, res) => {
     }
     res.json(grupirano);
   } catch (err) {
-    console.error("KALENDAR ERROR:", err);
+    logError("KALENDAR ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -318,7 +319,7 @@ router.get("/admin-raspored/:clientId", adminLimiter, async (req, res) => {
     }
     res.json({ schedule, scheduleB });
   } catch (err) {
-    console.error("ADMIN RASPORED GET ERROR:", err);
+    logError("ADMIN RASPORED GET ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -427,10 +428,10 @@ router.post("/admin-raspored", adminLimiter, async (req, res) => {
           (doktor ? `Doktor: ${doktor.name}\n` : "") +
           linkBlok +
           `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-      }).catch(err => console.error(`RASPORED CANCEL MAIL ERROR (${z.email}):`, err));
+      }).catch(err => logError("MAIL ERROR", err));
     }
   } catch (err) {
-    console.error("ADMIN RASPORED POST ERROR:", err);
+    logError("ADMIN RASPORED POST ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -453,7 +454,7 @@ router.get("/admin-iznimke/:clientId", adminLimiter, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("ADMIN IZNIMKE ERROR:", err);
+    logError("ADMIN IZNIMKE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -531,10 +532,10 @@ router.post("/admin-iznimka", adminLimiter, async (req, res) => {
           (doktor ? `Doktor: ${doktor.name}\n` : "") +
           linkBlok +
           `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-      }).catch(err => console.error(`IZNIMKA MAIL ERROR (${z.email}):`, err));
+      }).catch(err => logError("MAIL ERROR", err));
     }
   } catch (err) {
-    console.error("IZNIMKA ERROR:", err);
+    logError("IZNIMKA ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -550,7 +551,7 @@ router.post("/admin-iznimka-delete", adminLimiter, async (req, res) => {
     await pool.query("DELETE FROM schedule_exceptions WHERE id = $1 AND clientid = $2", [id, clientId]);
     res.json({ ok: true });
   } catch (err) {
-    console.error("IZNIMKA DELETE ERROR:", err);
+    logError("IZNIMKA DELETE ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -622,14 +623,14 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
           `Datum:   ${date.trim()}\n` +
           `Usluga:  ${service.trim()}\n\n` +
           `Lijep pozdrav,\n${client.brandName}`,
-      }).catch(err => console.error("PHONE BOOKING MAIL ERROR:", err));
+      }).catch(err => logError("PHONE BOOKING MAIL ERROR", err));
     }
 
     res.json({ ok: true });
   } catch (err) {
     if (err.code === "23505")
       return res.status(409).json({ ok: false, error: "Taj termin je upravo zauzet drugim rezervacijom." });
-    console.error("PHONE BOOKING ERROR:", err);
+    logError("PHONE BOOKING ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri upisu termina." });
   }
 });
@@ -689,7 +690,7 @@ router.get("/admin-postavke/:clientId", adminLimiter, async (req, res) => {
 
     res.json({ doctors, services });
   } catch (err) {
-    console.error("ADMIN POSTAVKE ERROR:", err);
+    logError("ADMIN POSTAVKE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -717,7 +718,7 @@ router.post("/admin-dodaj-doktora", adminLimiter, async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("DODAJ DOKTORA ERROR:", err);
+    logError("DODAJ DOKTORA ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri dodavanju." });
   }
 });
@@ -739,7 +740,7 @@ router.post("/admin-obrisi-doktora", adminLimiter, async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("OBRISI DOKTORA ERROR:", err);
+    logError("OBRISI DOKTORA ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri brisanju." });
   }
 });
@@ -771,7 +772,7 @@ router.post("/admin-dodaj-uslugu", adminLimiter, async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("DODAJ USLUGU ERROR:", err);
+    logError("DODAJ USLUGU ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri dodavanju." });
   }
 });
@@ -793,7 +794,7 @@ router.post("/admin-obrisi-uslugu", adminLimiter, async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("OBRISI USLUGU ERROR:", err);
+    logError("OBRISI USLUGU ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri brisanju." });
   }
 });
@@ -807,9 +808,16 @@ router.get("/test-mail", async (req, res) => {
     await sendMail({ to: process.env.CLINIC_EMAIL, subject: "TEST MAIL", text: "Ako si ovo dobio, Resend radi." });
     res.send("OK — poslan mail");
   } catch (e) {
-    console.error("TEST MAIL ERROR:", e);
+    logError("TEST MAIL ERROR", e);
     res.status(500).send("FAIL — pogledaj terminal");
   }
+});
+
+// ── Error log pregled ──
+router.get("/admin-errors", adminLimiter, async (req, res) => {
+  const session = await getSession(req, pool);
+  if (!session) return res.status(403).json({ error: "Zabranjen pristup." });
+  res.json(getLog());
 });
 
 module.exports = router;

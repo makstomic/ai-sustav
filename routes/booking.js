@@ -10,6 +10,7 @@ const { pool }                                              = require("../databa
 const { sendMail, sendPatientMail }                         = require("../lib/mail");
 const { sanitizeClientId, sanitizeCssValue, sanitizeFontName, loadClient, parseCroatianDate, parsedToTimestamp } = require("../lib/utils");
 const { faqLimiter, bookingLimiter, publicLimiter }         = require("../lib/limiters");
+const { logError }                                          = require("../lib/errorLog");
 
 async function getClinicDoctors(clientId, client) {
   let { rows } = await pool.query(
@@ -203,7 +204,7 @@ router.get("/config/:clientId", publicLimiter, async (req, res) => {
     ]);
     res.json({ ...publicData, doctors, services });
   } catch (err) {
-    console.error("CONFIG ERROR:", err);
+    logError("CONFIG ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -258,7 +259,7 @@ ${servicesText || "- (nije definirano)"}
       return res.status(500).json({ reply: "Chatbot je trenutno nedostupan." });
     res.json({ reply: completion.choices[0].message.content });
   } catch (err) {
-    console.error("FAQ ERROR:", err);
+    logError("FAQ ERROR", err);
     res.status(500).json({ reply: "Došlo je do greške. Pokušajte kasnije." });
   }
 });
@@ -346,7 +347,7 @@ router.post("/booking", bookingLimiter, async (req, res) => {
         `Napomena:   ${safeNote || "—"}\n` +
         `Zaprimljeno: ${primljeno}\n\n` +
         `Termin se ne potvrđuje automatski — potrebna ručna potvrda ordinacije.`,
-    }).catch(err => console.error("BOOKING MAIL ERROR:", err));
+    }).catch(err => logError("BOOKING MAIL ERROR", err));
 
     // Potvrda pacijentu
     sendPatientMail(client, {
@@ -359,9 +360,9 @@ router.post("/booking", bookingLimiter, async (req, res) => {
         `Datum:   ${safeDate}\n` +
         `Usluga:  ${safeService}\n\n` +
         `Lijep pozdrav,\n${client.brandName}`,
-    }).catch(err => console.error("PATIENT CONFIRM MAIL ERROR:", err));
+    }).catch(err => logError("PATIENT CONFIRM MAIL ERROR", err));
   } catch (err) {
-    console.error("BOOKING ERROR:", err);
+    logError("BOOKING ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri slanju zahtjeva." });
   }
 });
@@ -428,7 +429,7 @@ router.get("/termini/:clientId/:datum", publicLimiter, async (req, res) => {
 
     res.json({ zauzeti, blokiranDan, radnoVrijeme });
   } catch (err) {
-    console.error("TERMINI ERROR:", err);
+    logError("TERMINI ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -461,7 +462,7 @@ router.get("/doctor-schedule/:clientId", publicLimiter, async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    console.error("DOCTOR SCHEDULE ERROR:", err);
+    logError("DOCTOR SCHEDULE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });

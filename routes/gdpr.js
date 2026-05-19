@@ -1,3 +1,4 @@
+const { logError } = require("../lib/errorLog");
 const express = require("express");
 
 const router = express.Router();
@@ -31,7 +32,7 @@ router.get("/admin-gdpr-search/:clientId", adminLimiter, async (req, res) => {
     );
     res.json({ email, ukupno: rows.length, zahtjevi: rows.map(mapRow) });
   } catch (err) {
-    console.error("GDPR SEARCH ERROR:", err);
+    logError("GDPR SEARCH ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -72,7 +73,7 @@ router.get("/admin-gdpr-export/:clientId", adminLimiter, async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("GDPR EXPORT ERROR:", err);
+    logError("GDPR EXPORT ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -99,7 +100,7 @@ router.delete("/admin-gdpr-delete/:clientId", adminLimiter, async (req, res) => 
 
     res.json({ ok: true, obrisano: rowCount, timestamp });
   } catch (err) {
-    console.error("GDPR DELETE ERROR:", err);
+    logError("GDPR DELETE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
