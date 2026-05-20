@@ -242,6 +242,8 @@ async function initDb() {
     )
   `);
 
+  await pool.query(`ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS ip TEXT NOT NULL DEFAULT ''`);
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_audit_clientid ON audit_log(clientid, createdat DESC)
   `);

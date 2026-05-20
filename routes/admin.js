@@ -37,10 +37,12 @@ async function csrfCheck(req, res, next) {
 }
 
 // ── Audit log helper ──────────────────────────────────────────────────────────
-async function audit(clientId, action, requestId = null, detail = "") {
+// ip se ne logira u detail nego u zasebni stupac — čistija pretraga bez stringa.
+// Nikad ne logiramo email ni ime pacijenta (osobni podaci).
+async function audit(clientId, action, requestId = null, detail = "", ip = "") {
   await pool.query(
-    "INSERT INTO audit_log (clientid, action, requestid, detail) VALUES ($1, $2, $3, $4)",
-    [clientId, action, requestId, detail]
+    "INSERT INTO audit_log (clientid, action, requestid, detail, ip) VALUES ($1, $2, $3, $4, $5)",
+    [clientId, action, requestId, detail, ip || ""]
   ).catch(err => logError("AUDIT LOG", err));
 }
 
@@ -109,10 +111,7 @@ router.post("/admin-login", loginLimiter, async (req, res) => {
     pool.query("DELETE FROM sessions WHERE expiresat < NOW()"),
   ]);
 
-  await pool.query(
-    "INSERT INTO audit_log (clientid, action, detail) VALUES ($1, 'login', $2)",
-    [safeClientId, `ip:${req.ip}`]
-  );
+  await audit(safeClientId, "login", null, "", req.ip);
 
   setCookieSession(res, token);
   res.json({ ok: true, brandName: client.brandName, doctors: client.doctors || [], csrfToken });
@@ -133,7 +132,7 @@ router.post("/admin-logout-all", adminLimiter, async (req, res) => {
   const session = await getSession(req, pool);
   if (!session) return res.status(403).json({ ok: false });
   await pool.query("DELETE FROM sessions WHERE clientid = $1", [session.clientid]);
-  await audit(session.clientid, "logout_all", null, `ip:${req.ip}`);
+  await audit(session.clientid, "logout_all", null, "", req.ip);
   res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict", path: "/" });
   res.json({ ok: true });
 });
@@ -163,8 +162,10 @@ router.get("/admin-data/:clientId", adminLimiter, async (req, res) => {
 
     await seedClinicData(clientId, client, pool);
 
+    // TODO pagination: za klinike s > 500 zahtjeva uvesti cursor-based pagination
+    // (npr. ?before=<id> + LIMIT). Trenutni limit 500 dovoljan za tipičnu kliniku.
     const [{ rows }, { rows: doctors }] = await Promise.all([
-      pool.query("SELECT * FROM requests WHERE clientid = $1 ORDER BY id DESC", [clientId]),
+      pool.query("SELECT * FROM requests WHERE clientid = $1 ORDER BY id DESC LIMIT 500", [clientId]),
       pool.query("SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1 ORDER BY displayorder, id", [clientId]),
     ]);
     res.json({ brandName: client.brandName, zahtjevi: rows.map(mapRow), doctors });
@@ -221,7 +222,7 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
 
     const noviStatus = akcija === "potvrdi" ? "potvrdjeno" : "predlozeno";
     await pool.query("UPDATE requests SET status = $1 WHERE id = $2", [noviStatus, id]);
-    await audit(clientId, akcija === "potvrdi" ? "confirm" : "propose", id, termin.trim());
+    await audit(clientId, akcija === "potvrdi" ? "confirm" : "propose", id, termin.trim(), req.ip);
 
     const subject = akcija === "potvrdi"
       ? `Potvrda termina — ${client.brandName}`
@@ -261,7 +262,7 @@ router.post("/admin-cancel", adminLimiter, async (req, res) => {
     if (!zahtjev) return res.status(404).json({ ok: false });
 
     await pool.query("UPDATE requests SET status = 'otkazano' WHERE id = $1", [id]);
-    await audit(clientId, "cancel", id);
+    await audit(clientId, "cancel", id, "", req.ip);
     res.json({ ok: true });
 
     const doktor   = (client.doctors || []).find(d => d.id === zahtjev.doctorid);
@@ -309,7 +310,7 @@ router.post("/admin-odbij", adminLimiter, async (req, res) => {
 
     const safeReason = typeof reason === "string" ? reason.trim().slice(0, 500) : "";
     await pool.query("UPDATE requests SET status = 'odbijeno' WHERE id = $1", [id]);
-    await audit(clientId, "reject", id, safeReason);
+    await audit(clientId, "reject", id, safeReason, req.ip);
     res.json({ ok: true });
 
     if (zahtjev.email && zahtjev.email !== "—") {
@@ -478,6 +479,7 @@ router.post("/admin-raspored", adminLimiter, async (req, res) => {
       return terminMin < startH * 60 + startM || terminMin >= endH * 60 + endM;
     });
 
+    await audit(clientId, "save_schedule", null, doctorId, req.ip);
     res.json({ ok: true, otkazano: konflikti.length });
 
     const doktor   = doctors.find(d => d.id === doctorId);
@@ -587,6 +589,7 @@ router.post("/admin-iznimka", adminLimiter, async (req, res) => {
       zahvaceni = q.rows;
     }
 
+    await audit(clientId, "add_exception", null, `${date} ${type}${time ? " " + time : ""}`, req.ip);
     res.json({ ok: true, id: inserted[0].id, otkazano: zahvaceni.length });
 
     for (const z of zahvaceni) {
@@ -619,6 +622,7 @@ router.post("/admin-iznimka-delete", adminLimiter, async (req, res) => {
     const { id } = req.body;
 
     await pool.query("DELETE FROM schedule_exceptions WHERE id = $1 AND clientid = $2", [id, clientId]);
+    await audit(clientId, "delete_exception", null, String(id), req.ip);
     res.json({ ok: true });
   } catch (err) {
     logError("IZNIMKA DELETE ERROR", err);
@@ -699,7 +703,7 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
       }).catch(err => logError("PHONE BOOKING MAIL ERROR", err));
     }
 
-    await audit(clientId, "phone_booking", bookingId, `${date.trim()} | ${service.trim()}`);
+    await audit(clientId, "phone_booking", bookingId, `${date.trim()} | ${service.trim()}`, req.ip);
     res.json({ ok: true });
   } catch (err) {
     if (err.code === "23505")
@@ -790,6 +794,7 @@ router.post("/admin-dodaj-doktora", adminLimiter, async (req, res) => {
       "INSERT INTO clinic_doctors (clientid, doctorid, name, displayorder) VALUES ($1, $2, $3, $4)",
       [clientId, doctorId, name.trim(), displayOrder]
     );
+    await audit(clientId, "add_doctor", null, name.trim(), req.ip);
     res.json({ ok: true });
   } catch (err) {
     logError("DODAJ DOKTORA ERROR", err);
@@ -812,6 +817,7 @@ router.post("/admin-obrisi-doktora", adminLimiter, async (req, res) => {
       "DELETE FROM clinic_doctors WHERE clientid = $1 AND doctorid = $2",
       [clientId, doctorId.trim()]
     );
+    await audit(clientId, "delete_doctor", null, doctorId.trim(), req.ip);
     res.json({ ok: true });
   } catch (err) {
     logError("OBRISI DOKTORA ERROR", err);
@@ -844,6 +850,7 @@ router.post("/admin-dodaj-uslugu", adminLimiter, async (req, res) => {
        VALUES ($1, $2, $3, $4) ON CONFLICT (clientid, name) DO NOTHING`,
       [clientId, name.trim(), dur, displayOrder]
     );
+    await audit(clientId, "add_service", null, `${name.trim()} ${dur}min`, req.ip);
     res.json({ ok: true });
   } catch (err) {
     logError("DODAJ USLUGU ERROR", err);
@@ -866,6 +873,7 @@ router.post("/admin-obrisi-uslugu", adminLimiter, async (req, res) => {
       "DELETE FROM clinic_services WHERE clientid = $1 AND name = $2",
       [clientId, name.trim()]
     );
+    await audit(clientId, "delete_service", null, name.trim(), req.ip);
     res.json({ ok: true });
   } catch (err) {
     logError("OBRISI USLUGU ERROR", err);
