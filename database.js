@@ -97,11 +97,122 @@ async function initDb() {
     )
   `);
 
-  // Sprječava dva potvrđena termina za isti slot
+  // ── CHECK constraints (idempotentno: duplicate_object → NULL) ────────────────
+
+  // requests.status — jedine dopuštene vrijednosti
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE requests ADD CONSTRAINT chk_requests_status
+        CHECK (status IN ('na_cekanju','potvrdjeno','predlozeno','odbijeno','otkazano'))
+        NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+
+  // requests — length limiti usklađeni s app-level validacijom
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE requests ADD CONSTRAINT chk_requests_name_len
+        CHECK (char_length(name) <= 100) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE requests ADD CONSTRAINT chk_requests_email_len
+        CHECK (char_length(email) <= 254) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE requests ADD CONSTRAINT chk_requests_date_len
+        CHECK (char_length(date) <= 50) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE requests ADD CONSTRAINT chk_requests_service_len
+        CHECK (char_length(service) <= 100) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE requests ADD CONSTRAINT chk_requests_note_len
+        CHECK (char_length(note) <= 500) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+
+  // clinic_services.duration — pozitivan i razuman maksimum
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE clinic_services ADD CONSTRAINT chk_services_duration
+        CHECK (duration > 0 AND duration <= 240) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE clinic_services ADD CONSTRAINT chk_services_name_len
+        CHECK (char_length(name) <= 200) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+
+  // doctor_schedules.dayofweek — samo 0–6
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE doctor_schedules ADD CONSTRAINT chk_schedules_dayofweek
+        CHECK (dayofweek >= 0 AND dayofweek <= 6) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+
+  // schedule_exceptions.type — samo poznate vrijednosti
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE schedule_exceptions ADD CONSTRAINT chk_exceptions_type
+        CHECK (type IN ('block_day','block_slot')) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE schedule_exceptions ADD CONSTRAINT chk_exceptions_note_len
+        CHECK (char_length(note) <= 200) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+
+  // clinic_doctors.name
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE clinic_doctors ADD CONSTRAINT chk_doctors_name_len
+        CHECK (char_length(name) <= 200) NOT VALID;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+
+  // ── Dodatni indeks: (clientid, status) za česte admin queryje ─────────────
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_requests_clientid_status
+    ON requests(clientid, status)
+  `);
+
+  // ── Unique confirmed slot: s date teksta na appointmentat TIMESTAMPTZ ────────
+  //
+  // Stari indeks bio je na (clientid, doctorid, date TEXT) — nije mogao koristiti
+  // TIMESTAMPTZ za točnu usporedbu i nije pokrivao phone_booking bez appointmentat.
+  // Novi indeks koristi appointmentat s WHERE IS NOT NULL da ne blokira legacyne
+  // NULL retke. Phone_booking sada mora postavljati appointmentat (vidi admin.js).
+  await pool.query(`DROP INDEX IF EXISTS idx_unique_confirmed_slot`);
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_confirmed_slot
-    ON requests(clientid, doctorid, date)
-    WHERE status = 'potvrdjeno'
+    ON requests(clientid, doctorid, appointmentat)
+    WHERE status = 'potvrdjeno' AND appointmentat IS NOT NULL
   `);
 
   await pool.query(`

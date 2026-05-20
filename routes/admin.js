@@ -7,7 +7,8 @@ const router = express.Router();
 
 const { pool }                              = require("../database");
 const { sendMail, sendPatientMail }         = require("../lib/mail");
-const { sanitizeClientId, getSession, loadClient, mapRow } = require("../lib/utils");
+const { sanitizeClientId, getSession, loadClient, mapRow,
+        parseCroatianDate, parsedToTimestamp }              = require("../lib/utils");
 const { adminLimiter, loginLimiter }        = require("../lib/limiters");
 const { logError, getLog }                  = require("../lib/errorLog");
 
@@ -663,15 +664,17 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
     if (konflikt.length > 0)
       return res.status(409).json({ ok: false, error: "Taj termin je već zauzet." });
 
-    const primljeno  = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
-    const safeEmail  = typeof email === "string" && email.trim().length > 0 ? email.trim().slice(0, 200) : "—";
-    const bookingId  = Date.now();
+    const primljeno    = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
+    const safeEmail    = typeof email === "string" && email.trim().length > 0 ? email.trim().slice(0, 200) : "—";
+    const bookingId    = Date.now();
+    const parsedDate   = parseCroatianDate(date.trim());
+    const appointmentat = parsedDate ? parsedToTimestamp(parsedDate) : null;
 
     await pool.query(
-      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'potvrdjeno', $8, $9)`,
+      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId, appointmentAt)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'potvrdjeno', $8, $9, $10)`,
       [bookingId, clientId, name.trim(), safeEmail, date.trim(), service.trim(),
-       typeof note === "string" ? note.trim().slice(0, 500) : "—", primljeno, doctorId]
+       typeof note === "string" ? note.trim().slice(0, 500) : "—", primljeno, doctorId, appointmentat]
     );
 
     if (safeEmail !== "—") {
