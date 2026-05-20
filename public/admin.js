@@ -42,6 +42,14 @@ const MJES_NAZIVI = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipan
                      "Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+//
+// XSS napomena: sve renderXXX funkcije koje koriste innerHTML escaju user-controlled
+// podatke kroz esc(). Inline onclick atributi u generiranom HTML-u (npr. onclick="potvrdi(123)")
+// koriste samo hardkodirane nazive funkcija i numeričke ID-eve iz baze — bez user stringa.
+//
+// TODO (CSP): za maknuti 'unsafe-inline' iz CSP trebat će migrirati inline onclicke u
+// addEventListener. Mjesta s inline onclick: doktorSwitcherHTML, prikaziKalendar,
+// napraviTermine, renderRasporedView, renderRequestRow, renderTelefonTab, renderPostavkeView.
 
 function esc(str) {
   return String(str ?? "")

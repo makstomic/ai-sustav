@@ -47,7 +47,16 @@ function initDoctorSwitcher(doctors) {
   function setConfirmed(confirmed) {
     if (confirmed) {
       const name = sviDoktori[aktivniDrIdx]?.name || "Doktor";
-      confirmBtn.innerHTML = `<span>✓ ${name}</span><span class="dr-reset-x" id="drResetX">✕</span>`;
+      // DOM API umjesto innerHTML — ime doktora je admin-controlled string, može sadržavati <> znakove
+      confirmBtn.textContent = "";
+      const tickSpan = document.createElement("span");
+      tickSpan.textContent = `✓ ${name}`;
+      const resetSpan = document.createElement("span");
+      resetSpan.className = "dr-reset-x";
+      resetSpan.id = "drResetX";
+      resetSpan.textContent = "✕";
+      confirmBtn.appendChild(tickSpan);
+      confirmBtn.appendChild(resetSpan);
       confirmBtn.classList.add("potvrden");
       document.getElementById("drResetX").addEventListener("click", (e) => {
         e.stopPropagation();
