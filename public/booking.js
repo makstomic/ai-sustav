@@ -178,6 +178,9 @@ form.addEventListener("submit", async (e) => {
 
   bookingStatus.textContent = "Šaljem...";
 
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+
   const phoneVal = document.getElementById("phone")?.value.trim() || "";
   const noteVal  = document.getElementById("note").value.trim();
   const payload = {
@@ -188,6 +191,8 @@ form.addEventListener("submit", async (e) => {
     date:    document.getElementById("date").value.trim(),
     service: document.getElementById("service").value.trim(),
     note:    [phoneVal ? `Tel: ${phoneVal}` : "", noteVal].filter(Boolean).join(" | "),
+    _hp:     document.getElementById("_hp")?.value || "",
+    // TODO Cloudflare Turnstile: ovdje dodati cfTurnstileToken iz widgeta
   };
 
   try {
@@ -203,10 +208,12 @@ form.addEventListener("submit", async (e) => {
         "Zaprimili smo zahtjev. Ordinacija će se javiti mailom s potvrdom ili alternativom. Vaši podaci obrađuju se sukladno Privacy Policy.";
       form.reset();
     } else {
-      bookingStatus.textContent = "Greška pri slanju. Pokušaj opet.";
+      bookingStatus.textContent = data.error || "Greška pri slanju. Pokušaj opet.";
     }
   } catch {
     bookingStatus.textContent = "Greška pri slanju. Pokušaj opet.";
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
   }
 });
 

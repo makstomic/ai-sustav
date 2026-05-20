@@ -86,6 +86,11 @@
         <input type="tel" id="phone" name="phone" placeholder="Broj mobitela (opcionalno)" />
         <input type="hidden" id="service" name="service">
         <textarea id="note" name="note" placeholder="Napomena (opcionalno)" rows="2" style="resize:vertical;"></textarea>
+        <!-- Honeypot — off-screen, nevidljivo korisnicima; bots ga popunjavaju -->
+        <!-- TODO Cloudflare Turnstile: ovdje dodati <div class="cf-turnstile" data-sitekey="..."> kad zatreba -->
+        <div aria-hidden="true" style="position:absolute;left:-9999px;width:0;height:0;overflow:hidden;">
+          <input type="text" id="_hp" name="_hp" tabindex="-1" autocomplete="off">
+        </div>
         <button type="submit" class="submit-btn">Po&#353;alji zahtjev</button>
       </form>
       <p class="status" id="bookingStatus"></p>

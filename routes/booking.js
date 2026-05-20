@@ -196,13 +196,30 @@ router.get("/config/:clientId", publicLimiter, async (req, res) => {
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
 
-    const { adminToken: _omit, adminPasswordHash: _omit2, clinicEmail: _omit3, ...publicData } = client;
-
+    const t = client.theme || {};
     const [doctors, services] = await Promise.all([
       getClinicDoctors(clientId, client),
       getClinicServices(clientId, client),
     ]);
-    res.json({ ...publicData, doctors, services });
+
+    res.json({
+      brandName:    typeof client.brandName    === "string" ? client.brandName    : "",
+      pageTitle:    typeof client.pageTitle    === "string" ? client.pageTitle    : "",
+      bookingUrl:   typeof client.bookingUrl   === "string" ? client.bookingUrl   : "",
+      font:         sanitizeFontName(client.font),
+      location:     typeof client.location     === "string" ? client.location     : "",
+      phone:        typeof client.phone        === "string" ? client.phone        : "",
+      workingHours: typeof client.workingHours === "string" ? client.workingHours : "",
+      theme: {
+        accent:      sanitizeCssValue(t.accent),
+        accent2:     sanitizeCssValue(t.accent2),
+        accentSoft:  sanitizeCssValue(t.accentSoft),
+        bgColor:     sanitizeCssValue(t.bgColor),
+        bgSoft:      sanitizeCssValue(t.bgSoft),
+      },
+      doctors:  doctors.map(d  => ({ id: d.id,   name: d.name })),
+      services: services.map(s => ({ name: s.name, duration: s.duration })),
+    });
   } catch (err) {
     logError("CONFIG ERROR", err);
     res.status(500).json({ error: "Greška." });
@@ -267,7 +284,11 @@ ${servicesText || "- (nije definirano)"}
 // ── Booking forma ──
 router.post("/booking", bookingLimiter, async (req, res) => {
   try {
-    const { clientId, name, email, date, service, note, doctorId } = req.body;
+    const { clientId, name, email, date, service, note, doctorId, _hp } = req.body;
+
+    // ── Honeypot — pravi korisnici ne vide ovo polje; bots ga popunjavaju ──────
+    // Vraćamo lažni ok:true da bot misli da je uspio (ne otkrivamo zaštitu).
+    if (typeof _hp === "string" && _hp.length > 0) return res.json({ ok: true });
 
     const safeClientId = sanitizeClientId(clientId);
     if (!safeClientId) return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
@@ -287,6 +308,32 @@ router.post("/booking", bookingLimiter, async (req, res) => {
     const safeService  = service.trim();
     const safeNote     = typeof note === "string" ? note.trim().slice(0, 500) : "—";
     const safeDoctorId = typeof doctorId === "string" ? doctorId.trim().slice(0, 50) : "";
+
+    // ── Limit otvorenih zahtjeva po emailu — max 3 na_cekanju u 24h ─────────
+    const { rows: emailRows } = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM requests
+       WHERE clientid = $1 AND email = $2 AND status = 'na_cekanju'
+       AND createdat > NOW() - INTERVAL '24 hours'`,
+      [safeClientId, safeEmail]
+    );
+    if (parseInt(emailRows[0].cnt) >= 3)
+      return res.status(429).json({ ok: false, error: "Dostigli ste limit zahtjeva. Pričekajte 24 sata ili kontaktirajte ordinaciju." });
+
+    // ── Limit po telefonu — max 3 na_cekanju u 24h ako je telefon unesen ────
+    // Telefon je pohranjen u note kao "Tel: <broj> | …"; provjeravamo prefiks.
+    // Preskačemo ako telefon sadrži LIKE-special znakove (%, _) — nije validan broj.
+    const phoneNoteMatch = safeNote.match(/^Tel:\s*([^|]+)/);
+    const notePhone      = phoneNoteMatch ? phoneNoteMatch[1].trim() : null;
+    if (notePhone && notePhone.length >= 6 && /^[\d\s+\-(). ]{1,25}$/.test(notePhone)) {
+      const { rows: phoneRows } = await pool.query(
+        `SELECT COUNT(*) AS cnt FROM requests
+         WHERE clientid = $1 AND note LIKE $2 AND status = 'na_cekanju'
+         AND createdat > NOW() - INTERVAL '24 hours'`,
+        [safeClientId, `Tel: ${notePhone}%`]
+      );
+      if (parseInt(phoneRows[0].cnt) >= 3)
+        return res.status(429).json({ ok: false, error: "Dostigli ste limit zahtjeva. Pričekajte 24 sata ili kontaktirajte ordinaciju." });
+    }
 
     const client = loadClient(safeClientId);
     if (!client) return res.status(404).json({ ok: false, error: "Client not found" });
@@ -318,6 +365,17 @@ router.post("/booking", bookingLimiter, async (req, res) => {
       return res.status(400).json({ ok: false, error: slotError });
 
     const appointmentAt = parsedToTimestamp(parsed);
+
+    // ── Deduplikacija: isti email + isti termin već postoji (nije odbijen/otkazan) ──
+    const { rows: dedup } = await pool.query(
+      `SELECT id FROM requests
+       WHERE clientid = $1 AND email = $2 AND appointmentat = $3
+       AND status NOT IN ('odbijeno', 'otkazano')
+       LIMIT 1`,
+      [safeClientId, safeEmail, appointmentAt]
+    );
+    if (dedup.length > 0)
+      return res.status(409).json({ ok: false, error: "Već imate aktivan zahtjev za ovaj termin." });
 
     const doktor      = dbDoctors.find(d => d.id === safeDoctorId);
     const doktorNaziv = doktor ? doktor.name : null;
