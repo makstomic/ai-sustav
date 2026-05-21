@@ -3,26 +3,67 @@ const express      = require("express");
 const path         = require("path");
 const cookieParser = require("cookie-parser");
 const morgan       = require("morgan");
+const helmet       = require("helmet");
 
-const { initDb } = require("./database");
+const { initDb }   = require("./database");
+const { logError } = require("./lib/errorLog");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
 app.set("trust proxy", 1);
 app.use(morgan("dev"));
-app.use(express.json({ limit: "20kb" }));
-app.use(cookieParser());
-app.use(express.static("public"));
+
+// ── Security headers ─────────────────────────────────────────────────────────
+//
+// Helmet mora ići PRIJE express.static da headeri stignu i na statičke fajlove.
+//
+// CSP: unsafe-inline je PRIVREMENO — admin.html, booking.html i login.html
+// koriste inline onclick atribute i <script> tagove direktno u HTML-u.
+// Kad se to refaktorira u vanjske .js fajlove, unsafe-inline se može maknuti
+// i zamijeniti s nonce-based CSP za puno bolju zaštitu.
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      // PRIVREMENO unsafe-inline: inline onclick/onchange/script tagovi u HTML-u
+      scriptSrc:      ["'self'", "'unsafe-inline'"],
+      styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:        ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:         ["'self'", "data:"],
+      connectSrc:     ["'self'"],
+      frameAncestors: ["'none'"],
+      baseUri:        ["'self'"],
+      formAction:     ["'self'"],
+    },
+  },
+  referrerPolicy:            { policy: "strict-origin-when-cross-origin" },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Permissions-Policy — helmet ne postavlja ovo automatski
 app.use((req, res, next) => {
-  res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   next();
 });
+
+// Cache-Control: no-store za admin stranice i API — browser ne smije cachirati
+// admin HTML ni API odgovore koji sadrže podatke klinika
+app.use((req, res, next) => {
+  const p = req.path;
+  if (p.startsWith("/admin") || p === "/login" || p.startsWith("/admin-")) {
+    res.setHeader("Cache-Control", "no-store");
+  }
+  next();
+});
+
+// ── Ostali middleware ────────────────────────────────────────────────────────
+app.use(express.json({ limit: "20kb" }));
+app.use(cookieParser());
+app.use(express.static("public"));
+
+app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "booking.html"));
@@ -34,6 +75,12 @@ app.use("/", require("./routes/gdpr"));
 
 require("./jobs/cron");
 
+// Global Express error handler — hvata sve neuhvaćene greške iz routeova
+app.use((err, req, res, next) => {
+  logError(`${req.method} ${req.path}`, err);
+  if (!res.headersSent) res.status(500).json({ ok: false, error: "Interna greška servera." });
+});
+
 initDb()
   .then(() => {
     app.listen(PORT, () => {
@@ -41,6 +88,6 @@ initDb()
     });
   })
   .catch(err => {
-    console.error("[DB] Greška pri inicijalizaciji:", err);
+    logError("DB init", err);
     process.exit(1);
   });

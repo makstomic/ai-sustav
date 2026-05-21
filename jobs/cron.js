@@ -1,100 +1,128 @@
 const cron = require("node-cron");
-const { pool }              = require("../database");
-const { sendPatientMail }   = require("../lib/mail");
-const { loadClient }        = require("../lib/utils");
+const { pool }            = require("../database");
+const { sendPatientMail, logEmail } = require("../lib/mail");
+const { loadClient }      = require("../lib/utils");
+const { logError }         = require("../lib/errorLog");
 
-// ── Podsjetnik dan prije u 09:00 Zagreb ──
-cron.schedule("0 7 * * *", async () => {
-  const sutra = new Date();
-  sutra.setDate(sutra.getDate() + 1);
-  const dan  = String(sutra.getDate()).padStart(2, "0");
-  const mjes = String(sutra.getMonth() + 1).padStart(2, "0");
-  const god  = sutra.getFullYear();
-
+async function getDoctorName(clientId, doctorId) {
+  if (!doctorId) return "";
   const { rows } = await pool.query(
-    "SELECT * FROM requests WHERE status = 'potvrdjeno' AND date LIKE $1",
-    [`${dan}.${mjes}.${god}.%`]
+    "SELECT name FROM clinic_doctors WHERE clientid = $1 AND doctorid = $2",
+    [clientId, doctorId]
   );
+  return rows[0]?.name || "";
+}
 
-  console.log(`[REMINDER 1d] ${dan}.${mjes}.${god}. — ${rows.length} termina`);
+// ── Podsjetnik dan prije u 09:00 Zagreb ──────────────────────────────────────
+//
+// Query koristi appointmentat TIMESTAMPTZ umjesto date stringa.
+// UPDATE ... WHERE reminder1dsentat IS NULL RETURNING * je atomska operacija:
+// ako dvije instance servera rade istovremeno, samo ona koja prva izvrši UPDATE
+// dobiva redove — druga nađe reminder1dsentat IS NOT NULL i preskače.
+// Termin je "sutra" ako je Zagreb-lokalni datum appointmentAt = današnji datum + 1.
 
-  for (const t of rows) {
-    const client = loadClient(t.clientid);
-    if (!client) continue;
-    try {
-      await sendPatientMail(client, {
-        to:      t.email,
-        subject: `Podsjetnik za termin — ${client.brandName}`,
-        text:
-          `Poštovani ${t.name},\n\n` +
-          `Podsjećamo vas da imate termin sutra.\n\n` +
-          `Datum i vrijeme: ${t.date}\n` +
-          `Usluga: ${t.service}\n\n` +
-          (t.doctorid && client.doctors?.find(d => d.id === t.doctorid)
-            ? `Doktor: ${client.doctors.find(d => d.id === t.doctorid).name}\n\n`
-            : "") +
-          `Do viđenja,\n${client.brandName}`,
-      });
-      console.log(`[REMINDER 1d] Poslan → ${t.email}`);
-    } catch (err) {
-      console.error(`[REMINDER 1d] Greška za ${t.email}:`, err.message);
-    }
-  }
-});
-
-// ── Podsjetnik 2 sata prije (svaki sat u :00 i :30) ──
-cron.schedule("0,30 * * * *", async () => {
-  const target = new Date(Date.now() + 2 * 60 * 60 * 1000);
-  const targetTime = `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}`;
-  const dan  = String(target.getDate()).padStart(2, "0");
-  const mjes = String(target.getMonth() + 1).padStart(2, "0");
-  const god  = target.getFullYear();
-
-  const exactPat = `${dan}.${mjes}.${god}. u ${targetTime}`;
-
-  const { rows } = await pool.query(
-    "SELECT * FROM requests WHERE status = 'potvrdjeno' AND date = $1",
-    [exactPat]
-  );
-
-  if (rows.length === 0) return;
-  console.log(`[REMINDER 2h] ${exactPat} — ${rows.length} termina`);
-
-  for (const t of rows) {
-    const client = loadClient(t.clientid);
-    if (!client) continue;
-    try {
-      await sendPatientMail(client, {
-        to:      t.email,
-        subject: `Podsjetnik — termin za 2 sata — ${client.brandName}`,
-        text:
-          `Poštovani ${t.name},\n\n` +
-          `Podsjećamo vas da imate termin za 2 sata.\n\n` +
-          `Datum i vrijeme: ${t.date}\n` +
-          `Usluga: ${t.service}\n\n` +
-          (t.doctorid && client.doctors?.find(d => d.id === t.doctorid)
-            ? `Doktor: ${client.doctors.find(d => d.id === t.doctorid).name}\n\n`
-            : "") +
-          `Do viđenja,\n${client.brandName}`,
-      });
-      console.log(`[REMINDER 2h] Poslan → ${t.email}`);
-    } catch (err) {
-      console.error(`[REMINDER 2h] Greška za ${t.email}:`, err.message);
-    }
-  }
-});
-
-// ── Mjesečno brisanje starih zapisa (GDPR retencija — 24 mjeseca) ──
-cron.schedule("0 3 1 * *", async () => {
-  const granica = new Date();
-  granica.setMonth(granica.getMonth() - 24);
+cron.schedule("0 9 * * *", async () => {
   try {
-    const { rowCount } = await pool.query(
-      "DELETE FROM requests WHERE id < $1",
-      [granica.getTime()]
-    );
+    const { rows } = await pool.query(`
+      UPDATE requests
+      SET reminder1dsentat = NOW()
+      WHERE status = 'potvrdjeno'
+        AND reminder1dsentat IS NULL
+        AND email != '—'
+        AND (appointmentat AT TIME ZONE 'Europe/Zagreb')::date
+            = (NOW() AT TIME ZONE 'Europe/Zagreb')::date + 1
+      RETURNING *
+    `);
+
+    console.log(`[REMINDER 1d] ${rows.length} termina za sutra`);
+
+    for (const t of rows) {
+      const client = loadClient(t.clientid);
+      if (!client) continue;
+      try {
+        const doctorName = await getDoctorName(t.clientid, t.doctorid);
+        await sendPatientMail(client, {
+          to:      t.email,
+          subject: `Podsjetnik za termin — ${client.brandName}`,
+          text:
+            `Poštovani ${t.name},\n\n` +
+            `Podsjećamo vas da imate termin sutra.\n\n` +
+            `Datum i vrijeme: ${t.date}\n` +
+            `Usluga: ${t.service}\n\n` +
+            (doctorName ? `Doktor: ${doctorName}\n\n` : "") +
+            `Do viđenja,\n${client.brandName}`,
+        });
+        console.log(`[REMINDER 1d] Poslan → ${logEmail(t.email)}`);
+      } catch (err) {
+        logError("[REMINDER 1d] Mail greška", err);
+      }
+    }
+  } catch (err) {
+    logError("[REMINDER 1d] Query greška", err);
+  }
+}, { timezone: "Europe/Zagreb" });
+
+// ── Podsjetnik 2 sata prije (svakih 30 min) ──────────────────────────────────
+//
+// Prozor ±15 min oko +2h pokriva točno jedno okidanje (30-min interval).
+// appointmentat je u UTC-u, uspoređujemo direktno s NOW().
+// Isti atomski UPDATE pattern kao gore.
+
+cron.schedule("0,30 * * * *", async () => {
+  try {
+    const { rows } = await pool.query(`
+      UPDATE requests
+      SET reminder2hsentat = NOW()
+      WHERE status = 'potvrdjeno'
+        AND reminder2hsentat IS NULL
+        AND email != '—'
+        AND appointmentat >= NOW() + INTERVAL '105 minutes'
+        AND appointmentat <= NOW() + INTERVAL '135 minutes'
+      RETURNING *
+    `);
+
+    if (rows.length === 0) return;
+    console.log(`[REMINDER 2h] ${rows.length} termina`);
+
+    for (const t of rows) {
+      const client = loadClient(t.clientid);
+      if (!client) continue;
+      try {
+        const doctorName = await getDoctorName(t.clientid, t.doctorid);
+        await sendPatientMail(client, {
+          to:      t.email,
+          subject: `Podsjetnik — termin za 2 sata — ${client.brandName}`,
+          text:
+            `Poštovani ${t.name},\n\n` +
+            `Podsjećamo vas da imate termin za 2 sata.\n\n` +
+            `Datum i vrijeme: ${t.date}\n` +
+            `Usluga: ${t.service}\n\n` +
+            (doctorName ? `Doktor: ${doctorName}\n\n` : "") +
+            `Do viđenja,\n${client.brandName}`,
+        });
+        console.log(`[REMINDER 2h] Poslan → ${logEmail(t.email)}`);
+      } catch (err) {
+        logError("[REMINDER 2h] Mail greška", err);
+      }
+    }
+  } catch (err) {
+    logError("[REMINDER 2h] Query greška", err);
+  }
+}, { timezone: "Europe/Zagreb" });
+
+// ── Mjesečno brisanje starih zapisa (GDPR retencija — 24 mjeseca) ────────────
+//
+// Briše po createdAt (pouzdan TIMESTAMPTZ), ne po id (bio je Snowflake timestamp
+// koji se ne može sigurno koristiti za retenciju).
+
+cron.schedule("0 3 1 * *", async () => {
+  try {
+    const { rowCount } = await pool.query(`
+      DELETE FROM requests
+      WHERE createdat < NOW() - INTERVAL '24 months'
+    `);
     console.log(`[RETENCIJA] Obrisano ${rowCount} zapisa starijih od 24 mjeseca.`);
   } catch (err) {
-    console.error("[RETENCIJA] Greška:", err.message);
+    logError("[RETENCIJA] Greška", err);
   }
-});
+}, { timezone: "Europe/Zagreb" });

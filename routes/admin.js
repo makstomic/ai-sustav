@@ -7,20 +7,61 @@ const router = express.Router();
 
 const { pool }                              = require("../database");
 const { sendMail, sendPatientMail }         = require("../lib/mail");
-const { sanitizeClientId, getSession, loadClient, mapRow } = require("../lib/utils");
+const { sanitizeClientId, getSession, loadClient, mapRow,
+        parseCroatianDate, parsedToTimestamp }              = require("../lib/utils");
 const { adminLimiter, loginLimiter }        = require("../lib/limiters");
+const { logError, getLog }                  = require("../lib/errorLog");
 
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
 const isProduction        = process.env.NODE_ENV === "production";
+
+// ── CSRF validacija ───────────────────────────────────────────────────────────
+// Svaki admin POST mora imati X-CSRF-Token header koji se podudara s tokenom
+// u bazi za tu sesiju. GET zahtjevi su izuzeti (samo čitaju podatke).
+async function csrfCheck(req, res, next) {
+  if (req.method === "GET") return next();
+  const session = await getSession(req, pool);
+  if (!session) return res.status(403).json({ ok: false, error: "Zabranjen pristup." });
+  const headerToken = req.headers["x-csrf-token"];
+  if (!headerToken || !/^[a-f0-9]{64}$/i.test(headerToken)) {
+    return res.status(403).json({ ok: false, error: "Neispravan CSRF token." });
+  }
+  const { rows } = await pool.query(
+    "SELECT csrftoken FROM sessions WHERE token = $1 AND expiresat > NOW()",
+    [req.cookies?.session]
+  );
+  if (!rows[0] || rows[0].csrftoken !== headerToken) {
+    return res.status(403).json({ ok: false, error: "Neispravan CSRF token." });
+  }
+  next();
+}
+
+// ── Audit log helper ──────────────────────────────────────────────────────────
+// ip se ne logira u detail nego u zasebni stupac — čistija pretraga bez stringa.
+// Nikad ne logiramo email ni ime pacijenta (osobni podaci).
+async function audit(clientId, action, requestId = null, detail = "", ip = "") {
+  await pool.query(
+    "INSERT INTO audit_log (clientid, action, requestid, detail, ip) VALUES ($1, $2, $3, $4, $5)",
+    [clientId, action, requestId, detail, ip || ""]
+  ).catch(err => logError("AUDIT LOG", err));
+}
 
 function setCookieSession(res, token) {
   res.cookie("session", token, {
     httpOnly: true,
     secure:   isProduction,
     sameSite: "strict",
+    path:     "/",
     maxAge:   SESSION_DURATION_MS,
   });
 }
+
+// ── CSRF router middleware — sve POST rute osim login/logout ─────────────────
+router.use((req, res, next) => {
+  if (req.method !== "POST") return next();
+  if (req.path === "/admin-login" || req.path === "/admin-logout") return next();
+  return csrfCheck(req, res, next);
+});
 
 // ── Statičke stranice ──
 router.get("/admin", (req, res) => {
@@ -50,36 +91,62 @@ router.post("/admin-login", loginLimiter, async (req, res) => {
   const client = loadClient(safeClientId);
   if (!client) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
-  let ok = false;
-  if (client.adminPasswordHash) {
-    ok = await bcrypt.compare(password, client.adminPasswordHash);
-  } else {
-    ok = password === client.adminToken;
-    if (ok) console.warn(`[SECURITY] ${safeClientId}: lozinka nije hashirana — pokreni hash-passwords.js`);
+  if (!client.adminPasswordHash) {
+    logError("LOGIN SECURITY", new Error(`${safeClientId}: nema adminPasswordHash — pokreni hash-passwords.js`));
+    return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
   }
 
+  const ok = await bcrypt.compare(password, client.adminPasswordHash);
   if (!ok) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
   const token     = crypto.randomBytes(32).toString("hex");
+  const csrfToken = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
-  await pool.query(
-    "INSERT INTO sessions (token, clientid, expiresat) VALUES ($1, $2, $3)",
-    [token, safeClientId, expiresAt]
-  );
+  await Promise.all([
+    pool.query(
+      "INSERT INTO sessions (token, clientid, csrftoken, expiresat) VALUES ($1, $2, $3, $4)",
+      [token, safeClientId, csrfToken, expiresAt]
+    ),
+    pool.query("DELETE FROM sessions WHERE expiresat < NOW()"),
+  ]);
+
+  await audit(safeClientId, "login", null, "", req.ip);
 
   setCookieSession(res, token);
-  res.json({ ok: true, brandName: client.brandName, doctors: client.doctors || [] });
+  res.json({ ok: true, brandName: client.brandName, doctors: client.doctors || [], csrfToken });
 });
 
 // ── Logout ──
 router.post("/admin-logout", async (req, res) => {
   const token = req.cookies?.session;
-  if (token) {
+  if (token && /^[a-f0-9]{64}$/i.test(token)) {
     await pool.query("DELETE FROM sessions WHERE token = $1", [token]).catch(() => {});
   }
-  res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict" });
+  res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict", path: "/" });
   res.json({ ok: true });
+});
+
+// ── Logout svih sessiona za klijenta ──
+router.post("/admin-logout-all", adminLimiter, async (req, res) => {
+  const session = await getSession(req, pool);
+  if (!session) return res.status(403).json({ ok: false });
+  await pool.query("DELETE FROM sessions WHERE clientid = $1", [session.clientid]);
+  await audit(session.clientid, "logout_all", null, "", req.ip);
+  res.clearCookie("session", { httpOnly: true, secure: isProduction, sameSite: "strict", path: "/" });
+  res.json({ ok: true });
+});
+
+// ── CSRF token dohvat ──
+router.get("/admin-csrf", adminLimiter, async (req, res) => {
+  const token = req.cookies?.session;
+  if (!token || !/^[a-f0-9]{64}$/i.test(token)) return res.status(403).json({ ok: false });
+  const { rows } = await pool.query(
+    "SELECT csrftoken FROM sessions WHERE token = $1 AND expiresat > NOW()",
+    [token]
+  );
+  if (!rows[0]) return res.status(403).json({ ok: false });
+  res.json({ csrfToken: rows[0].csrftoken });
 });
 
 // ── Podaci (zahtjevi) ──
@@ -95,13 +162,15 @@ router.get("/admin-data/:clientId", adminLimiter, async (req, res) => {
 
     await seedClinicData(clientId, client, pool);
 
+    // TODO pagination: za klinike s > 500 zahtjeva uvesti cursor-based pagination
+    // (npr. ?before=<id> + LIMIT). Trenutni limit 500 dovoljan za tipičnu kliniku.
     const [{ rows }, { rows: doctors }] = await Promise.all([
-      pool.query("SELECT * FROM requests WHERE clientid = $1 ORDER BY id DESC", [clientId]),
+      pool.query("SELECT * FROM requests WHERE clientid = $1 ORDER BY id DESC LIMIT 500", [clientId]),
       pool.query("SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1 ORDER BY displayorder, id", [clientId]),
     ]);
     res.json({ brandName: client.brandName, zahtjevi: rows.map(mapRow), doctors });
   } catch (err) {
-    console.error("ADMIN DATA ERROR:", err);
+    logError("ADMIN DATA ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -146,13 +215,14 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
               ? `Molimo vas da odaberete drugi termin putem naše online forme:\n${client.bookingUrl}\n\n`
               : `Molimo vas da nas kontaktirate za novi termin.\n\n`) +
             `Ispričavamo se na neugodnosti.\n${client.brandName}`,
-        }).catch(err => console.error("KONFLIKT MAIL ERROR:", err));
+        }).catch(err => logError("KONFLIKT MAIL ERROR", err));
         return res.status(409).json({ ok: false, error: "Taj termin je već potvrđen drugom pacijentu." });
       }
     }
 
     const noviStatus = akcija === "potvrdi" ? "potvrdjeno" : "predlozeno";
     await pool.query("UPDATE requests SET status = $1 WHERE id = $2", [noviStatus, id]);
+    await audit(clientId, akcija === "potvrdi" ? "confirm" : "propose", id, termin.trim(), req.ip);
 
     const subject = akcija === "potvrdi"
       ? `Potvrda termina — ${client.brandName}`
@@ -165,7 +235,9 @@ router.post("/admin-action", adminLimiter, async (req, res) => {
     await sendPatientMail(client, { to: zahtjev.email, subject, text });
     res.json({ ok: true });
   } catch (err) {
-    console.error("ADMIN ACTION ERROR:", err);
+    if (err.code === "23505")
+      return res.status(409).json({ ok: false, error: "Taj termin je upravo zauzet drugim rezervacijom." });
+    logError("ADMIN ACTION ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -190,6 +262,7 @@ router.post("/admin-cancel", adminLimiter, async (req, res) => {
     if (!zahtjev) return res.status(404).json({ ok: false });
 
     await pool.query("UPDATE requests SET status = 'otkazano' WHERE id = $1", [id]);
+    await audit(clientId, "cancel", id, "", req.ip);
     res.json({ ok: true });
 
     const doktor   = (client.doctors || []).find(d => d.id === zahtjev.doctorid);
@@ -208,9 +281,9 @@ router.post("/admin-cancel", adminLimiter, async (req, res) => {
         (doktor ? `Doktor: ${doktor.name}\n` : "") +
         linkBlok +
         `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-    }).catch(err => console.error("CANCEL MAIL ERROR:", err));
+    }).catch(err => logError("CANCEL MAIL ERROR", err));
   } catch (err) {
-    console.error("CANCEL ERROR:", err);
+    logError("CANCEL ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -237,6 +310,7 @@ router.post("/admin-odbij", adminLimiter, async (req, res) => {
 
     const safeReason = typeof reason === "string" ? reason.trim().slice(0, 500) : "";
     await pool.query("UPDATE requests SET status = 'odbijeno' WHERE id = $1", [id]);
+    await audit(clientId, "reject", id, safeReason, req.ip);
     res.json({ ok: true });
 
     if (zahtjev.email && zahtjev.email !== "—") {
@@ -253,10 +327,10 @@ router.post("/admin-odbij", adminLimiter, async (req, res) => {
           (safeReason ? `Razlog: ${safeReason}\n\n` : "") +
           linkBlok +
           `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-      }).catch(err => console.error("ODBIJ MAIL ERROR:", err));
+      }).catch(err => logError("ODBIJ MAIL ERROR", err));
     }
   } catch (err) {
-    console.error("ODBIJ ERROR:", err);
+    logError("ODBIJ ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -288,7 +362,7 @@ router.get("/admin-kalendar/:clientId", adminLimiter, async (req, res) => {
     }
     res.json(grupirano);
   } catch (err) {
-    console.error("KALENDAR ERROR:", err);
+    logError("KALENDAR ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -316,7 +390,7 @@ router.get("/admin-raspored/:clientId", adminLimiter, async (req, res) => {
     }
     res.json({ schedule, scheduleB });
   } catch (err) {
-    console.error("ADMIN RASPORED GET ERROR:", err);
+    logError("ADMIN RASPORED GET ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -332,7 +406,10 @@ router.post("/admin-raspored", adminLimiter, async (req, res) => {
 
     const { doctorId, schedule, scheduleB } = req.body;
 
-    const doctors = client.doctors || [];
+    const { rows: doctors } = await pool.query(
+      "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1",
+      [clientId]
+    );
     if (!doctors.some(d => d.id === doctorId))
       return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
     if (typeof schedule !== "object" || Array.isArray(schedule))
@@ -402,6 +479,7 @@ router.post("/admin-raspored", adminLimiter, async (req, res) => {
       return terminMin < startH * 60 + startM || terminMin >= endH * 60 + endM;
     });
 
+    await audit(clientId, "save_schedule", null, doctorId, req.ip);
     res.json({ ok: true, otkazano: konflikti.length });
 
     const doktor   = doctors.find(d => d.id === doctorId);
@@ -422,10 +500,10 @@ router.post("/admin-raspored", adminLimiter, async (req, res) => {
           (doktor ? `Doktor: ${doktor.name}\n` : "") +
           linkBlok +
           `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-      }).catch(err => console.error(`RASPORED CANCEL MAIL ERROR (${z.email}):`, err));
+      }).catch(err => logError("MAIL ERROR", err));
     }
   } catch (err) {
-    console.error("ADMIN RASPORED POST ERROR:", err);
+    logError("ADMIN RASPORED POST ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -448,7 +526,7 @@ router.get("/admin-iznimke/:clientId", adminLimiter, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    console.error("ADMIN IZNIMKE ERROR:", err);
+    logError("ADMIN IZNIMKE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -471,7 +549,10 @@ router.post("/admin-iznimka", adminLimiter, async (req, res) => {
     if (type === "block_slot" && !time)
       return res.status(400).json({ ok: false, error: "Vrijeme obavezno." });
 
-    const doctors = client.doctors || [];
+    const { rows: doctors } = await pool.query(
+      "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1",
+      [clientId]
+    );
     if (doctorId && !doctors.some(d => d.id === doctorId))
       return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
 
@@ -508,6 +589,7 @@ router.post("/admin-iznimka", adminLimiter, async (req, res) => {
       zahvaceni = q.rows;
     }
 
+    await audit(clientId, "add_exception", null, `${date} ${type}${time ? " " + time : ""}`, req.ip);
     res.json({ ok: true, id: inserted[0].id, otkazano: zahvaceni.length });
 
     for (const z of zahvaceni) {
@@ -523,10 +605,10 @@ router.post("/admin-iznimka", adminLimiter, async (req, res) => {
           (doktor ? `Doktor: ${doktor.name}\n` : "") +
           linkBlok +
           `\nIspričavamo se na neugodnosti.\n${client.brandName}`,
-      }).catch(err => console.error(`IZNIMKA MAIL ERROR (${z.email}):`, err));
+      }).catch(err => logError("MAIL ERROR", err));
     }
   } catch (err) {
-    console.error("IZNIMKA ERROR:", err);
+    logError("IZNIMKA ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -540,9 +622,10 @@ router.post("/admin-iznimka-delete", adminLimiter, async (req, res) => {
     const { id } = req.body;
 
     await pool.query("DELETE FROM schedule_exceptions WHERE id = $1 AND clientid = $2", [id, clientId]);
+    await audit(clientId, "delete_exception", null, String(id), req.ip);
     res.json({ ok: true });
   } catch (err) {
-    console.error("IZNIMKA DELETE ERROR:", err);
+    logError("IZNIMKA DELETE ERROR", err);
     res.status(500).json({ ok: false });
   }
 });
@@ -566,12 +649,16 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
     if (typeof service !== "string" || service.trim().length === 0 || service.length > 100)
       return res.status(400).json({ ok: false, error: "Usluga nije odabrana." });
 
-    const allowedServices = (client.services || []).map(s => s.name);
+    const [{ rows: dbDoctors }, { rows: dbServices }] = await Promise.all([
+      pool.query("SELECT doctorid AS id FROM clinic_doctors WHERE clientid = $1", [clientId]),
+      pool.query("SELECT name FROM clinic_services WHERE clientid = $1", [clientId]),
+    ]);
+
+    const allowedServices = dbServices.map(s => s.name);
     if (allowedServices.length > 0 && !allowedServices.includes(service.trim()))
       return res.status(400).json({ ok: false, error: "Neispravna usluga." });
 
-    const doctors = client.doctors || [];
-    if (doctorId && !doctors.some(d => d.id === doctorId))
+    if (doctorId && !dbDoctors.some(d => d.id === doctorId))
       return res.status(400).json({ ok: false, error: "Nepoznati doktor." });
 
     const { rows: konflikt } = await pool.query(
@@ -581,19 +668,47 @@ router.post("/admin-phone-booking", adminLimiter, async (req, res) => {
     if (konflikt.length > 0)
       return res.status(409).json({ ok: false, error: "Taj termin je već zauzet." });
 
-    const primljeno = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
-    const safeEmail = typeof email === "string" && email.trim().length > 0 ? email.trim().slice(0, 200) : "—";
+    const primljeno    = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
+    const safeEmail    = typeof email === "string" && email.trim().length > 0 ? email.trim().slice(0, 200) : "—";
+    const bookingId    = Date.now();
+    const parsedDate   = parseCroatianDate(date.trim());
+    const appointmentat = parsedDate ? parsedToTimestamp(parsedDate) : null;
 
     await pool.query(
-      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'potvrdjeno', $8, $9)`,
-      [Date.now(), clientId, name.trim(), safeEmail, date.trim(), service.trim(),
-       typeof note === "string" ? note.trim().slice(0, 500) : "—", primljeno, doctorId]
+      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId, appointmentAt)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'potvrdjeno', $8, $9, $10)`,
+      [bookingId, clientId, name.trim(), safeEmail, date.trim(), service.trim(),
+       typeof note === "string" ? note.trim().slice(0, 500) : "—", primljeno, doctorId, appointmentat]
     );
 
+    if (safeEmail !== "—") {
+      let doctorName = "";
+      if (doctorId) {
+        const { rows: dr } = await pool.query(
+          "SELECT name FROM clinic_doctors WHERE clientid = $1 AND doctorid = $2",
+          [clientId, doctorId]
+        );
+        if (dr[0]) doctorName = dr[0].name;
+      }
+      sendPatientMail(client, {
+        to:      safeEmail,
+        subject: `Potvrda termina — ${client.brandName}`,
+        text:
+          `Poštovani ${name.trim()},\n\n` +
+          `Vaš termin je potvrđen.\n\n` +
+          (doctorName ? `Doktor:  ${doctorName}\n` : "") +
+          `Datum:   ${date.trim()}\n` +
+          `Usluga:  ${service.trim()}\n\n` +
+          `Lijep pozdrav,\n${client.brandName}`,
+      }).catch(err => logError("PHONE BOOKING MAIL ERROR", err));
+    }
+
+    await audit(clientId, "phone_booking", bookingId, `${date.trim()} | ${service.trim()}`, req.ip);
     res.json({ ok: true });
   } catch (err) {
-    console.error("PHONE BOOKING ERROR:", err);
+    if (err.code === "23505")
+      return res.status(409).json({ ok: false, error: "Taj termin je upravo zauzet drugim rezervacijom." });
+    logError("PHONE BOOKING ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri upisu termina." });
   }
 });
@@ -653,7 +768,7 @@ router.get("/admin-postavke/:clientId", adminLimiter, async (req, res) => {
 
     res.json({ doctors, services });
   } catch (err) {
-    console.error("ADMIN POSTAVKE ERROR:", err);
+    logError("ADMIN POSTAVKE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -679,9 +794,10 @@ router.post("/admin-dodaj-doktora", adminLimiter, async (req, res) => {
       "INSERT INTO clinic_doctors (clientid, doctorid, name, displayorder) VALUES ($1, $2, $3, $4)",
       [clientId, doctorId, name.trim(), displayOrder]
     );
+    await audit(clientId, "add_doctor", null, name.trim(), req.ip);
     res.json({ ok: true });
   } catch (err) {
-    console.error("DODAJ DOKTORA ERROR:", err);
+    logError("DODAJ DOKTORA ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri dodavanju." });
   }
 });
@@ -701,9 +817,10 @@ router.post("/admin-obrisi-doktora", adminLimiter, async (req, res) => {
       "DELETE FROM clinic_doctors WHERE clientid = $1 AND doctorid = $2",
       [clientId, doctorId.trim()]
     );
+    await audit(clientId, "delete_doctor", null, doctorId.trim(), req.ip);
     res.json({ ok: true });
   } catch (err) {
-    console.error("OBRISI DOKTORA ERROR:", err);
+    logError("OBRISI DOKTORA ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri brisanju." });
   }
 });
@@ -733,9 +850,10 @@ router.post("/admin-dodaj-uslugu", adminLimiter, async (req, res) => {
        VALUES ($1, $2, $3, $4) ON CONFLICT (clientid, name) DO NOTHING`,
       [clientId, name.trim(), dur, displayOrder]
     );
+    await audit(clientId, "add_service", null, `${name.trim()} ${dur}min`, req.ip);
     res.json({ ok: true });
   } catch (err) {
-    console.error("DODAJ USLUGU ERROR:", err);
+    logError("DODAJ USLUGU ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri dodavanju." });
   }
 });
@@ -755,9 +873,10 @@ router.post("/admin-obrisi-uslugu", adminLimiter, async (req, res) => {
       "DELETE FROM clinic_services WHERE clientid = $1 AND name = $2",
       [clientId, name.trim()]
     );
+    await audit(clientId, "delete_service", null, name.trim(), req.ip);
     res.json({ ok: true });
   } catch (err) {
-    console.error("OBRISI USLUGU ERROR:", err);
+    logError("OBRISI USLUGU ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri brisanju." });
   }
 });
@@ -771,8 +890,31 @@ router.get("/test-mail", async (req, res) => {
     await sendMail({ to: process.env.CLINIC_EMAIL, subject: "TEST MAIL", text: "Ako si ovo dobio, Resend radi." });
     res.send("OK — poslan mail");
   } catch (e) {
-    console.error("TEST MAIL ERROR:", e);
+    logError("TEST MAIL ERROR", e);
     res.status(500).send("FAIL — pogledaj terminal");
+  }
+});
+
+// ── Error log pregled ──
+router.get("/admin-errors", adminLimiter, async (req, res) => {
+  const session = await getSession(req, pool);
+  if (!session) return res.status(403).json({ error: "Zabranjen pristup." });
+  res.json(getLog());
+});
+
+// ── Audit log pregled ──
+router.get("/admin-audit", adminLimiter, async (req, res) => {
+  try {
+    const session = await getSession(req, pool);
+    if (!session) return res.status(403).json({ error: "Zabranjen pristup." });
+    const { rows } = await pool.query(
+      "SELECT * FROM audit_log WHERE clientid = $1 ORDER BY createdat DESC LIMIT 200",
+      [session.clientid]
+    );
+    res.json(rows);
+  } catch (err) {
+    logError("AUDIT LOG GET", err);
+    res.status(500).json({ error: "Greška." });
   }
 });
 

@@ -1,15 +1,17 @@
+const { logError } = require("../lib/errorLog");
 const express = require("express");
 
 const router = express.Router();
 
 const { pool }                              = require("../database");
-const { sanitizeClientId, extractToken, loadClient, mapRow } = require("../lib/utils");
+const { sanitizeClientId, getSession, loadClient, mapRow } = require("../lib/utils");
 const { adminLimiter }                      = require("../lib/limiters");
 
-function gdprAuth(req, res, clientId) {
+async function gdprAuth(req, res, clientId) {
   const client = loadClient(clientId);
   if (!client) { res.status(404).json({ error: "Client not found" }); return null; }
-  if (extractToken(req) !== client.adminToken) { res.status(403).json({ error: "Zabranjen pristup" }); return null; }
+  const session = await getSession(req, pool);
+  if (!session || session.clientid !== clientId) { res.status(403).json({ error: "Zabranjen pristup" }); return null; }
   return client;
 }
 
@@ -18,7 +20,7 @@ router.get("/admin-gdpr-search/:clientId", adminLimiter, async (req, res) => {
   try {
     const clientId = sanitizeClientId(req.params.clientId);
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
-    if (!gdprAuth(req, res, clientId)) return;
+    if (!await gdprAuth(req, res, clientId)) return;
 
     const email = req.query.email;
     if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
@@ -30,7 +32,7 @@ router.get("/admin-gdpr-search/:clientId", adminLimiter, async (req, res) => {
     );
     res.json({ email, ukupno: rows.length, zahtjevi: rows.map(mapRow) });
   } catch (err) {
-    console.error("GDPR SEARCH ERROR:", err);
+    logError("GDPR SEARCH ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -40,7 +42,7 @@ router.get("/admin-gdpr-export/:clientId", adminLimiter, async (req, res) => {
   try {
     const clientId = sanitizeClientId(req.params.clientId);
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
-    const client = gdprAuth(req, res, clientId);
+    const client = await gdprAuth(req, res, clientId);
     if (!client) return;
 
     const email = req.query.email;
@@ -71,7 +73,7 @@ router.get("/admin-gdpr-export/:clientId", adminLimiter, async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("GDPR EXPORT ERROR:", err);
+    logError("GDPR EXPORT ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -81,7 +83,7 @@ router.delete("/admin-gdpr-delete/:clientId", adminLimiter, async (req, res) => 
   try {
     const clientId = sanitizeClientId(req.params.clientId);
     if (!clientId) return res.status(400).json({ error: "Neispravan zahtjev." });
-    if (!gdprAuth(req, res, clientId)) return;
+    if (!await gdprAuth(req, res, clientId)) return;
 
     const email = req.query.email;
     if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
@@ -98,7 +100,7 @@ router.delete("/admin-gdpr-delete/:clientId", adminLimiter, async (req, res) => 
 
     res.json({ ok: true, obrisano: rowCount, timestamp });
   } catch (err) {
-    console.error("GDPR DELETE ERROR:", err);
+    logError("GDPR DELETE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });

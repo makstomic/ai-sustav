@@ -3,6 +3,16 @@ const clientId = dijelovi[2];
 
 document.body.style.visibility = "visible";
 
+let _csrfToken = "";
+
+function adminPost(url, body) {
+  return fetch(url, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": _csrfToken },
+    body:    JSON.stringify(body),
+  });
+}
+
 const wrap  = document.getElementById("zahtjevi");
 const title = document.getElementById("adminTitle");
 
@@ -32,6 +42,14 @@ const MJES_NAZIVI = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipan
                      "Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+//
+// XSS napomena: sve renderXXX funkcije koje koriste innerHTML escaju user-controlled
+// podatke kroz esc(). Inline onclick atributi u generiranom HTML-u (npr. onclick="potvrdi(123)")
+// koriste samo hardkodirane nazive funkcija i numeričke ID-eve iz baze — bez user stringa.
+//
+// TODO (CSP): za maknuti 'unsafe-inline' iz CSP trebat će migrirati inline onclicke u
+// addEventListener. Mjesta s inline onclick: doktorSwitcherHTML, prikaziKalendar,
+// napraviTermine, renderRasporedView, renderRequestRow, renderTelefonTab, renderPostavkeView.
 
 function esc(str) {
   return String(str ?? "")
@@ -353,11 +371,7 @@ function toggleOdbijForm(id) {
 async function submitOdbijanje(id) {
   const reason = document.getElementById(`reject-reason-${id}`)?.value.trim() || "";
 
-  const res = await fetch("/admin-odbij", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, reason }),
-  });
+  const res = await adminPost("/admin-odbij", { id, reason });
   const data = await res.json();
 
   if (data.ok) { await ucitajZahtjeve(); }
@@ -368,26 +382,18 @@ async function potvrdi(id) {
   const zahtjev = sviZahtjevi.find(z => z.id == id);
   if (!zahtjev) return;
 
-  const res = await fetch("/admin-action", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, akcija: "potvrdi", termin: zahtjev.date }),
-  });
+  const res = await adminPost("/admin-action", { id, akcija: "potvrdi", termin: zahtjev.date });
   const data = await res.json();
 
   if (data.ok) { alert("Potvrda poslana pacijentu!"); ucitajZahtjeve(); }
-  else if (res.status === 409) { alert("Termin je već zauzet. Pacijentu je poslan mail s obavijesti."); ucitajZahtjeve(); }
+  else if (res.status === 409) { alert(data.error || "Taj termin je već zauzet."); ucitajZahtjeve(); }
   else alert("Greška pri slanju potvrde.");
 }
 
 async function otkazi(id) {
   if (!confirm("Sigurno otkazati termin? Pacijent će biti obaviješten mailom.")) return;
 
-  const res = await fetch("/admin-cancel", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id }),
-  });
+  const res = await adminPost("/admin-cancel", { id });
   const data = await res.json();
 
   if (data.ok) { alert("Termin je otkazan."); ucitajZahtjeve(); }
@@ -667,11 +673,7 @@ async function spremiRaspored() {
       if (start && end) scheduleB[String(day)] = { startTime: start, endTime: end };
     }
   }
-  const res = await fetch("/admin-raspored", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ doctorId: doktor.id, schedule, scheduleB }),
-  });
+  const res = await adminPost("/admin-raspored", { doctorId: doktor.id, schedule, scheduleB });
   const data = await res.json();
   if (data.ok) {
     const poruka = data.otkazano > 0
@@ -687,21 +689,13 @@ async function spremiRaspored() {
 }
 
 async function blokirajDan(doctorId, date) {
-  const res = await fetch("/admin-iznimka", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ doctorId, date, type: "block_day" }),
-  });
+  const res = await adminPost("/admin-iznimka", { doctorId, date, type: "block_day" });
   if ((await res.json()).ok) { await ucitajRvIznimke(doctorId); renderRasporedView(sviDoktori[rvDoktorIdx]); }
 }
 
 async function ukloniBlokadeDana(doctorId, date) {
   for (const b of (rvIznimke[date] || []).filter(i => i.type === "block_day")) {
-    await fetch("/admin-iznimka-delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: b.id }),
-    });
+    await adminPost("/admin-iznimka-delete", { id: b.id });
   }
   await ucitajRvIznimke(doctorId);
   renderRasporedView(sviDoktori[rvDoktorIdx]);
@@ -711,17 +705,9 @@ async function toggleSlotBlokada(doctorId, date, time) {
   const iznimkeKey = rvIznimke[date] || [];
   const existing = iznimkeKey.find(i => i.type === "block_slot" && i.time === time);
   if (existing) {
-    await fetch("/admin-iznimka-delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: existing.id }),
-    });
+    await adminPost("/admin-iznimka-delete", { id: existing.id });
   } else {
-    await fetch("/admin-iznimka", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doctorId, date, type: "block_slot", time }),
-    });
+    await adminPost("/admin-iznimka", { doctorId, date, type: "block_slot", time });
   }
   await ucitajRvIznimke(doctorId);
   renderRasporedView(sviDoktori[rvDoktorIdx]);
@@ -877,7 +863,7 @@ function renderTelefonTab() {
             ${doktorCell}
             <div>
               <label class="tel-label">Datum</label>
-              <input type="date" class="tel-input" id="tel-datum" value="${danas}" min="${danas}"
+              <input type="date" class="tel-input" id="tel-datum" value="${danas}" min="${danas}" max="9999-12-31"
                      onchange="ucitajTelefonTermine()">
             </div>
             <div>
@@ -964,15 +950,11 @@ async function submitTelefonBooking() {
   submitBtn.disabled = true;
 
   try {
-    const res = await fetch("/admin-phone-booking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        doctorId: drId, date: datumHR,
-        name: ime, service: usluga,
-        email: email || "—",
-        note: [tel ? `Tel: ${tel}` : "", napomena].filter(Boolean).join(" | ") || "—",
-      }),
+    const res = await adminPost("/admin-phone-booking", {
+      doctorId: drId, date: datumHR,
+      name: ime, service: usluga,
+      email: email || "—",
+      note: [tel ? `Tel: ${tel}` : "", napomena].filter(Boolean).join(" | ") || "—",
     });
     const data = await res.json();
     if (data.ok) {
@@ -1076,11 +1058,7 @@ async function dodajDoktora() {
   if (!ime) { if (statusEl) statusEl.textContent = "Unesite ime doktora."; return; }
   if (statusEl) statusEl.textContent = "";
 
-  const res = await fetch("/admin-dodaj-doktora", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: ime }),
-  });
+  const res = await adminPost("/admin-dodaj-doktora", { name: ime });
   const data = await res.json();
   if (data.ok) {
     await ucitajPostavke();
@@ -1094,11 +1072,7 @@ async function obrisiDoktora(idx) {
   if (!d) return;
   if (!confirm(`Obrisati doktora "${d.name}"?\n\nRaspored i termini vezani uz ovog doktora neće biti obrisani.`)) return;
 
-  const res = await fetch("/admin-obrisi-doktora", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ doctorId: d.id }),
-  });
+  const res = await adminPost("/admin-obrisi-doktora", { doctorId: d.id });
   const data = await res.json();
   if (data.ok) {
     await ucitajPostavke();
@@ -1114,11 +1088,7 @@ async function dodajUslugu() {
   if (!ime) { if (statusEl) statusEl.textContent = "Unesite naziv usluge."; return; }
   if (statusEl) statusEl.textContent = "";
 
-  const res = await fetch("/admin-dodaj-uslugu", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: ime, duration: dur }),
-  });
+  const res = await adminPost("/admin-dodaj-uslugu", { name: ime, duration: dur });
   const data = await res.json();
   if (data.ok) {
     await ucitajPostavke();
@@ -1132,11 +1102,7 @@ async function obrisiUslugu(idx) {
   if (!s) return;
   if (!confirm(`Obrisati uslugu "${s.name}"?`)) return;
 
-  const res = await fetch("/admin-obrisi-uslugu", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: s.name }),
-  });
+  const res = await adminPost("/admin-obrisi-uslugu", { name: s.name });
   const data = await res.json();
   if (data.ok) {
     await ucitajPostavke();
@@ -1155,6 +1121,13 @@ async function odjava() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function ucitajZahtjeve() {
+  // Dohvati CSRF token za ovu sesiju (potreban za sve POST zahtjeve)
+  const csrfRes = await fetch("/admin-csrf");
+  if (csrfRes.ok) {
+    const csrfData = await csrfRes.json();
+    _csrfToken = csrfData.csrfToken || "";
+  }
+
   const dataRes = await fetch(`/admin-data/${clientId}`);
 
   if (dataRes.status === 403) {

@@ -25,9 +25,10 @@ const files = fs.readdirSync(clientsDir).filter(f => f.endsWith(".json"));
 
     const hash = await bcrypt.hash(client.adminToken, 12);
     client.adminPasswordHash = hash;
+    delete client.adminToken;
 
     fs.writeFileSync(filePath, JSON.stringify(client, null, 2), "utf-8");
-    console.log(`${file}: hash dodan. ✓`);
+    console.log(`${file}: hash dodan, adminToken obrisan. ✓`);
   }
 
   console.log("\nGotovo. Možeš pushati izmjene.");

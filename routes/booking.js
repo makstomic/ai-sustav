@@ -8,8 +8,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const { pool }                                              = require("../database");
 const { sendMail, sendPatientMail }                         = require("../lib/mail");
-const { sanitizeClientId, sanitizeCssValue, sanitizeFontName, loadClient } = require("../lib/utils");
+const { sanitizeClientId, sanitizeCssValue, sanitizeFontName, loadClient, parseCroatianDate, parsedToTimestamp } = require("../lib/utils");
 const { faqLimiter, bookingLimiter, publicLimiter }         = require("../lib/limiters");
+const { logError }                                          = require("../lib/errorLog");
 
 async function getClinicDoctors(clientId, client) {
   let { rows } = await pool.query(
@@ -51,6 +52,99 @@ async function getClinicServices(clientId, client) {
     ));
   }
   return rows;
+}
+
+// ── Booking server-side validation helpers ──
+
+function nowZagreb() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "numeric", hour12: false,
+  }).formatToParts(new Date());
+  const get = type => parseInt(parts.find(p => p.type === type).value);
+  return { year: get("year"), month: get("month"), day: get("day"), hours: get("hour"), minutes: get("minute") };
+}
+
+function isInPast(parsed) {
+  const now = nowZagreb();
+  const pN  = parsed.year * 10000 + parsed.month * 100 + parsed.day;
+  const nN  = now.year   * 10000 + now.month   * 100 + now.day;
+  if (pN < nN) return true;
+  if (pN > nN) return false;
+  return (parsed.hours * 60 + parsed.minutes) <= (now.hours * 60 + now.minutes);
+}
+
+function isoWeekOf(year, month, day) {
+  const d = new Date(Date.UTC(year, month - 1, day));
+  d.setUTCDate(d.getUTCDate() + 3 - (d.getUTCDay() + 6) % 7);
+  const w1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d - w1) / 86400000 - 3 + (w1.getUTCDay() + 6) % 7) / 7);
+}
+
+function toMin(timeStr) {
+  const [h, m] = timeStr.split(":").map(Number);
+  return h * 60 + m;
+}
+
+async function validateSlot(clientId, doctorId, parsed, duration) {
+  const { year, month, day, hours, minutes } = parsed;
+  const slotMin = hours * 60 + minutes;
+  const slotEnd = slotMin + duration;
+
+  if (doctorId) {
+    const isoDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dow     = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    const isWeekA = isoWeekOf(year, month, day) % 2 !== 0;
+    const dbDay   = isWeekA ? dow : dow + 10;
+
+    let { rows: sched } = await pool.query(
+      "SELECT starttime, endtime FROM doctor_schedules WHERE clientid=$1 AND doctorid=$2 AND dayofweek=$3",
+      [clientId, doctorId, dbDay]
+    );
+    if (!sched[0] && !isWeekA) {
+      ({ rows: sched } = await pool.query(
+        "SELECT starttime, endtime FROM doctor_schedules WHERE clientid=$1 AND doctorid=$2 AND dayofweek=$3",
+        [clientId, doctorId, dow]
+      ));
+    }
+    if (!sched[0]) return "Doktor ne radi taj dan.";
+
+    const workStart = toMin(sched[0].starttime);
+    const workEnd   = toMin(sched[0].endtime);
+    if (slotMin < workStart || slotEnd > workEnd)
+      return "Termin je izvan radnog vremena.";
+
+    const { rows: exc } = await pool.query(
+      "SELECT type, time FROM schedule_exceptions WHERE clientid=$1 AND doctorid=$2 AND date=$3",
+      [clientId, doctorId, isoDate]
+    );
+    if (exc.some(e => e.type === "block_day"))
+      return "Taj dan nije dostupan.";
+    const slotStr = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    if (exc.some(e => e.type === "block_slot" && e.time === slotStr))
+      return "Taj termin nije dostupan.";
+  }
+
+  // Overlap check (duration-aware)
+  const datePfx = `${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}.${year}.%`;
+  const { rows: existing } = await pool.query(
+    `SELECT r.date, COALESCE(cs.duration, 30) AS duration
+     FROM requests r
+     LEFT JOIN clinic_services cs ON cs.clientid = r.clientid AND cs.name = r.service
+     WHERE r.clientid = $1 AND r.doctorid = $2 AND r.status = 'potvrdjeno' AND r.date LIKE $3`,
+    [clientId, doctorId, datePfx]
+  );
+  for (const row of existing) {
+    const tm = row.date.match(/u\s+(\d{2}):(\d{2})$/);
+    if (!tm) continue;
+    const exStart = parseInt(tm[1]) * 60 + parseInt(tm[2]);
+    const exEnd   = exStart + parseInt(row.duration);
+    if (slotMin < exEnd && exStart < slotEnd)
+      return "Taj termin je već zauzet.";
+  }
+
+  return null;
 }
 
 // ── Booking stranica s temom klijenta ──
@@ -102,15 +196,32 @@ router.get("/config/:clientId", publicLimiter, async (req, res) => {
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
 
-    const { adminToken: _omit, adminPasswordHash: _omit2, clinicEmail: _omit3, ...publicData } = client;
-
+    const t = client.theme || {};
     const [doctors, services] = await Promise.all([
       getClinicDoctors(clientId, client),
       getClinicServices(clientId, client),
     ]);
-    res.json({ ...publicData, doctors, services });
+
+    res.json({
+      brandName:    typeof client.brandName    === "string" ? client.brandName    : "",
+      pageTitle:    typeof client.pageTitle    === "string" ? client.pageTitle    : "",
+      bookingUrl:   typeof client.bookingUrl   === "string" ? client.bookingUrl   : "",
+      font:         sanitizeFontName(client.font),
+      location:     typeof client.location     === "string" ? client.location     : "",
+      phone:        typeof client.phone        === "string" ? client.phone        : "",
+      workingHours: typeof client.workingHours === "string" ? client.workingHours : "",
+      theme: {
+        accent:      sanitizeCssValue(t.accent),
+        accent2:     sanitizeCssValue(t.accent2),
+        accentSoft:  sanitizeCssValue(t.accentSoft),
+        bgColor:     sanitizeCssValue(t.bgColor),
+        bgSoft:      sanitizeCssValue(t.bgSoft),
+      },
+      doctors:  doctors.map(d  => ({ id: d.id,   name: d.name })),
+      services: services.map(s => ({ name: s.name, duration: s.duration })),
+    });
   } catch (err) {
-    console.error("CONFIG ERROR:", err);
+    logError("CONFIG ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -165,7 +276,7 @@ ${servicesText || "- (nije definirano)"}
       return res.status(500).json({ reply: "Chatbot je trenutno nedostupan." });
     res.json({ reply: completion.choices[0].message.content });
   } catch (err) {
-    console.error("FAQ ERROR:", err);
+    logError("FAQ ERROR", err);
     res.status(500).json({ reply: "Došlo je do greške. Pokušajte kasnije." });
   }
 });
@@ -173,7 +284,11 @@ ${servicesText || "- (nije definirano)"}
 // ── Booking forma ──
 router.post("/booking", bookingLimiter, async (req, res) => {
   try {
-    const { clientId, name, email, date, service, note, doctorId } = req.body;
+    const { clientId, name, email, date, service, note, doctorId, _hp } = req.body;
+
+    // ── Honeypot — pravi korisnici ne vide ovo polje; bots ga popunjavaju ──────
+    // Vraćamo lažni ok:true da bot misli da je uspio (ne otkrivamo zaštitu).
+    if (typeof _hp === "string" && _hp.length > 0) return res.json({ ok: true });
 
     const safeClientId = sanitizeClientId(clientId);
     if (!safeClientId) return res.status(400).json({ ok: false, error: "Neispravan zahtjev." });
@@ -194,6 +309,32 @@ router.post("/booking", bookingLimiter, async (req, res) => {
     const safeNote     = typeof note === "string" ? note.trim().slice(0, 500) : "—";
     const safeDoctorId = typeof doctorId === "string" ? doctorId.trim().slice(0, 50) : "";
 
+    // ── Limit otvorenih zahtjeva po emailu — max 3 na_cekanju u 24h ─────────
+    const { rows: emailRows } = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM requests
+       WHERE clientid = $1 AND email = $2 AND status = 'na_cekanju'
+       AND createdat > NOW() - INTERVAL '24 hours'`,
+      [safeClientId, safeEmail]
+    );
+    if (parseInt(emailRows[0].cnt) >= 3)
+      return res.status(429).json({ ok: false, error: "Dostigli ste limit zahtjeva. Pričekajte 24 sata ili kontaktirajte ordinaciju." });
+
+    // ── Limit po telefonu — max 3 na_cekanju u 24h ako je telefon unesen ────
+    // Telefon je pohranjen u note kao "Tel: <broj> | …"; provjeravamo prefiks.
+    // Preskačemo ako telefon sadrži LIKE-special znakove (%, _) — nije validan broj.
+    const phoneNoteMatch = safeNote.match(/^Tel:\s*([^|]+)/);
+    const notePhone      = phoneNoteMatch ? phoneNoteMatch[1].trim() : null;
+    if (notePhone && notePhone.length >= 6 && /^[\d\s+\-(). ]{1,25}$/.test(notePhone)) {
+      const { rows: phoneRows } = await pool.query(
+        `SELECT COUNT(*) AS cnt FROM requests
+         WHERE clientid = $1 AND note LIKE $2 AND status = 'na_cekanju'
+         AND createdat > NOW() - INTERVAL '24 hours'`,
+        [safeClientId, `Tel: ${notePhone}%`]
+      );
+      if (parseInt(phoneRows[0].cnt) >= 3)
+        return res.status(429).json({ ok: false, error: "Dostigli ste limit zahtjeva. Pričekajte 24 sata ili kontaktirajte ordinaciju." });
+    }
+
     const client = loadClient(safeClientId);
     if (!client) return res.status(404).json({ ok: false, error: "Client not found" });
 
@@ -209,15 +350,42 @@ router.post("/booking", bookingLimiter, async (req, res) => {
     if (safeDoctorId && !dbDoctors.some(d => d.id === safeDoctorId))
       return res.status(400).json({ ok: false, error: "Doktor nije pronađen." });
 
+    // ── Server-side termin validacija ──
+    const parsed = parseCroatianDate(safeDate);
+    if (!parsed)
+      return res.status(400).json({ ok: false, error: "Neispravan format datuma." });
+    if (isInPast(parsed))
+      return res.status(400).json({ ok: false, error: "Ne možete rezervirati termin u prošlosti." });
+
+    const svcData  = dbServices.find(s => s.name === safeService);
+    const duration = svcData?.duration || 30;
+
+    const slotError = await validateSlot(safeClientId, safeDoctorId, parsed, duration);
+    if (slotError)
+      return res.status(400).json({ ok: false, error: slotError });
+
+    const appointmentAt = parsedToTimestamp(parsed);
+
+    // ── Deduplikacija: isti email + isti termin već postoji (nije odbijen/otkazan) ──
+    const { rows: dedup } = await pool.query(
+      `SELECT id FROM requests
+       WHERE clientid = $1 AND email = $2 AND appointmentat = $3
+       AND status NOT IN ('odbijeno', 'otkazano')
+       LIMIT 1`,
+      [safeClientId, safeEmail, appointmentAt]
+    );
+    if (dedup.length > 0)
+      return res.status(409).json({ ok: false, error: "Već imate aktivan zahtjev za ovaj termin." });
+
     const doktor      = dbDoctors.find(d => d.id === safeDoctorId);
     const doktorNaziv = doktor ? doktor.name : null;
     const toEmail     = client.clinicEmail || process.env.CLINIC_EMAIL;
     const primljeno   = new Date().toLocaleString("hr-HR", { timeZone: "Europe/Zagreb" });
 
     await pool.query(
-      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'na_cekanju', $8, $9)`,
-      [Date.now(), safeClientId, safeName, safeEmail, safeDate, safeService, safeNote || "—", primljeno, safeDoctorId]
+      `INSERT INTO requests (id, clientId, name, email, date, service, note, status, primljeno, doctorId, appointmentAt)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'na_cekanju', $8, $9, $10)`,
+      [Date.now(), safeClientId, safeName, safeEmail, safeDate, safeService, safeNote || "—", primljeno, safeDoctorId, appointmentAt]
     );
 
     res.json({ ok: true });
@@ -237,7 +405,7 @@ router.post("/booking", bookingLimiter, async (req, res) => {
         `Napomena:   ${safeNote || "—"}\n` +
         `Zaprimljeno: ${primljeno}\n\n` +
         `Termin se ne potvrđuje automatski — potrebna ručna potvrda ordinacije.`,
-    }).catch(err => console.error("BOOKING MAIL ERROR:", err));
+    }).catch(err => logError("BOOKING MAIL ERROR", err));
 
     // Potvrda pacijentu
     sendPatientMail(client, {
@@ -250,9 +418,9 @@ router.post("/booking", bookingLimiter, async (req, res) => {
         `Datum:   ${safeDate}\n` +
         `Usluga:  ${safeService}\n\n` +
         `Lijep pozdrav,\n${client.brandName}`,
-    }).catch(err => console.error("PATIENT CONFIRM MAIL ERROR:", err));
+    }).catch(err => logError("PATIENT CONFIRM MAIL ERROR", err));
   } catch (err) {
-    console.error("BOOKING ERROR:", err);
+    logError("BOOKING ERROR", err);
     res.status(500).json({ ok: false, error: "Greška pri slanju zahtjeva." });
   }
 });
@@ -319,7 +487,7 @@ router.get("/termini/:clientId/:datum", publicLimiter, async (req, res) => {
 
     res.json({ zauzeti, blokiranDan, radnoVrijeme });
   } catch (err) {
-    console.error("TERMINI ERROR:", err);
+    logError("TERMINI ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
@@ -352,7 +520,7 @@ router.get("/doctor-schedule/:clientId", publicLimiter, async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    console.error("DOCTOR SCHEDULE ERROR:", err);
+    logError("DOCTOR SCHEDULE ERROR", err);
     res.status(500).json({ error: "Greška." });
   }
 });
