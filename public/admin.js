@@ -1158,3 +1158,10 @@ async function ucitajZahtjeve() {
 }
 
 ucitajZahtjeve();
+
+document.getElementById("nav-cekanje").addEventListener("click", () => promijeniTab("cekanje"));
+document.getElementById("nav-kalendar").addEventListener("click", () => promijeniTab("kalendar"));
+document.getElementById("nav-radno-vrijeme").addEventListener("click", () => promijeniTab("radno-vrijeme"));
+document.getElementById("nav-telefon").addEventListener("click", () => promijeniTab("telefon"));
+document.getElementById("nav-postavke").addEventListener("click", () => promijeniTab("postavke"));
+document.getElementById("odjavaBtn").addEventListener("click", odjava);

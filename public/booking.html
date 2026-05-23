@@ -23,15 +23,15 @@
 
       <!-- Mobile: progress bar (hidden on desktop) -->
       <div id="mob-prog">
-        <button class="mob-back-btn" id="mobBack" onclick="window.idiNazad()">&#8592;</button>
+        <button class="mob-back-btn" id="mobBack">&#8592;</button>
         <div class="mp-steps">
-          <div class="mp-step" data-k="1" onclick="window.idiNaStep(1)"><div class="mp-dot"><span>1</span></div></div>
+          <div class="mp-step" data-k="1"><div class="mp-dot"><span>1</span></div></div>
           <div class="mp-line" id="mp-line-1"></div>
-          <div class="mp-step" data-k="2" onclick="window.idiNaStep(2)"><div class="mp-dot"><span>2</span></div></div>
+          <div class="mp-step" data-k="2"><div class="mp-dot"><span>2</span></div></div>
           <div class="mp-line" id="mp-line-2"></div>
-          <div class="mp-step" data-k="3" onclick="window.idiNaStep(3)"><div class="mp-dot"><span>3</span></div></div>
+          <div class="mp-step" data-k="3"><div class="mp-dot"><span>3</span></div></div>
           <div class="mp-line" id="mp-line-3"></div>
-          <div class="mp-step" data-k="4" onclick="window.idiNaStep(4)"><div class="mp-dot"><span>4</span></div></div>
+          <div class="mp-step" data-k="4"><div class="mp-dot"><span>4</span></div></div>
         </div>
       </div>
 
@@ -39,9 +39,9 @@
       <div class="mob-k1" id="mobDrSekcija">
         <div class="doctor-switcher" id="doctorSwitcher" style="display:none;">
           <span class="doctor-switcher-label">Doktor</span>
-          <button class="doctor-arrow" onclick="promijeniDoktora(-1)">&#8249;</button>
+          <button class="doctor-arrow" id="drPrev">&#8249;</button>
           <span class="doctor-switcher-name" id="doctorIme">—</span>
-          <button class="doctor-arrow" onclick="promijeniDoktora(1)">&#8250;</button>
+          <button class="doctor-arrow" id="drNext">&#8250;</button>
         </div>
         <div class="doctor-confirm-section" id="doctorConfirmSection">
           <button class="doctor-confirm-btn" id="doctorConfirmBtn">Potvrdi odabir doktora</button>
@@ -56,9 +56,9 @@
 
       <div class="kalendar mob-k3">
         <div class="kal-nav">
-          <button class="kal-nav-btn" onclick="promijeniMjesec(-1)">&#8249;</button>
+          <button class="kal-nav-btn" id="kalPrev">&#8249;</button>
           <div class="kal-mjesec" id="kal-naslov"></div>
-          <button class="kal-nav-btn" onclick="promijeniMjesec(1)">&#8250;</button>
+          <button class="kal-nav-btn" id="kalNext">&#8250;</button>
         </div>
         <div id="kalUpozorenje" class="kal-upozorenje" style="display:none;">Odaberite uslugu prije odabira termina</div>
         <div class="kal-dani-nazivi">
@@ -181,7 +181,7 @@
 
   </div>
 
-  <button id="chat-widget-btn" onclick="toggleChat()">
+  <button id="chat-widget-btn">
     <div class="db-puls"></div>
     Pitajte asistenta
   </button>
@@ -189,7 +189,7 @@
   <div id="chat-panel">
     <div class="chat-header">
       <div class="chat-header-title" id="chatHeaderTitle">AI asistent</div>
-      <button class="chat-zatvori" onclick="toggleChat()">&#xD7;</button>
+      <button class="chat-zatvori" id="chatZatvori">&#xD7;</button>
     </div>
     <div id="chatMessages"></div>
     <div class="chatInputBar">
@@ -472,6 +472,17 @@
       renderTermini();
       azurirajBadge();
     };
+
+    document.getElementById("mobBack").addEventListener("click", () => window.idiNazad());
+    document.querySelectorAll(".mp-step").forEach(el => {
+      el.addEventListener("click", () => window.idiNaStep(parseInt(el.dataset.k)));
+    });
+    document.getElementById("drPrev").addEventListener("click", () => promijeniDoktora(-1));
+    document.getElementById("drNext").addEventListener("click", () => promijeniDoktora(1));
+    document.getElementById("kalPrev").addEventListener("click", () => promijeniMjesec(-1));
+    document.getElementById("kalNext").addEventListener("click", () => promijeniMjesec(1));
+    document.getElementById("chat-widget-btn").addEventListener("click", toggleChat);
+    document.getElementById("chatZatvori").addEventListener("click", toggleChat);
 
   </script>
 
