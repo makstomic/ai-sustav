@@ -27,8 +27,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
-      // PRIVREMENO unsafe-inline: inline <script> blokovi u HTML-u
+      // PRIVREMENO unsafe-inline: inline onclick/onchange/script tagovi u HTML-u
       scriptSrc:      ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr:  ["'unsafe-inline'"],
       styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc:        ["'self'", "https://fonts.gstatic.com"],
       imgSrc:         ["'self'", "data:"],
