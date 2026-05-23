@@ -162,11 +162,12 @@ async function initDb() {
     END $$
   `);
 
-  // doctor_schedules.dayofweek — samo 0–6
+  // doctor_schedules.dayofweek — 0–6 (tjedan A) ili 10–16 (tjedan B za alternativni raspored)
+  await pool.query(`ALTER TABLE doctor_schedules DROP CONSTRAINT IF EXISTS chk_schedules_dayofweek`);
   await pool.query(`
     DO $$ BEGIN
       ALTER TABLE doctor_schedules ADD CONSTRAINT chk_schedules_dayofweek
-        CHECK (dayofweek >= 0 AND dayofweek <= 6) NOT VALID;
+        CHECK ((dayofweek >= 0 AND dayofweek <= 6) OR (dayofweek >= 10 AND dayofweek <= 16)) NOT VALID;
     EXCEPTION WHEN duplicate_object THEN NULL;
     END $$
   `);
