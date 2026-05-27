@@ -7,20 +7,28 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tokens.css">
   <style>body { visibility: hidden; }</style>
   <style>
     :root {
       --bg:           #ffffff;
+      --bg-soft:      #f8fafc;
+      --bg-tint:      #f3f4f6;
       --surface:      #e5e7eb;
-      --text:         #1e2a38;
-      --muted:        #5F5E5A;
-      --muted-2:      #888780;
-      --accent:       #14B89A;
-      --accent-2:     #0e9e84;
-      --accent-soft:  rgba(20,184,154,0.10);
-      --border:       #B4B2A9;
-      --border-light: #D3D1C7;
+      --text:         #0f172a;
+      --muted:        #64748b;
+      --muted-2:      #94a3b8;
+      --accent:       #0d9488;
+      --accent-2:     #0f766e;
+      --accent-soft:  rgba(13,148,136,0.08);
+      --accent-ring:  rgba(13,148,136,0.12);
+      --border:       rgba(15,23,42,0.09);
+      --border-firm:  #d1d5db;
+      --border-light: #e5e7eb;
       --danger:       #dc2626;
+      --danger-soft:  #fef2f2;
+      --danger-border:#fca5a5;
+      --sidebar-bg:   #1e2a38;
       --font: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     }
 
@@ -108,7 +116,7 @@
 
     .sidebar-item.active {
       color: #fff;
-      background: rgba(20,184,154,0.16);
+      background: rgba(13,148,136,0.16);
       border-left-color: var(--accent);
     }
 
@@ -129,7 +137,14 @@
 
     /* ── Topbar ── */
     #topbar {
-      display: none;
+      display: none; /* shown via media query on mobile */
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      height: 52px;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--bg);
+      flex-shrink: 0;
     }
 
     #menuToggle {
@@ -296,7 +311,7 @@
     .status-tab.is-active .status-tab-count {
       background: var(--accent-soft);
       color: var(--accent);
-      border-color: rgba(20,184,154,0.3);
+      border-color: rgba(13,148,136,0.3);
     }
 
     /* ── Request rows ── */
@@ -421,7 +436,7 @@
       transition: background 0.1s;
     }
 
-    .btn-otkazi-termin:hover { background: #fef2f2; border-color: var(--danger); }
+    .btn-otkazi-termin:hover { background: var(--danger-soft); border-color: var(--danger); }
 
     /* Reject form */
     .reject-form { margin-top: 5px; display: none; flex-direction: column; gap: 4px; width: 200px; }
@@ -461,9 +476,9 @@
       letter-spacing: 0.03em;
     }
 
-    .badge-potvrdjeno { background: #dcfce7; color: #166534; }
-    .badge-odbijeno   { background: #fee2e2; color: #991b1b; }
-    .badge-otkazano   { background: #fef9c3; color: #854d0e; }
+    .badge-potvrdjeno { background: var(--ok-bg);   color: var(--ok-fg); }
+    .badge-odbijeno   { background: var(--err-bg);  color: var(--err-fg); }
+    .badge-otkazano   { background: var(--warn-bg); color: var(--warn-fg); }
 
     .prazno { padding: 48px 22px; text-align: center; font-size: 13px; color: var(--muted); }
 
@@ -602,17 +617,17 @@
     }
     .kal-dan:nth-child(7n) { border-right: none; }
     .kal-dan:hover:not(.kal-prazan) {
-      background: rgba(20,184,154,0.10);
+      background: var(--accent-soft);
       z-index: 1;
     }
-    .kal-dan:active:not(.kal-prazan) { background: rgba(20,184,154,0.16); }
+    .kal-dan:active:not(.kal-prazan) { background: rgba(13,148,136,0.16); }
 
     .kal-dan.kal-vikend       { background: #dde0e5; }
     .kal-dan.kal-prazan       { background: #d8dbe0; cursor: default; opacity: 0.7; }
-    .kal-dan.kal-danas        { background: rgba(20,184,154,0.12) !important; }
-    .kal-dan.kal-odabran      { background: rgba(20,184,154,0.12) !important; outline: 2px solid #9ca3af; outline-offset: -2px; z-index: 2; }
-    .kal-dan.kal-blokiran-dan { background: #fee2e2 !important; }
-    .kal-dan.kal-ima-slot-blokada { background: #fef9c3 !important; }
+    .kal-dan.kal-danas        { background: var(--accent-ring) !important; }
+    .kal-dan.kal-odabran      { background: var(--accent-ring) !important; outline: 2px solid #9ca3af; outline-offset: -2px; z-index: 2; }
+    .kal-dan.kal-blokiran-dan { background: var(--err-bg) !important; }
+    .kal-dan.kal-ima-slot-blokada { background: var(--warn-bg) !important; }
 
     .kal-dan-num {
       font-size: 13px;
@@ -696,7 +711,7 @@
       transition: all 0.15s ease;
       white-space: nowrap;
     }
-    .btn-otkazi-mali:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+    .btn-otkazi-mali:hover { background: var(--danger-soft); border-color: var(--danger-border); color: var(--danger); }
 
     .kal-empty-state {
       padding: 52px 24px;
@@ -820,7 +835,7 @@
     .rv-time-part:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
+      box-shadow: 0 0 0 2px var(--accent-ring);
     }
     .rv-time-part:disabled {
       background: transparent;
@@ -976,7 +991,7 @@
     .tel-input:focus, .tel-select:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
+      box-shadow: 0 0 0 2px var(--accent-ring);
     }
 
     .tel-select {
@@ -1016,8 +1031,8 @@
     .tel-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .tel-status { font-size: 12px; font-weight: 500; min-height: 18px; }
-    .tel-status.ok { color: #166534; }
-    .tel-status.error { color: #dc2626; }
+    .tel-status.ok { color: var(--ok-fg); }
+    .tel-status.error { color: var(--danger); }
 
 
     /* ── Postavke tab ── */
@@ -1074,8 +1089,8 @@
     }
 
     .post-item-del:hover {
-      background: #fef2f2;
-      border-color: #fca5a5;
+      background: var(--danger-soft);
+      border-color: var(--danger-border);
       color: var(--danger);
     }
 
@@ -1103,7 +1118,7 @@
     .post-input:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
+      box-shadow: 0 0 0 2px var(--accent-ring);
     }
 
     .post-select {
@@ -1123,7 +1138,7 @@
     .post-select:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(20,184,154,0.12);
+      box-shadow: 0 0 0 2px var(--accent-ring);
     }
 
     .post-add-btn {
@@ -1170,6 +1185,7 @@
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
+      #topbar { display: flex; }
       #sidebar { transform: translateX(-100%); }
       #sidebar.otvoren { transform: translateX(0); }
       #main { margin-left: 0; }

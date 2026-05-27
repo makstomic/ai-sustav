@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/tokens.css">
   <style>
     :root {
       --accent: #0d9488;
@@ -135,11 +136,11 @@
     .login-error {
       margin-top: 14px;
       padding: 10px 14px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
+      background: var(--danger-soft, #fef2f2);
+      border: 1px solid var(--danger-border, #fecaca);
       border-radius: 6px;
       font-size: 13px;
-      color: #dc2626;
+      color: var(--danger, #dc2626);
       display: none;
     }
 
