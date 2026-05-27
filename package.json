@@ -1,11 +1,13 @@
 {
-  "name": "chatbot-starter",
+  "name": "ordinova",
   "version": "1.0.0",
-  "description": "",
+  "description": "Multi-tenant medical booking SaaS",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "migrate": "node scripts/legacy/migrate-appointmentat.js",
+    "hash-passwords": "node scripts/hash-passwords.js"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +15,6 @@
   "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.8.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",

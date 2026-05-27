@@ -2,7 +2,6 @@
   "brandName": "Demo ordinacija",
   "pageTitle": "Rezervirajte termin",
   "clinicEmail": "makstomic2009@gmail.com",
-  "adminToken": "123456789",
   "theme": {
     "accent": "#0d9488",
     "accent2": "#0b7a70",
@@ -43,5 +42,5 @@
       "price": ""
     }
   ],
-  "adminPasswordHash": "$2a$12$mcIF334EBPNNsA.FY9MWweZddr9dajxjU22z3jT6K.v0EsGpT6Nty"
+  "adminPasswordHash": "$2a$12$DRnFu1OQV1Qe2xsNetoUXugRnrKUYGnSf7Xv.ls4LzAYpqSHDtLuG"
 }
