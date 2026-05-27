@@ -84,6 +84,8 @@
       flex: 1;
       padding: 10px 0;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
     }
 
     .sidebar-section-label {
@@ -165,9 +167,8 @@
       border-radius: 2px;
     }
 
-    #adminTitle { font-size: 14px; font-weight: 600; color: var(--text); }
-    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-    .topbar-ordinacija { font-size: 12px; color: var(--muted); display: none; }
+    .topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .topbar-brand { margin-left: auto; font-size: 12px; color: var(--muted); display: none; }
 
     /* ── Main ── */
     #main {
@@ -1181,22 +1182,65 @@
       z-index: 15;
     }
 
-    #overlay.aktivan { display: block; }
+    #overlay.is-open { display: block; }
+
+    /* ── Sidebar icons ── */
+    .sidebar-item img { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.6; filter: invert(1); }
+    .sidebar-item.active img { opacity: 1; }
+    .sidebar-logout img { filter: invert(1); }
+
+    /* ── Sidebar logout ── */
+    .sidebar-logout-wrap { padding: 12px 12px 16px; margin-top: auto; }
+    .sidebar-logout {
+      width: 100%; padding: 9px 12px;
+      background: transparent; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 7px; color: rgba(255,255,255,0.45);
+      font-family: var(--font); font-size: 12px; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      transition: all 0.15s;
+    }
+    .sidebar-logout:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.75); }
+    .sidebar-logout img { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.6; }
+
+    /* ── Bottom tabs (mobile) ── */
+    .bottom-tabs { display: none; }
+    @media (max-width: 768px) {
+      .bottom-tabs {
+        display: flex;
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: #fff; border-top: 1px solid var(--border-light);
+        z-index: 15; padding: 6px 0 8px;
+        box-shadow: 0 -2px 8px rgba(15,23,42,0.05);
+      }
+      .bottom-tab {
+        flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+        background: none; border: none; padding: 6px 4px;
+        color: var(--muted); font-family: var(--font); font-size: 10px; font-weight: 500;
+        cursor: pointer; position: relative;
+      }
+      .bottom-tab img { width: 20px; height: 20px; opacity: 0.5; }
+      .bottom-tab.active { color: var(--accent); }
+      .bottom-tab.active img { opacity: 1; filter: invert(38%) sepia(72%) saturate(456%) hue-rotate(142deg) brightness(92%) contrast(94%); }
+      .bottom-tab-badge { position: absolute; top: 2px; right: calc(50% - 18px); background: var(--accent); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 999px; min-width: 16px; text-align: center; display: none; }
+    }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
-      #topbar { display: flex; }
+      #topbar {
+        display: flex;
+        position: sticky; top: 0; z-index: 9;
+        padding: 12px 14px; height: auto;
+      }
       #sidebar { transform: translateX(-100%); }
-      #sidebar.otvoren { transform: translateX(0); }
-      #main { margin-left: 0; }
+      #sidebar.is-open { transform: translateX(0); }
+      #main { margin-left: 0; padding-bottom: 64px; }
       #menuToggle { display: flex; }
-      .topbar-ordinacija { display: block; }
+      .topbar-brand { display: block; }
       #content { padding: 14px; }
 
       .request-row { grid-template-columns: 90px 1fr; gap: 12px; }
       .req-actions { grid-column: 1 / -1; flex-direction: row; }
 
-      /* kal-layout removed */
       .rv-dan-row { grid-template-columns: 90px 36px 1fr; gap: 8px; }
       .tel-grid-3, .tel-grid-4 { grid-template-columns: 1fr; }
     }
@@ -1206,20 +1250,7 @@
       .kal-dan { min-height: 64px; }
     }
 
-    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-
-    .sidebar-odjava-btn {
-      width:100%; padding:9px 12px;
-      background:transparent; border:1px solid rgba(255,255,255,0.12);
-      border-radius:7px; color:rgba(255,255,255,0.45);
-      font-family:var(--font); font-size:12px; font-weight:500;
-      cursor:pointer; display:flex; align-items:center; gap:8px;
-      transition:all 0.15s;
-    }
-    .sidebar-odjava-btn:hover {
-      background:rgba(255,255,255,0.07);
-      color:rgba(255,255,255,0.75);
-    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
 </head>
 <body>
@@ -1228,7 +1259,7 @@
 
   <aside id="sidebar">
     <div class="sidebar-logo">
-      <div class="sidebar-logo-text">Ordin<span>ova</span></div>
+      <img src="/img/logo-dark.svg" alt="Ordinova" style="height:20px; display:block;">
       <div class="sidebar-brand" id="sidebarBrand">Admin panel</div>
     </div>
 
@@ -1236,10 +1267,7 @@
       <div class="sidebar-section-label">Zahtjevi</div>
 
       <div class="sidebar-item active" id="nav-cekanje">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
-          <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>
-        </svg>
+        <img src="/icons/inbox.svg" alt="">
         Na čekanju
         <span class="nav-badge" id="nav-pending-badge" style="display:none;"></span>
       </div>
@@ -1247,62 +1275,69 @@
       <div class="sidebar-section-label">Raspored</div>
 
       <div class="sidebar-item" id="nav-kalendar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="0"/>
-          <line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="8" y1="2" x2="8" y2="6"/>
-          <line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
+        <img src="/icons/calendar.svg" alt="">
         Kalendar
       </div>
 
       <div class="sidebar-item" id="nav-radno-vrijeme">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
+        <img src="/icons/clock.svg" alt="">
         Radno vrijeme
       </div>
 
       <div class="sidebar-section-label">Unos</div>
 
       <div class="sidebar-item" id="nav-telefon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.18 4.32 2 2 0 012.18 2H5.1a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-        </svg>
+        <img src="/icons/phone.svg" alt="">
         Telefon
       </div>
 
       <div class="sidebar-section-label">Konfiguracija</div>
 
       <div class="sidebar-item" id="nav-postavke">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-        </svg>
+        <img src="/icons/settings.svg" alt="">
         Postavke
       </div>
 
-      <div style="padding: 12px 12px 16px; margin-top: auto;">
-        <button id="odjavaBtn" class="sidebar-odjava-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
+      <div class="sidebar-logout-wrap">
+        <button id="odjavaBtn" class="sidebar-logout">
+          <img src="/icons/logout.svg" alt="">
           Odjava
         </button>
       </div>
     </nav>
   </aside>
 
+  <nav class="bottom-tabs" id="bottomTabs">
+    <button type="button" class="bottom-tab active" id="btab-cekanje">
+      <img src="/icons/inbox.svg" alt="">
+      <span>Čekanje</span>
+      <span class="bottom-tab-badge" id="btab-badge"></span>
+    </button>
+    <button type="button" class="bottom-tab" id="btab-kalendar">
+      <img src="/icons/calendar.svg" alt="">
+      <span>Kalendar</span>
+    </button>
+    <button type="button" class="bottom-tab" id="btab-radno-vrijeme">
+      <img src="/icons/clock.svg" alt="">
+      <span>Radno</span>
+    </button>
+    <button type="button" class="bottom-tab" id="btab-telefon">
+      <img src="/icons/phone.svg" alt="">
+      <span>Telefon</span>
+    </button>
+    <button type="button" class="bottom-tab" id="btab-postavke">
+      <img src="/icons/settings.svg" alt="">
+      <span>Postavke</span>
+    </button>
+  </nav>
+
   <div id="main">
     <div id="topbar">
       <button id="menuToggle" aria-label="Otvori meni">
         <span></span><span></span><span></span>
       </button>
-      <h2 id="adminTitle">Admin</h2>
-      <div class="topbar-right">
-        <span class="topbar-ordinacija" id="topbarOrdinacija"></span>
-      </div>
+      <span id="adminTitle" class="topbar-title">Admin</span>
+      <span class="topbar-brand" id="topbarOrdinacija"></span>
     </div>
     <div id="content">
       <div id="zahtjevi"></div>
@@ -1311,12 +1346,12 @@
 
   <script>
     function toggleMeni() {
-      document.getElementById("sidebar").classList.toggle("otvoren");
-      document.getElementById("overlay").classList.toggle("aktivan");
+      document.getElementById("sidebar").classList.toggle("is-open");
+      document.getElementById("overlay").classList.toggle("is-open");
     }
     function zatvoriMeni() {
-      document.getElementById("sidebar").classList.remove("otvoren");
-      document.getElementById("overlay").classList.remove("aktivan");
+      document.getElementById("sidebar").classList.remove("is-open");
+      document.getElementById("overlay").classList.remove("is-open");
     }
     document.getElementById("overlay").addEventListener("click", zatvoriMeni);
     document.getElementById("menuToggle").addEventListener("click", toggleMeni);
@@ -1335,6 +1370,34 @@
           d.previousElementSibling?.classList.remove("is-open");
         });
       }
+    });
+
+    // Bottom tabs — mirror sidebar navigation
+    const BTAB_TABS = ["cekanje", "kalendar", "radno-vrijeme", "telefon", "postavke"];
+    BTAB_TABS.forEach(tab => {
+      const btn = document.getElementById(`btab-${tab}`);
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        document.getElementById(`nav-${tab}`)?.click();
+      });
+    });
+
+    // Keep bottom tabs in sync with sidebar active state
+    const _origPromijeniTab = window.promijeniTab;
+    function syncBottomTabs(tab) {
+      BTAB_TABS.forEach(t => {
+        document.getElementById(`btab-${t}`)?.classList.toggle("active", t === tab);
+      });
+    }
+    // Will be hooked after admin.js loads via MutationObserver on sidebar items
+    const _tabObserver = new MutationObserver(() => {
+      const activeItem = document.querySelector(".sidebar-item.active");
+      if (!activeItem) return;
+      const tab = activeItem.id?.replace("nav-", "");
+      if (tab) syncBottomTabs(tab);
+    });
+    document.querySelectorAll(".sidebar-item").forEach(el => {
+      _tabObserver.observe(el, { attributes: true, attributeFilter: ["class"] });
     });
   </script>
 
