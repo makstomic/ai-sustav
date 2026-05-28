@@ -979,6 +979,58 @@
       font-family: var(--font); white-space: nowrap;
     }
 
+    /* Phone admin mockup (pam-*) */
+    .pam-root {
+      background: #f8fafc; height: 100%; overflow-y: auto;
+      display: flex; flex-direction: column; padding-top: 24px;
+      font-family: var(--font);
+    }
+    .pam-topbar {
+      background: #1e2a38; padding: 11px 14px;
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .pam-topbar-logo { font-size: 13px; font-weight: 800; color: #fff; }
+    .pam-topbar-logo span { color: #0d9488; }
+    .pam-topbar-page { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.45); margin-left: auto; }
+    .pam-tabs {
+      display: flex; background: #e5e7eb;
+      border-bottom: 1px solid rgba(15,23,42,0.08);
+      flex-shrink: 0; overflow-x: auto;
+    }
+    .pam-tab {
+      padding: 8px 10px; font-family: var(--font); font-size: 11px;
+      font-weight: 600; color: var(--muted); background: none; border: none;
+      border-bottom: 2px solid transparent; cursor: pointer; margin-bottom: -1px;
+      white-space: nowrap; display: flex; align-items: center; gap: 4px;
+    }
+    .pam-tab.active { color: #0d9488; border-bottom-color: #0d9488; }
+    .pam-tab-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 4px;
+      border-radius: 999px; background: rgba(13,148,136,0.12); color: #0d9488;
+    }
+    .pam-req {
+      display: flex; gap: 10px; padding: 12px 14px;
+      border-bottom: 1px solid rgba(15,23,42,0.06);
+      background: #fff; align-items: flex-start; flex-shrink: 0;
+    }
+    .pam-when { flex-shrink: 0; width: 46px; text-align: center; padding-top: 2px; }
+    .pam-when-time { font-size: 15px; font-weight: 800; color: #0d9488; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .pam-when-date { font-size: 9px; color: var(--muted); font-weight: 600; }
+    .pam-info { flex: 1; min-width: 0; }
+    .pam-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .pam-svc { font-size: 10px; color: var(--muted); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pam-btns { display: flex; gap: 6px; }
+    .pam-btn-ok {
+      padding: 5px 10px; background: #0d9488; color: #fff;
+      border: none; border-radius: 5px; font-size: 10px; font-weight: 700;
+      cursor: pointer; font-family: var(--font);
+    }
+    .pam-btn-no {
+      padding: 5px 10px; background: #fff; color: var(--muted);
+      border: 1px solid rgba(15,23,42,0.12); border-radius: 5px;
+      font-size: 10px; font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+
     /* ========================
        AI asistent mockup — perspektiva korisnika
        (ai-page-sim, ai-chat-panel, ai-chips, ai-fab-btn)
@@ -2210,6 +2262,54 @@
         </div>
       </div>
 
+      <!-- Phone frame — admin mobilni prikaz -->
+      <div class="phone-view" id="phoneViewAdmin">
+        <div class="phone-device">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <div class="pam-root">
+              <div class="pam-topbar">
+                <span class="pam-topbar-logo">Ordin<span>ova</span></span>
+                <span class="pam-topbar-page">Na čekanju</span>
+              </div>
+              <div class="pam-tabs">
+                <button class="pam-tab active">Na čekanju <span class="pam-tab-badge">2</span></button>
+                <button class="pam-tab">Potvrđeno</button>
+                <button class="pam-tab">Odbijeno</button>
+              </div>
+              <div class="pam-req">
+                <div class="pam-when">
+                  <div class="pam-when-time">10:00</div>
+                  <div class="pam-when-date">09.04.</div>
+                </div>
+                <div class="pam-info">
+                  <div class="pam-name">Marko Horvat</div>
+                  <div class="pam-svc">Opći pregled &middot; Dr. Novak</div>
+                  <div class="pam-btns">
+                    <button class="pam-btn-ok">Potvrdi</button>
+                    <button class="pam-btn-no">Odbij</button>
+                  </div>
+                </div>
+              </div>
+              <div class="pam-req">
+                <div class="pam-when">
+                  <div class="pam-when-time">14:00</div>
+                  <div class="pam-when-date">10.04.</div>
+                </div>
+                <div class="pam-info">
+                  <div class="pam-name">Ana Kovačević</div>
+                  <div class="pam-svc">Kontrolni pregled &middot; Dr. Novak</div>
+                  <div class="pam-btns">
+                    <button class="pam-btn-ok">Potvrdi</button>
+                    <button class="pam-btn-no">Odbij</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ---- Tab: Admin panel ---- -->
       <!-- Replika novog admin.html dizajna s dark sidebarom -->
       <div id="tab-admin" class="tab-panel" role="tabpanel">
@@ -2259,52 +2359,50 @@
                 <span class="am-topbar-title">Na čekanju</span>
               </div>
               <div class="am-content">
-
                 <div class="am-page-heading">
                   <h2>Na čekanju</h2>
                   <span class="am-page-heading-meta">2 zahtjeva za obradu</span>
                 </div>
+              </div>
 
-                <div class="am-status-tabs">
-                  <button class="am-status-tab active">Na čekanju <span class="am-tab-count">2</span></button>
-                  <button class="am-status-tab">Potvrđeno <span class="am-tab-count am-tab-count-muted">0</span></button>
-                  <button class="am-status-tab">Odbijeno <span class="am-tab-count am-tab-count-muted">0</span></button>
+              <div class="am-status-tabs">
+                <button class="am-status-tab active">Na čekanju <span class="am-tab-count">2</span></button>
+                <button class="am-status-tab">Potvrđeno <span class="am-tab-count am-tab-count-muted">0</span></button>
+                <button class="am-status-tab">Odbijeno <span class="am-tab-count am-tab-count-muted">0</span></button>
+              </div>
+
+              <!-- Zahtjev 1 -->
+              <div class="am-req-row">
+                <div class="am-when">
+                  <div class="am-when-date">09.04.2026.</div>
+                  <div class="am-when-time">10:00</div>
                 </div>
-
-                <!-- Zahtjev 1 -->
-                <div class="am-req-row">
-                  <div class="am-when">
-                    <div class="am-when-date">09.04.2026.</div>
-                    <div class="am-when-time">10:00</div>
-                  </div>
-                  <div class="am-req-info">
-                    <div class="am-req-name">Marko Horvat</div>
-                    <div class="am-req-contact">marko.horvat@gmail.com</div>
-                    <div class="am-req-service">Opći pregled &middot; Dr. Novak</div>
-                  </div>
-                  <div class="am-req-actions">
-                    <button class="am-btn-potvrdi-new">Potvrdi</button>
-                    <button class="am-btn-odbij-new">Odbij</button>
-                  </div>
+                <div class="am-req-info">
+                  <div class="am-req-name">Marko Horvat</div>
+                  <div class="am-req-contact">marko.horvat@gmail.com</div>
+                  <div class="am-req-service">Opći pregled &middot; Dr. Novak</div>
                 </div>
-
-                <!-- Zahtjev 2 -->
-                <div class="am-req-row">
-                  <div class="am-when">
-                    <div class="am-when-date">10.04.2026.</div>
-                    <div class="am-when-time">14:00</div>
-                  </div>
-                  <div class="am-req-info">
-                    <div class="am-req-name">Ana Kovačević</div>
-                    <div class="am-req-contact">ana.kovacevic@gmail.com</div>
-                    <div class="am-req-service">Kontrolni pregled &middot; Dr. Novak</div>
-                  </div>
-                  <div class="am-req-actions">
-                    <button class="am-btn-potvrdi-new">Potvrdi</button>
-                    <button class="am-btn-odbij-new">Odbij</button>
-                  </div>
+                <div class="am-req-actions">
+                  <button class="am-btn-potvrdi-new">Potvrdi</button>
+                  <button class="am-btn-odbij-new">Odbij</button>
                 </div>
+              </div>
 
+              <!-- Zahtjev 2 -->
+              <div class="am-req-row">
+                <div class="am-when">
+                  <div class="am-when-date">10.04.2026.</div>
+                  <div class="am-when-time">14:00</div>
+                </div>
+                <div class="am-req-info">
+                  <div class="am-req-name">Ana Kovačević</div>
+                  <div class="am-req-contact">ana.kovacevic@gmail.com</div>
+                  <div class="am-req-service">Kontrolni pregled &middot; Dr. Novak</div>
+                </div>
+                <div class="am-req-actions">
+                  <button class="am-btn-potvrdi-new">Potvrdi</button>
+                  <button class="am-btn-odbij-new">Odbij</button>
+                </div>
               </div>
             </div>
           </div>
@@ -2637,21 +2735,32 @@
   <script>
     // Prebacivanje tabova u preview sekciji
     function switchTab(name, btnEl) {
-      // Sakrij sve panele
       document.querySelectorAll('.tab-panel').forEach(function(p) {
         p.classList.remove('active');
       });
-      // Ukloni active klasu sa svih gumba
       document.querySelectorAll('.tab-btn').forEach(function(b) {
         b.classList.remove('active');
         b.setAttribute('aria-selected', 'false');
       });
-      // Prikaži odabrani panel
       var panel = document.getElementById('tab-' + name);
       if (panel) panel.classList.add('active');
-      // Označi odabrani gumb
       btnEl.classList.add('active');
       btnEl.setAttribute('aria-selected', 'true');
+
+      // Ako smo u mobilnom modu, zamijeni phone view prema aktivnom tabu
+      var phoneView      = document.getElementById('phoneView');
+      var phoneViewAdmin = document.getElementById('phoneViewAdmin');
+      var isMobile = phoneView.classList.contains('aktivan') || phoneViewAdmin.classList.contains('aktivan');
+      if (isMobile) {
+        phoneView.classList.remove('aktivan');
+        phoneViewAdmin.classList.remove('aktivan');
+        if (name === 'admin') {
+          phoneViewAdmin.classList.add('aktivan');
+        } else {
+          phoneView.classList.add('aktivan');
+        }
+        document.querySelectorAll('.tab-panel').forEach(function(p) { p.style.display = 'none'; });
+      }
     }
 
     // Prebacivanje između desktop i mobilnog prikaza
@@ -2661,21 +2770,28 @@
       });
       btnEl.classList.add('active');
 
-      var phoneView = document.getElementById('phoneView');
+      var phoneView      = document.getElementById('phoneView');
+      var phoneViewAdmin = document.getElementById('phoneViewAdmin');
       var tabPanels = document.querySelectorAll('.tab-panel');
       var tabNav    = document.querySelector('.tab-nav');
 
       if (mode === 'mobile') {
-        // Prikaži phone frame, sakrij tab panele i tab nav
-        phoneView.classList.add('aktivan');
+        phoneView.classList.remove('aktivan');
+        phoneViewAdmin.classList.remove('aktivan');
         tabPanels.forEach(function(p) { p.style.display = 'none'; });
         tabNav.style.visibility = 'hidden';
+        var activeBtn = document.querySelector('.tab-btn.active');
+        var tabName = activeBtn ? activeBtn.getAttribute('aria-controls') : 'tab-booking';
+        if (tabName === 'tab-admin') {
+          phoneViewAdmin.classList.add('aktivan');
+        } else {
+          phoneView.classList.add('aktivan');
+        }
       } else {
-        // Vrati desktop prikaz
         phoneView.classList.remove('aktivan');
+        phoneViewAdmin.classList.remove('aktivan');
         tabPanels.forEach(function(p) { p.style.display = ''; });
         tabNav.style.visibility = '';
-        // Aktiviraj prvi aktivni tab panel
         var activeBtn = document.querySelector('.tab-btn.active');
         if (activeBtn) {
           var panelId = activeBtn.getAttribute('aria-controls');
