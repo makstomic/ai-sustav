@@ -86,13 +86,32 @@ function buildCsHTML(fieldId, selectedValue, options, placeholder) {
   </div>`;
 }
 
+function _csPosition(fieldId) {
+  const wrap = document.getElementById(`${fieldId}-cs`);
+  const pop  = document.getElementById(`${fieldId}-pop`);
+  if (!wrap || !pop) return;
+  const trigger = wrap.querySelector(".cs-trigger");
+  if (!trigger) return;
+  const r = trigger.getBoundingClientRect();
+  pop.style.top   = (r.bottom + 6) + "px";
+  pop.style.width = r.width + "px";
+  if (pop.classList.contains("cs-pop--cal")) {
+    pop.style.left  = "auto";
+    pop.style.right = (window.innerWidth - r.right) + "px";
+    pop.style.width = "260px";
+  } else {
+    pop.style.left  = r.left + "px";
+    pop.style.right = "auto";
+  }
+}
+
 function csToggle(fieldId, e) {
   if (e) e.stopPropagation();
   const wrap = document.getElementById(`${fieldId}-cs`);
   if (!wrap) return;
   const opening = !wrap.classList.contains("is-open");
   document.querySelectorAll(".cs-wrap.is-open").forEach(w => w.classList.remove("is-open"));
-  if (opening) wrap.classList.add("is-open");
+  if (opening) { wrap.classList.add("is-open"); _csPosition(fieldId); }
 }
 
 function csOptClick(btn, fieldId) {
@@ -195,7 +214,7 @@ function dpToggle(fieldId, e) {
   if (!wrap) return;
   const opening = !wrap.classList.contains("is-open");
   document.querySelectorAll(".cs-wrap.is-open").forEach(w => w.classList.remove("is-open"));
-  if (opening) { wrap.classList.add("is-open"); _dpRenderGrid(fieldId); }
+  if (opening) { wrap.classList.add("is-open"); _dpRenderGrid(fieldId); _csPosition(fieldId); }
 }
 
 function dpNav(fieldId, dir, e) {
