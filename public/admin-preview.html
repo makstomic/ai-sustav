@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff; --bg-soft: #f8fafc; --bg-tint: #f3f4f6;
+      --surface: #e5e7eb; --text: #0f172a; --muted: #64748b; --muted-2: #94a3b8;
+      --accent: #0d9488; --accent-2: #0f766e;
+      --accent-soft: rgba(13,148,136,0.08); --accent-ring: rgba(13,148,136,0.12);
+      --border: rgba(15,23,42,0.09); --border-firm: #d1d5db; --border-light: #e5e7eb;
+      --danger: #dc2626; --danger-soft: #fef2f2; --danger-border: #fca5a5;
+      --font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: var(--font); color: var(--text);
+      display: flex; height: 100vh;
+      -webkit-font-smoothing: antialiased; background: #f8fafc;
+    }
+
+    /* ── Sidebar ── */
+    #mk-sidebar {
+      width: 200px; background: #1e2a38;
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .sidebar-logo { padding: 18px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .sidebar-logo-text { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+    .sidebar-logo-text span { color: #0d9488; }
+    .sidebar-brand { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; display: flex; flex-direction: column; }
+    .sidebar-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+      color: rgba(255,255,255,0.22); padding: 12px 18px 4px;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 18px 9px 15px; font-size: 13px; font-weight: 500;
+      color: rgba(255,255,255,0.48); cursor: pointer; border-left: 3px solid transparent;
+      user-select: none; transition: background 0.1s, color 0.1s;
+    }
+    .sidebar-item:hover { color: rgba(255,255,255,0.82); background: rgba(255,255,255,0.05); }
+    .sidebar-item.active { color: #fff; background: rgba(13,148,136,0.16); border-left-color: #0d9488; }
+    .sidebar-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.6; }
+    .sidebar-item.active svg { opacity: 1; }
+    .nav-badge { margin-left: auto; background: #0d9488; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
+    .sidebar-logout-wrap { padding: 10px 10px 14px; margin-top: auto; }
+    .sidebar-logout {
+      width: 100%; padding: 8px 12px; background: transparent;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 7px;
+      color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 500;
+      font-family: var(--font); cursor: pointer; display: flex; align-items: center; gap: 8px;
+    }
+    .sidebar-logout svg { width: 14px; height: 14px; opacity: 0.5; }
+
+    /* ── Main ── */
+    #mk-main { flex: 1; overflow-y: auto; overflow-x: hidden; }
+    #mk-content { padding: 22px 24px; pointer-events: none; }
+
+    /* ── Page heading ── */
+    .page-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .page-heading h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+    .page-heading-meta { font-size: 12px; color: var(--muted); }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--bg); border: 1px solid #e0e2e6; border-radius: 12px;
+      overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    }
+    .panel + .panel { margin-top: 20px; }
+    .panel-head {
+      padding: 0 22px; border-bottom: 1px solid #d1d5db; background: #e5e7eb;
+      display: flex; align-items: stretch; min-height: 48px;
+    }
+    .panel-head--padded { align-items: center; padding: 12px 22px; min-height: auto; justify-content: space-between; }
+    .panel-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .panel-meta { font-size: 12px; color: var(--muted); }
+    .panel-meta-inline { font-size: 12px; color: var(--muted); }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      padding: 10px 22px; border-bottom: 1px solid var(--border); background: #e5e7eb;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    }
+    .filter-bar-left { display: flex; align-items: center; gap: 12px; }
+    .filter-bar-right { display: flex; align-items: center; gap: 8px; }
+    .filter-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
+
+    /* ── Status tabs ── */
+    .status-tabs { display: flex; height: 100%; }
+    .status-tab {
+      padding: 0 18px; height: 48px; background: transparent; border: none;
+      border-right: 1px solid var(--border-light); font-size: 13px; color: var(--muted);
+      cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+      position: relative; font-family: var(--font); font-weight: 500; white-space: nowrap;
+    }
+    .status-tab:last-child { border-right: none; }
+    .status-tab.is-active { color: var(--text); font-weight: 600; }
+    .status-tab.is-active::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -1px;
+      height: 2px; background: #0d9488;
+    }
+    .status-tab-count {
+      font-size: 10px; padding: 1px 6px; background: #f1efe8;
+      color: var(--muted); border: 1px solid var(--border-light); font-weight: 400;
+    }
+    .status-tab.is-active .status-tab-count {
+      background: rgba(13,148,136,0.08); color: #0d9488; border-color: rgba(13,148,136,0.3);
+    }
+
+    /* ── Request rows ── */
+    .request-row {
+      display: grid; grid-template-columns: 110px 1fr auto; gap: 22px;
+      padding: 16px 22px; border-bottom: 1px solid var(--border-light);
+      align-items: flex-start; background: var(--bg);
+    }
+    .request-row:last-child { border-bottom: none; }
+    .when { border-left: 2px solid #0d9488; padding: 1px 0 1px 11px; }
+    .when-date { font-size: 13px; font-weight: 600; color: var(--text); }
+    .when-time { font-size: 12px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .req-info { min-width: 0; }
+    .req-name-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+    .req-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .req-contact { font-size: 12px; color: var(--muted); }
+    .req-service { display: inline-block; font-size: 11px; padding: 2px 8px; background: var(--surface); color: var(--text); border: 1px solid var(--border-light); }
+    .req-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .req-btn-group { display: flex; }
+    .btn-odbij {
+      padding: 7px 13px; background: var(--bg); color: var(--text);
+      border: 1px solid var(--border); border-right: none; border-radius: 7px 0 0 7px;
+      font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--font);
+    }
+    .btn-prihvati {
+      padding: 7px 13px; background: #0d9488; color: #fff;
+      border: 1px solid #0d9488; border-radius: 0 7px 7px 0;
+      font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+
+    /* ── Segmented control ── */
+    .seg-ctrl { display: flex; background: #e5e7eb; border-radius: 8px; padding: 3px; gap: 2px; }
+    .seg-btn {
+      padding: 5px 13px; font-size: 12px; font-weight: 500; border-radius: 6px;
+      border: none; background: transparent; color: var(--muted);
+      cursor: pointer; font-family: var(--font); white-space: nowrap;
+    }
+    .seg-btn.is-active { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+
+    /* ── Kalendar ── */
+    .kal-container { border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); border: 1px solid #e0e2e6; }
+    .kal-mjes { font-size: 13px; font-weight: 600; color: var(--text); min-width: 120px; text-align: center; }
+    .kal-nav-btn {
+      background: transparent; border: 1px solid #9ca3af; color: #374151;
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      font-size: 13px; font-weight: 600; font-family: var(--font);
+    }
+    .kal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .kal-header-dan {
+      padding: 9px 6px; font-size: 10px; font-weight: 700; color: #4b5563;
+      text-transform: uppercase; letter-spacing: 0.08em; background: #d1d5db;
+      border-right: 1px solid #b8bcc4; border-bottom: 1px solid #b8bcc4; text-align: center;
+    }
+    .kal-header-dan:last-child { border-right: none; }
+    .kal-dan {
+      min-height: 68px; display: flex; flex-direction: column; padding: 7px 9px;
+      border-right: 1px solid #c9cdd4; border-bottom: 1px solid #c9cdd4; background: #f3f4f6;
+    }
+    .kal-dan:nth-child(7n) { border-right: none; }
+    .kal-dan.kal-vikend { background: #dde0e5; }
+    .kal-dan.kal-prazan { background: #d8dbe0; opacity: 0.7; }
+    .kal-dan.kal-danas { background: var(--accent-ring) !important; }
+    .kal-dan-num {
+      font-size: 12px; font-weight: 700; color: var(--text); line-height: 1;
+      width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 5px;
+    }
+    .kal-dan.kal-vikend .kal-dan-num, .kal-dan.kal-prazan .kal-dan-num { color: var(--muted-2); font-weight: 500; }
+    .kal-dan.kal-danas .kal-dan-num { background: #0d9488; color: #fff; }
+    .kal-count {
+      margin-top: auto; display: inline-flex; align-items: center; justify-content: center;
+      background: #0d9488; color: #fff; font-size: 10px; font-weight: 600;
+      padding: 1px 6px; border-radius: 999px; align-self: flex-start; opacity: 0.9;
+    }
+
+    /* ── Custom select trigger ── */
+    .cs-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 11px; background: #fff; border: 1px solid #d1d5db; border-radius: 6px;
+      font-family: var(--font); font-size: 13px; color: var(--text); cursor: pointer; gap: 8px;
+    }
+    .cs-value { flex: 1; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+    .cs-chev { color: var(--muted); flex-shrink: 0; }
+
+    /* ── Radno vrijeme ── */
+    .rv-panel {
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      border: 1px solid #e0e2e6; background: var(--bg);
+    }
+    .rv-tablica-wrap { padding: 18px 22px 0; overflow-x: auto; }
+    .rv-tablica { width: 100%; border-collapse: collapse; }
+    .rv-th {
+      background: #d1d5db; color: #4b5563; font-size: 10px; font-weight: 700;
+      padding: 8px 6px; text-align: center;
+      border-right: 1px solid #b8bcc4; border-bottom: 1px solid #b8bcc4;
+    }
+    .rv-th:last-child { border-right: none; }
+    .rv-th-name { text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .rv-neradan-label { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 500; text-transform: none; letter-spacing: 0; color: #6b7280; cursor: pointer; }
+    .rv-neradan-cb { width: 10px; height: 10px; accent-color: #0d9488; }
+    .rv-td {
+      padding: 10px 8px; border-right: 1px solid rgba(0,0,0,0.06);
+      border-bottom: 1px solid rgba(0,0,0,0.06); background: #f3f4f6; vertical-align: middle;
+    }
+    .rv-td:last-child { border-right: none; }
+    .rv-td-neradan { background: #dde0e5; }
+    .rv-td-label {
+      background: #e5e7eb; text-align: center; font-size: 10px; font-weight: 700;
+      color: #6b7280; letter-spacing: 0.06em; text-transform: uppercase;
+      vertical-align: middle; border-right: 1px solid rgba(0,0,0,0.08); width: 72px;
+    }
+    .rv-time-group { display: flex; align-items: center; gap: 5px; }
+    .rv-time-input {
+      width: 100%; padding: 4px 5px; border: 1px solid #d1d5db; border-radius: 5px;
+      font-size: 11px; font-family: var(--font); color: var(--text); background: #fff;
+    }
+    .rv-time-input:disabled { background: transparent; border-color: transparent; color: #aab0ba; }
+    .rv-alt-wrap {
+      padding: 10px 22px; display: flex; align-items: center; gap: 10px;
+      border-top: 1px solid var(--border-light); background: var(--bg-soft);
+    }
+    .rv-alt-label { font-size: 13px; font-weight: 500; color: var(--text); }
+    .rv-alt-switch {
+      width: 34px; height: 18px; appearance: none; -webkit-appearance: none;
+      background: #cbd5e1; border-radius: 999px; position: relative; flex-shrink: 0;
+    }
+    .rv-alt-switch::after {
+      content: ''; position: absolute; width: 12px; height: 12px;
+      background: #fff; border-radius: 50%; top: 3px; left: 3px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .rv-footer {
+      padding: 12px 22px; border-top: 1px solid var(--border-light);
+      background: #e5e7eb; display: flex; align-items: center; justify-content: flex-end;
+    }
+    .rv-spremi-btn {
+      padding: 8px 22px; background: #0d9488; color: #fff; border: none;
+      border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+
+    /* ── Telefon tab ── */
+    .tel-panel {
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      border: 1px solid #e0e2e6;
+    }
+    .tel-body { padding: 18px 22px 4px; display: flex; flex-direction: column; gap: 18px; }
+    .tel-section { display: flex; flex-direction: column; }
+    .tel-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+    .tel-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .tel-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .tel-label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .tel-input { width: 100%; padding: 8px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-family: var(--font); color: var(--text); background: #fff; }
+    .tel-textarea { width: 100%; padding: 8px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-family: var(--font); color: var(--text); background: #fff; resize: vertical; min-height: 52px; }
+    .tel-footer { padding: 12px 22px; border-top: 1px solid var(--border-light); background: #e5e7eb; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .tel-submit { padding: 8px 22px; background: #0d9488; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; font-family: var(--font); cursor: pointer; }
+    .tel-status { font-size: 12px; color: var(--muted); min-height: 18px; }
+
+    /* ── Postavke ── */
+    .post-panel { border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); border: 1px solid #e0e2e6; }
+    .post-panel + .post-panel { margin-top: 20px; }
+    .post-item { display: flex; align-items: center; padding: 11px 22px; border-bottom: 1px solid var(--border-light); gap: 12px; background: #fafafa; }
+    .post-item:last-child { border-bottom: none; }
+    .post-item-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+    .post-item-badge { font-size: 11px; padding: 2px 8px; background: var(--surface); border: 1px solid var(--border-light); color: var(--muted); border-radius: 4px; }
+    .post-item-del { background: none; border: 1px solid transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .post-item-del svg { width: 13px; height: 13px; }
+    .post-add-form { padding: 12px 22px; border-top: 1px solid var(--border-light); background: #f3f4f6; display: flex; gap: 10px; align-items: center; }
+    .post-input { flex: 1; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-family: var(--font); color: var(--text); background: #fff; }
+    .post-select {
+      padding: 7px 28px 7px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+      font-size: 13px; font-family: var(--font); color: var(--text);
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F5E5A' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+      appearance: none; flex-shrink: 0;
+    }
+    .post-add-btn { padding: 7px 16px; background: #0d9488; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: var(--font); cursor: pointer; flex-shrink: 0; }
+
+    /* ── View switching ── */
+    .mk-view { display: none; }
+    .mk-view.is-active { display: block; }
+
+    /* ── Trash SVG shared ── */
+    .trash-svg { pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<aside id="mk-sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-text">Ordin<span>ova</span></div>
+    <div class="sidebar-brand">Demo ordinacija</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Zahtjevi</div>
+    <div class="sidebar-item active" id="nav-cekanje" onclick="showView('cekanje')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
+      Na čekanju
+      <span class="nav-badge">2</span>
+    </div>
+    <div class="sidebar-section-label">Raspored</div>
+    <div class="sidebar-item" id="nav-kalendar" onclick="showView('kalendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Kalendar
+    </div>
+    <div class="sidebar-item" id="nav-radno-vrijeme" onclick="showView('radno-vrijeme')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Radno vrijeme
+    </div>
+    <div class="sidebar-section-label">Unos</div>
+    <div class="sidebar-item" id="nav-telefon" onclick="showView('telefon')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.1 1.18 2 2 0 012.08 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+      Telefon
+    </div>
+    <div class="sidebar-section-label">Konfiguracija</div>
+    <div class="sidebar-item" id="nav-postavke" onclick="showView('postavke')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Postavke
+    </div>
+    <div class="sidebar-logout-wrap">
+      <button class="sidebar-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Odjava
+      </button>
+    </div>
+  </nav>
+</aside>
+
+<div id="mk-main">
+  <div id="mk-content">
+
+    <!-- ── Na čekanju ── -->
+    <div class="mk-view is-active" id="view-cekanje">
+      <div class="page-heading">
+        <h1>Na čekanju</h1>
+        <span class="page-heading-meta">2 zahtjeva za obradu</span>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="status-tabs">
+            <button class="status-tab is-active">Na čekanju <span class="status-tab-count">2</span></button>
+            <button class="status-tab">Potvrđeno <span class="status-tab-count">0</span></button>
+            <button class="status-tab">Odbijeno <span class="status-tab-count">0</span></button>
+          </div>
+        </div>
+        <div class="request-row">
+          <div class="when">
+            <div class="when-date">09.04.2026.</div>
+            <div class="when-time">10:00</div>
+          </div>
+          <div class="req-info">
+            <div class="req-name-row">
+              <span class="req-name">Marko Horvat</span>
+              <span class="req-contact">marko.horvat@gmail.com</span>
+            </div>
+            <span class="req-service">Opći pregled</span>
+          </div>
+          <div class="req-actions">
+            <div class="req-btn-group">
+              <button class="btn-odbij">Odbij</button>
+              <button class="btn-prihvati">Potvrdi</button>
+            </div>
+          </div>
+        </div>
+        <div class="request-row">
+          <div class="when">
+            <div class="when-date">10.04.2026.</div>
+            <div class="when-time">14:00</div>
+          </div>
+          <div class="req-info">
+            <div class="req-name-row">
+              <span class="req-name">Ana Kovačević</span>
+              <span class="req-contact">ana.kovacevic@gmail.com</span>
+            </div>
+            <span class="req-service">Kontrolni pregled</span>
+          </div>
+          <div class="req-actions">
+            <div class="req-btn-group">
+              <button class="btn-odbij">Odbij</button>
+              <button class="btn-prihvati">Potvrdi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Kalendar ── -->
+    <!-- Travanj 2026: 1.4. = srijeda → Monday-offset = 2 prazne ćelije -->
+    <div class="mk-view" id="view-kalendar">
+      <div class="page-heading"><h1>Kalendar</h1></div>
+      <div class="panel kal-container">
+        <div class="filter-bar">
+          <div class="filter-bar-left" style="gap:14px;">
+            <span class="filter-label">DOKTOR</span>
+            <div class="seg-ctrl">
+              <button class="seg-btn is-active">Svi</button>
+              <button class="seg-btn">Dr. Novak</button>
+              <button class="seg-btn">Dr. Babić</button>
+            </div>
+          </div>
+          <div class="filter-bar-right">
+            <button class="kal-nav-btn">&#8249;</button>
+            <span class="kal-mjes">Travanj 2026.</span>
+            <button class="kal-nav-btn">&#8250;</button>
+          </div>
+        </div>
+        <div class="kal-grid">
+          <div class="kal-header-dan">PON</div><div class="kal-header-dan">UTO</div><div class="kal-header-dan">SRI</div><div class="kal-header-dan">ČET</div><div class="kal-header-dan">PET</div><div class="kal-header-dan">SUB</div><div class="kal-header-dan">NED</div>
+          <div class="kal-dan kal-prazan"><span class="kal-dan-num"></span></div>
+          <div class="kal-dan kal-prazan"><span class="kal-dan-num"></span></div>
+          <div class="kal-dan"><span class="kal-dan-num">1</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">2</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">3</span></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">4</span></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">5</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">6</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">7</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">8</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">9</span><div class="kal-count">3</div></div>
+          <div class="kal-dan"><span class="kal-dan-num">10</span><div class="kal-count">2</div></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">11</span></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">12</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">13</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">14</span><div class="kal-count">4</div></div>
+          <div class="kal-dan"><span class="kal-dan-num">15</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">16</span><div class="kal-count">1</div></div>
+          <div class="kal-dan"><span class="kal-dan-num">17</span></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">18</span></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">19</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">20</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">21</span><div class="kal-count">2</div></div>
+          <div class="kal-dan"><span class="kal-dan-num">22</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">23</span><div class="kal-count">3</div></div>
+          <div class="kal-dan"><span class="kal-dan-num">24</span></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">25</span></div>
+          <div class="kal-dan kal-vikend"><span class="kal-dan-num">26</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">27</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">28</span></div>
+          <div class="kal-dan"><span class="kal-dan-num">29</span><div class="kal-count">1</div></div>
+          <div class="kal-dan"><span class="kal-dan-num">30</span></div>
+          <div class="kal-dan kal-prazan"><span class="kal-dan-num"></span></div>
+          <div class="kal-dan kal-prazan"><span class="kal-dan-num"></span></div>
+          <div class="kal-dan kal-prazan"><span class="kal-dan-num"></span></div>
+          <div class="kal-dan kal-prazan"><span class="kal-dan-num"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Radno vrijeme ── -->
+    <div class="mk-view" id="view-radno-vrijeme">
+      <div class="page-heading">
+        <h1>Radno vrijeme</h1>
+        <span class="page-heading-meta">Definirajte radne sate po doktoru i danu</span>
+      </div>
+      <div class="panel rv-panel">
+        <div class="filter-bar">
+          <div class="filter-bar-left" style="gap:12px;align-items:center;">
+            <span class="filter-label">DOKTOR</span>
+            <button class="cs-trigger" style="width:180px;">
+              <span class="cs-value">Dr. Novak</span>
+              <svg class="cs-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="rv-tablica-wrap">
+          <table class="rv-tablica">
+            <thead>
+              <tr>
+                <th class="rv-th" style="width:72px;"></th>
+                <th class="rv-th"><div class="rv-th-name">Pon</div><label class="rv-neradan-label"><input type="checkbox" class="rv-neradan-cb"> neradan</label></th>
+                <th class="rv-th"><div class="rv-th-name">Uto</div><label class="rv-neradan-label"><input type="checkbox" class="rv-neradan-cb"> neradan</label></th>
+                <th class="rv-th"><div class="rv-th-name">Sri</div><label class="rv-neradan-label"><input type="checkbox" class="rv-neradan-cb"> neradan</label></th>
+                <th class="rv-th"><div class="rv-th-name">Čet</div><label class="rv-neradan-label"><input type="checkbox" class="rv-neradan-cb"> neradan</label></th>
+                <th class="rv-th"><div class="rv-th-name">Pet</div><label class="rv-neradan-label"><input type="checkbox" class="rv-neradan-cb"> neradan</label></th>
+                <th class="rv-th"><div class="rv-th-name">Sub</div><label class="rv-neradan-label"><input type="checkbox" class="rv-neradan-cb" checked> neradan</label></th>
+                <th class="rv-th"><div class="rv-th-name">Ned</div><label class="rv-neradan-label"><input type="checkbox" class="rv-neradan-cb" checked> neradan</label></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="rv-td rv-td-label">Početak</td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="08:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="08:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="08:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="08:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="08:00"></div></td>
+                <td class="rv-td rv-td-neradan"><div class="rv-time-group"><input class="rv-time-input" type="time" disabled></div></td>
+                <td class="rv-td rv-td-neradan"><div class="rv-time-group"><input class="rv-time-input" type="time" disabled></div></td>
+              </tr>
+              <tr>
+                <td class="rv-td rv-td-label">Kraj</td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="16:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="16:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="16:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="16:00"></div></td>
+                <td class="rv-td"><div class="rv-time-group"><input class="rv-time-input" type="time" value="16:00"></div></td>
+                <td class="rv-td rv-td-neradan"><div class="rv-time-group"><input class="rv-time-input" type="time" disabled></div></td>
+                <td class="rv-td rv-td-neradan"><div class="rv-time-group"><input class="rv-time-input" type="time" disabled></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="rv-alt-wrap">
+          <input type="checkbox" class="rv-alt-switch">
+          <label class="rv-alt-label">Naizmjenični tjedni (A/B raspored)</label>
+        </div>
+        <div class="rv-footer">
+          <button class="rv-spremi-btn">Spremi raspored</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Telefon ── -->
+    <div class="mk-view" id="view-telefon">
+      <div class="page-heading"><h1>Unos s telefona</h1></div>
+      <div class="panel tel-panel">
+        <div class="panel-head panel-head--padded">
+          <span class="panel-title">Novi termin</span>
+          <span class="panel-meta">Pacijent ne dobiva potvrdu e-mailom ako email nije unesen.</span>
+        </div>
+        <div class="tel-body">
+          <div class="tel-section">
+            <div class="tel-section-label">Pacijent</div>
+            <div class="tel-grid-3">
+              <div>
+                <label class="tel-label">Ime i prezime</label>
+                <input type="text" class="tel-input" placeholder="npr. Ana Kovač">
+              </div>
+              <div>
+                <label class="tel-label">Telefon (opcionalno)</label>
+                <input type="text" class="tel-input" placeholder="091 234 5678">
+              </div>
+              <div>
+                <label class="tel-label">Email (opcionalno)</label>
+                <input type="email" class="tel-input" placeholder="ime@mail.com">
+              </div>
+            </div>
+          </div>
+          <div class="tel-section">
+            <div class="tel-section-label">Termin</div>
+            <div class="tel-grid-4">
+              <div>
+                <label class="tel-label">Doktor</label>
+                <button class="cs-trigger"><span class="cs-value">Dr. Novak</span><svg class="cs-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+              </div>
+              <div>
+                <label class="tel-label">Usluga</label>
+                <button class="cs-trigger"><span class="cs-value">Opći pregled</span><svg class="cs-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+              </div>
+              <div>
+                <label class="tel-label">Datum</label>
+                <button class="cs-trigger"><span class="cs-value">28.05.2026.</span><svg class="cs-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+              </div>
+              <div>
+                <label class="tel-label">Slobodan termin</label>
+                <button class="cs-trigger"><span class="cs-value">09:00</span><svg class="cs-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+              </div>
+            </div>
+          </div>
+          <div class="tel-section">
+            <div class="tel-section-label">Napomena (opcionalno)</div>
+            <textarea class="tel-textarea" placeholder="Razlog dolaska, dijagnoza, alergije…"></textarea>
+          </div>
+        </div>
+        <div class="tel-footer">
+          <div class="tel-status"></div>
+          <button class="tel-submit">Upiši termin</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Postavke ── -->
+    <div class="mk-view" id="view-postavke">
+      <div class="page-heading">
+        <h1>Postavke</h1>
+        <span class="page-heading-meta">Doktori, usluge i iznimke u rasporedu</span>
+      </div>
+      <div class="panel post-panel">
+        <div class="panel-head panel-head--padded">
+          <span class="panel-title">Doktori</span>
+          <span class="panel-meta">2 aktivnih</span>
+        </div>
+        <div class="post-item">
+          <span class="post-item-name">Dr. Novak</span>
+          <button class="post-item-del"><svg class="trash-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>
+        <div class="post-item">
+          <span class="post-item-name">Dr. Babić</span>
+          <button class="post-item-del"><svg class="trash-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>
+        <div class="post-add-form">
+          <input class="post-input" type="text" placeholder="Ime novog doktora (npr. Dr. Sara Babić)">
+          <button class="post-add-btn">Dodaj doktora</button>
+        </div>
+      </div>
+      <div class="panel post-panel">
+        <div class="panel-head panel-head--padded">
+          <span class="panel-title">Usluge</span>
+          <span class="panel-meta">3 usluge</span>
+        </div>
+        <div class="post-item">
+          <span class="post-item-name">Opći pregled</span>
+          <span class="post-item-badge">30 min</span>
+          <button class="post-item-del"><svg class="trash-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>
+        <div class="post-item">
+          <span class="post-item-name">Kontrolni pregled</span>
+          <span class="post-item-badge">20 min</span>
+          <button class="post-item-del"><svg class="trash-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>
+        <div class="post-item">
+          <span class="post-item-name">Ultrazvuk štitnjače</span>
+          <span class="post-item-badge">45 min</span>
+          <button class="post-item-del"><svg class="trash-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>
+        <div class="post-add-form">
+          <input class="post-input" type="text" placeholder="Naziv usluge (npr. Ultrazvuk štitnjače)">
+          <select class="post-select">
+            <option>15 min</option>
+            <option selected>30 min</option>
+            <option>45 min</option>
+            <option>60 min</option>
+          </select>
+          <button class="post-add-btn">Dodaj uslugu</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showView(name) {
+  document.querySelectorAll('.sidebar-item').forEach(function(el) { el.classList.remove('active'); });
+  var nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  document.querySelectorAll('.mk-view').forEach(function(el) { el.classList.remove('is-active'); });
+  var view = document.getElementById('view-' + name);
+  if (view) { view.classList.add('is-active'); document.getElementById('mk-main').scrollTop = 0; }
+}
+</script>
+</body>
+</html>
