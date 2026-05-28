@@ -955,7 +955,7 @@
 
     .tel-input, .tel-select {
       width: 100%;
-      padding: 8px 10px;
+      padding: 9px 12px;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       font-size: 13px;
@@ -969,8 +969,23 @@
     .tel-input:focus, .tel-select:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-ring);
+      box-shadow: var(--shadow-focus);
     }
+
+    .tel-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--text);
+      background: #fff;
+      resize: vertical;
+      min-height: 56px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .tel-textarea:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-focus); }
 
     .tel-select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F5E5A' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");

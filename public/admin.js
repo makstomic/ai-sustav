@@ -816,11 +816,9 @@ function renderTelefonTab() {
 
   wrap.innerHTML = pageHeadingHTML("Unos s telefona") + `
     <div class="panel tel-panel">
-      <div class="filter-bar" style="justify-content:space-between;">
-        <div class="filter-bar-left">
-          <span class="panel-title">Unos termina s telefona</span>
-        </div>
-        <span class="panel-meta">Termin se odmah potvrđuje</span>
+      <div class="panel-head panel-head--padded">
+        <span class="panel-title">Novi termin</span>
+        <span class="panel-meta">Pacijent ne dobiva potvrdu e-mailom ako email nije unesen.</span>
       </div>
 
       <div class="tel-body">
@@ -869,13 +867,13 @@ function renderTelefonTab() {
 
         <div class="tel-section">
           <div class="tel-section-label">Napomena (opcionalno)</div>
-          <input type="text" class="tel-input" id="tel-napomena" placeholder="Slobodan unos…">
+          <textarea class="tel-textarea" id="tel-napomena" placeholder="Razlog dolaska, dijagnoza, alergije…"></textarea>
         </div>
       </div>
 
       <div class="tel-footer">
         <div class="tel-status" id="tel-status"></div>
-        <button class="tel-submit" onclick="submitTelefonBooking()">Zapiši termin</button>
+        <button class="tel-submit" onclick="submitTelefonBooking()">Upiši termin</button>
       </div>
     </div>`;
 
