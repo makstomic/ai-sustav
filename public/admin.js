@@ -61,6 +61,167 @@ function pageHeadingHTML(title, meta = "") {
   return `<div class="page-heading"><h1>${esc(title)}</h1>${meta ? `<span class="page-heading-meta">${esc(meta)}</span>` : ""}</div>`;
 }
 
+// ── Custom Select ─────────────────────────────────────────────────────────────
+
+function buildCsHTML(fieldId, selectedValue, options, placeholder) {
+  const selVal = String(selectedValue ?? "");
+  const current = options.find(o => String(o.value ?? o.label) === selVal);
+  const label = current ? current.label : "";
+  const optHTML = options.map(o => {
+    const val = String(o.value ?? o.label);
+    const sel = val === selVal;
+    return `<button type="button" class="cs-opt${sel ? " is-selected" : ""}" data-value="${esc(val)}" onclick="csOptClick(this,'${fieldId}')">
+      <span class="cs-opt-label">${esc(o.label)}</span>
+      ${o.hint ? `<span class="cs-opt-hint">${esc(o.hint)}</span>` : ""}
+      ${sel ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="cs-check"><polyline points="20 6 9 17 4 12"/></svg>` : ""}
+    </button>`;
+  }).join("");
+  return `<div class="cs-wrap" id="${fieldId}-cs">
+    <input type="hidden" id="${fieldId}" value="${esc(selVal)}">
+    <button type="button" class="cs-trigger" onclick="csToggle('${fieldId}',event)">
+      <span class="cs-value${label ? "" : " cs-placeholder"}" id="${fieldId}-display">${label ? esc(label) : esc(placeholder || "Odaberi…")}</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="cs-chev"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="cs-pop" id="${fieldId}-pop">${optHTML}</div>
+  </div>`;
+}
+
+function csToggle(fieldId, e) {
+  if (e) e.stopPropagation();
+  const wrap = document.getElementById(`${fieldId}-cs`);
+  if (!wrap) return;
+  const opening = !wrap.classList.contains("is-open");
+  document.querySelectorAll(".cs-wrap.is-open").forEach(w => w.classList.remove("is-open"));
+  if (opening) wrap.classList.add("is-open");
+}
+
+function csOptClick(btn, fieldId) {
+  const value = btn.dataset.value;
+  const label = btn.querySelector(".cs-opt-label")?.textContent || value;
+  const hiddenEl  = document.getElementById(fieldId);
+  const displayEl = document.getElementById(`${fieldId}-display`);
+  const wrap      = document.getElementById(`${fieldId}-cs`);
+  if (hiddenEl) hiddenEl.value = value;
+  if (displayEl) { displayEl.textContent = label; displayEl.classList.remove("cs-placeholder"); }
+  wrap?.querySelectorAll(".cs-opt").forEach(opt => {
+    const sel = opt.dataset.value === value;
+    opt.classList.toggle("is-selected", sel);
+    const chk = opt.querySelector(".cs-check");
+    if (sel && !chk) opt.insertAdjacentHTML("beforeend", `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="cs-check"><polyline points="20 6 9 17 4 12"/></svg>`);
+    else if (!sel && chk) chk.remove();
+  });
+  wrap?.classList.remove("is-open");
+  if (fieldId === "tel-doktor") ucitajTelefonTermine();
+}
+
+// ── Date Picker ───────────────────────────────────────────────────────────────
+
+const _dpState = {};
+const _MJES_DP = ["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj","Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
+
+function _dpToday() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;
+}
+
+function _dpFmtDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${parseInt(d)}. ${parseInt(m)}. ${y}.`;
+}
+
+function _dpRenderGrid(fieldId) {
+  const s = _dpState[fieldId];
+  if (!s) return;
+  const today     = _dpToday();
+  const daysInMon = new Date(s.year, s.month, 0).getDate();
+  const jsDay     = new Date(s.year, s.month - 1, 1).getDay();
+  const leading   = (jsDay + 6) % 7;
+  const cells     = [];
+  for (let i = 0; i < leading; i++) cells.push(null);
+  for (let d = 1; d <= daysInMon; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const titleEl = document.getElementById(`${fieldId}-dp-title`);
+  const gridEl  = document.getElementById(`${fieldId}-dp-grid`);
+  if (titleEl) titleEl.textContent = `${_MJES_DP[s.month - 1]} ${s.year}.`;
+  if (!gridEl) return;
+
+  const dows = ["P","U","S","Č","P","S","N"].map(d => `<div class="dp-dow">${d}</div>`).join("");
+  const days = cells.map(cell => {
+    if (cell === null) return `<div class="dp-day dp-day--blank"></div>`;
+    const iso     = `${s.year}-${String(s.month).padStart(2,"0")}-${String(cell).padStart(2,"0")}`;
+    const sel     = s.value === iso;
+    const isToday = iso === today;
+    const dow     = new Date(s.year, s.month - 1, cell).getDay();
+    const weekend = dow === 0 || dow === 6;
+    if (s.minDate && iso < s.minDate) return `<div class="dp-day dp-day--blank" style="opacity:0.28">${cell}</div>`;
+    return `<button type="button" class="dp-day${sel ? " is-selected" : ""}${isToday ? " is-today" : ""}${weekend ? " is-weekend" : ""}" data-iso="${iso}" onclick="dpDayClick(this,'${fieldId}')">${cell}</button>`;
+  }).join("");
+
+  gridEl.innerHTML = dows + days;
+}
+
+function buildDpHTML(fieldId, value, minDate, placeholder) {
+  const today   = _dpToday();
+  const init    = value || today;
+  const [iy, im] = init.split("-").map(Number);
+  _dpState[fieldId] = { year: iy, month: im, value: value || "", minDate: minDate || today };
+  const display = value ? _dpFmtDate(value) : "";
+  return `<div class="cs-wrap" id="${fieldId}-cs">
+    <input type="hidden" id="${fieldId}" value="${esc(value || "")}">
+    <button type="button" class="cs-trigger" onclick="dpToggle('${fieldId}',event)">
+      <span class="cs-value${display ? "" : " cs-placeholder"}" id="${fieldId}-display">${display ? esc(display) : esc(placeholder || "Odaberi datum")}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.45;color:var(--muted)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </button>
+    <div class="cs-pop cs-pop--cal" id="${fieldId}-pop">
+      <div class="dp-head">
+        <button type="button" class="dp-nav" onclick="dpNav('${fieldId}',-1,event)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="dp-title" id="${fieldId}-dp-title"></div>
+        <button type="button" class="dp-nav" onclick="dpNav('${fieldId}',1,event)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="dp-grid" id="${fieldId}-dp-grid"></div>
+    </div>
+  </div>`;
+}
+
+function dpToggle(fieldId, e) {
+  if (e) e.stopPropagation();
+  const wrap = document.getElementById(`${fieldId}-cs`);
+  if (!wrap) return;
+  const opening = !wrap.classList.contains("is-open");
+  document.querySelectorAll(".cs-wrap.is-open").forEach(w => w.classList.remove("is-open"));
+  if (opening) { wrap.classList.add("is-open"); _dpRenderGrid(fieldId); }
+}
+
+function dpNav(fieldId, dir, e) {
+  if (e) e.stopPropagation();
+  const s = _dpState[fieldId];
+  if (!s) return;
+  s.month += dir;
+  if (s.month > 12) { s.month = 1; s.year++; }
+  if (s.month < 1)  { s.month = 12; s.year--; }
+  _dpRenderGrid(fieldId);
+}
+
+function dpDayClick(btn, fieldId) { dpPick(fieldId, btn.dataset.iso); }
+
+function dpPick(fieldId, iso) {
+  const s = _dpState[fieldId];
+  if (s) s.value = iso;
+  const hiddenEl  = document.getElementById(fieldId);
+  const displayEl = document.getElementById(`${fieldId}-display`);
+  const wrap      = document.getElementById(`${fieldId}-cs`);
+  if (hiddenEl) hiddenEl.value = iso;
+  if (displayEl) { displayEl.textContent = _dpFmtDate(iso); displayEl.classList.remove("cs-placeholder"); }
+  wrap?.classList.remove("is-open");
+  if (fieldId === "tel-datum") ucitajTelefonTermine();
+}
+
 function parseNote(note) {
   if (!note || note === "—") return { phone: null, text: null };
   const m = note.match(/^Tel:\s*([^|]+?)(?:\s*\|\s*(.*))?$/);
@@ -797,22 +958,15 @@ function promijeniRvDoktorTab(idx) {
 // ── Telefon tab ───────────────────────────────────────────────────────────────
 
 function renderTelefonTab() {
-  const services = (window._clientServices || []).map(s =>
-    `<option value="${esc(s)}">${esc(s)}</option>`
-  ).join("");
+  const serviceOpts = (window._clientServices || []).map(s => ({ value: s, label: s }));
+  const imaDoktora  = sviDoktori.length > 0;
+  const doctorOpts  = sviDoktori.map(d => ({ value: d.id, label: d.name }));
+  const terminGrid  = imaDoktora ? "tel-grid-4" : "tel-grid-3";
+  const danas       = _dpToday();
 
-  const imaDoktora = sviDoktori.length > 0;
   const doktorCell = imaDoktora
-    ? `<div>
-        <label class="tel-label">Doktor</label>
-        <select class="tel-select" id="tel-doktor" onchange="ucitajTelefonTermine()">
-          ${sviDoktori.map(d => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join("")}
-        </select>
-       </div>`
+    ? `<div><label class="tel-label">Doktor</label>${buildCsHTML("tel-doktor", sviDoktori[0]?.id || "", doctorOpts, "Odaberi doktora")}</div>`
     : `<input type="hidden" id="tel-doktor" value="">`;
-
-  const terminGrid = imaDoktora ? "tel-grid-4" : "tel-grid-3";
-  const danas = new Date().toISOString().split("T")[0];
 
   wrap.innerHTML = pageHeadingHTML("Unos s telefona") + `
     <div class="panel tel-panel">
@@ -846,21 +1000,15 @@ function renderTelefonTab() {
             ${doktorCell}
             <div>
               <label class="tel-label">Datum</label>
-              <input type="date" class="tel-input" id="tel-datum" value="${danas}" min="${danas}" max="9999-12-31"
-                     onchange="ucitajTelefonTermine()">
+              ${buildDpHTML("tel-datum", danas, danas, "Odaberi datum")}
             </div>
             <div>
               <label class="tel-label">Slobodan termin</label>
-              <select class="tel-select" id="tel-termin">
-                <option value="">Učitavam...</option>
-              </select>
+              <div id="tel-termin-wrap"></div>
             </div>
             <div>
               <label class="tel-label">Usluga</label>
-              <select class="tel-select" id="tel-usluga">
-                <option value="" disabled selected>Odaberite uslugu</option>
-                ${services}
-              </select>
+              ${buildCsHTML("tel-usluga", serviceOpts[0]?.value || "", serviceOpts, "Odaberi uslugu")}
             </div>
           </div>
         </div>
@@ -883,26 +1031,26 @@ function renderTelefonTab() {
 async function ucitajTelefonTermine() {
   const datum  = document.getElementById("tel-datum")?.value;
   const drId   = document.getElementById("tel-doktor")?.value || "";
-  const select = document.getElementById("tel-termin");
-  if (!datum || !select) return;
+  const wrapEl = document.getElementById("tel-termin-wrap");
+  if (!datum || !wrapEl) return;
 
-  select.innerHTML = `<option value="">Učitavam...</option>`;
+  wrapEl.innerHTML = `<input type="hidden" id="tel-termin" value=""><div class="cs-wrap"><button type="button" class="cs-trigger" disabled style="opacity:0.6;cursor:default"><span class="cs-value cs-placeholder">Učitavam…</span></button></div>`;
   try {
     const drParam = drId ? `?doctorId=${encodeURIComponent(drId)}` : "";
-    const res = await fetch(`/termini/${clientId}/${datum}${drParam}`);
-    const podaci = res.ok ? await res.json() : {};
-    const zauzeti = podaci.zauzeti || [];
-    const dayOfWeek = new Date(datum).getDay();
-    const raspon = podaci.radnoVrijeme || null;
+    const res     = await fetch(`/termini/${clientId}/${datum}${drParam}`);
+    const podaci  = res.ok ? await res.json() : {};
+    const zauzeti    = podaci.zauzeti || [];
+    const raspon     = podaci.radnoVrijeme || null;
     const sviTermini = raspon ? generirajTermine(raspon) : [];
-    const slobodni = sviTermini.filter(t => !zauzeti.includes(t));
+    const slobodni   = sviTermini.filter(t => !zauzeti.includes(t));
     if (slobodni.length === 0) {
-      select.innerHTML = `<option value="">Nema slobodnih termina</option>`;
+      wrapEl.innerHTML = `<input type="hidden" id="tel-termin" value=""><div class="cs-wrap"><button type="button" class="cs-trigger" disabled style="opacity:0.6;cursor:default"><span class="cs-value cs-placeholder">Nema slobodnih termina</span></button></div>`;
     } else {
-      select.innerHTML = slobodni.map(t => `<option value="${t}">${t}</option>`).join("");
+      const opts = slobodni.map(t => ({ value: t, label: t }));
+      wrapEl.innerHTML = buildCsHTML("tel-termin", slobodni[0], opts, "Odaberi termin");
     }
   } catch {
-    select.innerHTML = `<option value="">Greška pri učitavanju</option>`;
+    wrapEl.innerHTML = `<input type="hidden" id="tel-termin" value=""><div class="cs-wrap"><button type="button" class="cs-trigger" disabled style="opacity:0.6;cursor:default"><span class="cs-value cs-placeholder">Greška pri učitavanju</span></button></div>`;
   }
 }
 
@@ -1148,3 +1296,9 @@ document.getElementById("nav-radno-vrijeme").addEventListener("click", () => pro
 document.getElementById("nav-telefon").addEventListener("click", () => promijeniTab("telefon"));
 document.getElementById("nav-postavke").addEventListener("click", () => promijeniTab("postavke"));
 document.getElementById("odjavaBtn").addEventListener("click", odjava);
+
+document.addEventListener("mousedown", function(e) {
+  if (!e.target.closest(".cs-wrap")) {
+    document.querySelectorAll(".cs-wrap.is-open").forEach(w => w.classList.remove("is-open"));
+  }
+});
