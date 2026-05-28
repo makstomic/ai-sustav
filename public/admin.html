@@ -181,6 +181,11 @@
 
     #content { padding: 24px; flex: 1; }
 
+    /* ── Page heading ── */
+    .page-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .page-heading h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+    .page-heading-meta { font-size: 12px; color: var(--muted); }
+
     /* ── Panel ── */
     .panel {
       background: var(--bg);
@@ -336,7 +341,7 @@
 
     .when--muted { border-left-color: var(--border); }
     .when-date { font-size: 13px; font-weight: 600; color: var(--text); }
-    .when-time { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .when-time { font-size: 12px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
 
     .req-info { min-width: 0; }
 
@@ -430,6 +435,7 @@
       background: var(--bg);
       color: var(--danger);
       border: 1px solid var(--border-light);
+      border-radius: 7px;
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
@@ -445,22 +451,24 @@
 
     .reject-textarea {
       width: 100%;
-      padding: 6px 8px;
-      border: 1px solid var(--border);
+      padding: 7px 9px;
+      border: 1px solid var(--border-firm);
+      border-radius: 6px;
       font-size: 12px;
       font-family: var(--font);
       color: var(--text);
       resize: none;
-      min-height: 52px;
+      min-height: 56px;
     }
 
-    .reject-textarea:focus { outline: none; border-color: var(--accent); }
+    .reject-textarea:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-focus); }
 
     .reject-submit {
-      padding: 5px 11px;
+      padding: 6px 12px;
       background: var(--text);
       color: #fff;
       border: none;
+      border-radius: 5px;
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;

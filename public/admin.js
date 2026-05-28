@@ -57,6 +57,10 @@ function esc(str) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+function pageHeadingHTML(title, meta = "") {
+  return `<div class="page-heading"><h1>${esc(title)}</h1>${meta ? `<span class="page-heading-meta">${esc(meta)}</span>` : ""}</div>`;
+}
+
 function parseNote(note) {
   if (!note || note === "—") return { phone: null, text: null };
   const m = note.match(/^Tel:\s*([^|]+?)(?:\s*\|\s*(.*))?$/);
@@ -288,7 +292,8 @@ function prikaziZahtjeve() {
     ? `<div class="prazno">Nema zahtjeva u ovoj kategoriji.</div>`
     : listaZaPrikaz.map(z => renderRequestRow(z)).join("");
 
-  wrap.innerHTML = switcher + `<div class="panel">${statusTabsHTML}${rowsHTML}</div>`;
+  const metaCekanje = cekanje.length > 0 ? `${cekanje.length} zahtjeva za obradu` : "";
+  wrap.innerHTML = pageHeadingHTML("Na čekanju", metaCekanje) + switcher + `<div class="panel">${statusTabsHTML}${rowsHTML}</div>`;
 }
 
 function renderRequestRow(z) {
@@ -309,7 +314,7 @@ function renderRequestRow(z) {
       <div class="req-actions">
         <div class="req-btn-group">
           <button class="btn-odbij" onclick="toggleOdbijForm(${z.id})">Odbij</button>
-          <button class="btn-prihvati" onclick="potvrdi(${z.id})">Prihvati</button>
+          <button class="btn-prihvati" onclick="potvrdi(${z.id})">Potvrdi</button>
         </div>
         <div class="reject-form" id="reject-form-${z.id}">
           <textarea class="reject-textarea" id="reject-reason-${z.id}"
@@ -481,7 +486,7 @@ function prikaziKalendar() {
 
   const detailHTML = odabraniDanKey ? napraviTermine(odabraniDanKey) : "";
 
-  wrap.innerHTML = `
+  wrap.innerHTML = pageHeadingHTML("Kalendar") + `
     <div class="panel kal-container">
       <div class="filter-bar" style="justify-content:space-between;">
         ${drTabsHTML}
@@ -786,7 +791,7 @@ function renderRasporedView(doktor) {
       ${buildTable("rvb", rvScheduleB)}
     </div>` : "";
 
-  wrap.innerHTML = `
+  wrap.innerHTML = pageHeadingHTML("Radno vrijeme", "Definirajte radne sate po doktoru i danu") + `
     <div class="panel rv-panel">
       <div class="filter-bar" style="justify-content:space-between;">
         ${drTabsHTML}
@@ -829,7 +834,7 @@ function renderTelefonTab() {
   const terminGrid = imaDoktora ? "tel-grid-4" : "tel-grid-3";
   const danas = new Date().toISOString().split("T")[0];
 
-  wrap.innerHTML = `
+  wrap.innerHTML = pageHeadingHTML("Unos s telefona") + `
     <div class="panel tel-panel">
       <div class="filter-bar" style="justify-content:space-between;">
         <div class="filter-bar-left">
@@ -1014,7 +1019,7 @@ function renderPostavkeView() {
           <button class="post-item-del" onclick="obrisiUslugu(${i})" title="Obriši">×</button>
         </div>`).join("");
 
-  wrap.innerHTML = `
+  wrap.innerHTML = pageHeadingHTML("Postavke") + `
     <div class="panel post-panel">
       <div class="filter-bar">
         <span class="panel-title">Doktori</span>
