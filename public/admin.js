@@ -131,6 +131,10 @@ function csOptClick(btn, fieldId) {
   });
   wrap?.classList.remove("is-open");
   if (fieldId === "tel-doktor") ucitajTelefonTermine();
+  else if (fieldId === "rv-doktor") {
+    const idx = sviDoktori.findIndex(d => d.id === value);
+    if (idx !== -1) promijeniRvDoktorTab(idx);
+  }
 }
 
 // ── Date Picker ───────────────────────────────────────────────────────────────
@@ -893,13 +897,10 @@ function renderRasporedView(doktor) {
   const DANI_KRATKI = ["Ned","Pon","Uto","Sri","Čet","Pet","Sub"];
   const ORDEN = [1,2,3,4,5,6,0]; // Pon→Ned
 
-  // Doktor segmented tabs
   const drTabsHTML = sviDoktori.length > 1 ? `
-    <div class="filter-bar-left" style="gap:14px;">
+    <div class="filter-bar-left" style="gap:12px;align-items:center;">
       <span class="filter-label">DOKTOR</span>
-      <div class="seg-ctrl">
-        ${sviDoktori.map((dr, i) => `<button class="seg-btn${rvDoktorIdx === i ? " is-active" : ""}" onclick="promijeniRvDoktorTab(${i})">${esc(dr.name)}</button>`).join("")}
-      </div>
+      <div style="width:200px;">${buildCsHTML("rv-doktor", doktor.id, sviDoktori.map(d => ({ value: d.id, label: d.name })), "Odaberi doktora")}</div>
     </div>` : `<div class="filter-bar-left"><span style="font-size:13px;font-weight:600;">${esc(doktor.name)}</span></div>`;
 
   function buildTable(prefix, sched) {
