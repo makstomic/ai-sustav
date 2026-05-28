@@ -777,7 +777,7 @@
     /* Tamni sidebar */
     .am-sidebar {
       width: 190px;
-      background: #0f172a !important;
+      background: #1e2a38 !important;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -809,7 +809,7 @@
     .am-sidebar-nav {
       padding: 8px 0;
       flex: 1;
-      background: #0f172a;
+      background: #1e2a38;
     }
 
     .am-nav-label {
@@ -870,7 +870,7 @@
     .am-topbar {
       background: #fff;
       border-bottom: 1px solid var(--border);
-      height: 52px;
+      height: 48px;
       display: flex;
       align-items: center;
       padding: 0 20px;
@@ -878,15 +878,105 @@
     }
 
     .am-topbar-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--text);
     }
 
     .am-content {
-      padding: 18px 20px;
+      padding: 16px 18px;
       overflow-y: auto;
       flex: 1;
+    }
+
+    /* Page heading */
+    .am-page-heading {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .am-page-heading h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .am-page-heading-meta { font-size: 11px; color: var(--muted); }
+
+    /* Status tabs */
+    .am-status-tabs {
+      display: flex;
+      padding: 0 16px;
+      background: #e5e7eb;
+      border-bottom: 1px solid rgba(15,23,42,0.08);
+      gap: 2px;
+    }
+    .am-status-tab {
+      padding: 9px 12px;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      margin-bottom: -1px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .am-status-tab.active { color: #0d9488; border-bottom-color: #0d9488; }
+    .am-tab-count {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: rgba(13,148,136,0.12);
+      color: #0d9488;
+    }
+    .am-tab-count-muted {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.06);
+      color: var(--muted);
+    }
+
+    /* Request rows */
+    .am-req-row {
+      display: flex;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(15,23,42,0.06);
+      background: #fafafa;
+      align-items: flex-start;
+    }
+    .am-req-row:last-child { border-bottom: none; }
+    .am-when { flex-shrink: 0; width: 66px; }
+    .am-when-date { font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.3; }
+    .am-when-time { font-size: 15px; font-weight: 800; color: #0d9488; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .am-req-info { flex: 1; min-width: 0; }
+    .am-req-name { font-size: 12.5px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .am-req-contact { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .am-req-service {
+      font-size: 11px; color: var(--muted);
+      background: rgba(15,23,42,0.04); border: 1px solid rgba(15,23,42,0.07);
+      display: inline-block; padding: 2px 7px; border-radius: 4px;
+    }
+    .am-req-actions { flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; align-items: stretch; }
+    .am-btn-potvrdi-new {
+      padding: 6px 12px; background: #0d9488; color: #fff;
+      border: none; border-radius: 6px; font-size: 11px; font-weight: 700;
+      cursor: pointer; font-family: var(--font); white-space: nowrap;
+    }
+    .am-btn-odbij-new {
+      padding: 6px 12px; background: #fff; color: var(--muted);
+      border: 1px solid rgba(15,23,42,0.12); border-radius: 6px;
+      font-size: 11px; font-weight: 600; cursor: pointer;
+      font-family: var(--font); white-space: nowrap;
     }
 
     /* ========================
@@ -2147,14 +2237,18 @@
                   Na čekanju
                   <span class="am-nav-badge">2</span>
                 </div>
-                <div class="am-nav-item">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Povijest
-                </div>
                 <div class="am-nav-label">Raspored</div>
                 <div class="am-nav-item">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   Kalendar
+                </div>
+                <div class="am-nav-item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Radno vrijeme
+                </div>
+                <div class="am-nav-item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.1 1.18 2 2 0 012.08 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+                  Telefon
                 </div>
               </nav>
             </aside>
@@ -2166,31 +2260,48 @@
               </div>
               <div class="am-content">
 
+                <div class="am-page-heading">
+                  <h2>Na čekanju</h2>
+                  <span class="am-page-heading-meta">2 zahtjeva za obradu</span>
+                </div>
+
+                <div class="am-status-tabs">
+                  <button class="am-status-tab active">Na čekanju <span class="am-tab-count">2</span></button>
+                  <button class="am-status-tab">Potvrđeno <span class="am-tab-count am-tab-count-muted">0</span></button>
+                  <button class="am-status-tab">Odbijeno <span class="am-tab-count am-tab-count-muted">0</span></button>
+                </div>
+
                 <!-- Zahtjev 1 -->
-                <div class="am-card">
-                  <div class="am-card-header">
-                    <div class="am-card-ime">Marko Horvat <span class="am-badge am-badge-novo" style="margin-left:8px;">novo</span></div>
-                    <div class="am-card-datum">01.04.2026. 09:14</div>
+                <div class="am-req-row">
+                  <div class="am-when">
+                    <div class="am-when-date">09.04.2026.</div>
+                    <div class="am-when-time">10:00</div>
                   </div>
-                  <div class="am-row"><div class="am-label">Datum</div><div class="am-value">09.04.2026. u 10:00</div></div>
-                  <div class="am-row"><div class="am-label">Usluga</div><div class="am-value">Opći pregled</div></div>
-                  <div class="am-row"><div class="am-label">Email</div><div class="am-value">marko.horvat@gmail.com</div></div>
-                  <div class="am-akcije">
-                    <button class="am-btn-potvrdi">Potvrdi</button>
+                  <div class="am-req-info">
+                    <div class="am-req-name">Marko Horvat</div>
+                    <div class="am-req-contact">marko.horvat@gmail.com</div>
+                    <div class="am-req-service">Opći pregled &middot; Dr. Novak</div>
+                  </div>
+                  <div class="am-req-actions">
+                    <button class="am-btn-potvrdi-new">Potvrdi</button>
+                    <button class="am-btn-odbij-new">Odbij</button>
                   </div>
                 </div>
 
                 <!-- Zahtjev 2 -->
-                <div class="am-card">
-                  <div class="am-card-header">
-                    <div class="am-card-ime">Ana Kova&#269;evi&#263; <span class="am-badge am-badge-potvrdjeno" style="margin-left:8px;">potvr&#273;eno</span></div>
-                    <div class="am-card-datum">01.04.2026. 08:52</div>
+                <div class="am-req-row">
+                  <div class="am-when">
+                    <div class="am-when-date">10.04.2026.</div>
+                    <div class="am-when-time">14:00</div>
                   </div>
-                  <div class="am-row"><div class="am-label">Datum</div><div class="am-value">10.04.2026. u 14:00</div></div>
-                  <div class="am-row"><div class="am-label">Usluga</div><div class="am-value">Kontrolni pregled</div></div>
-                  <div class="am-row"><div class="am-label">Email</div><div class="am-value">ana.kovacevic@gmail.com</div></div>
-                  <div class="am-akcije">
-                    <button class="am-btn-potvrdi">Potvrdi</button>
+                  <div class="am-req-info">
+                    <div class="am-req-name">Ana Kovačević</div>
+                    <div class="am-req-contact">ana.kovacevic@gmail.com</div>
+                    <div class="am-req-service">Kontrolni pregled &middot; Dr. Novak</div>
+                  </div>
+                  <div class="am-req-actions">
+                    <button class="am-btn-potvrdi-new">Potvrdi</button>
+                    <button class="am-btn-odbij-new">Odbij</button>
                   </div>
                 </div>
 
