@@ -978,7 +978,10 @@ function promijeniRvDoktorTab(idx) {
 // ── Telefon tab ───────────────────────────────────────────────────────────────
 
 function renderTelefonTab() {
-  const serviceOpts = (window._clientServices || []).map(s => ({ value: s, label: s }));
+  const svcs        = window._clientServices || [];
+  const serviceOpts = svcs.map(s => typeof s === "object"
+    ? { value: s.name, label: s.name, hint: s.duration ? `${s.duration} min` : "" }
+    : { value: s, label: s });
   const imaDoktora  = sviDoktori.length > 0;
   const doctorOpts  = sviDoktori.map(d => ({ value: d.id, label: d.name }));
   const terminGrid  = imaDoktora ? "tel-grid-4" : "tel-grid-3";
@@ -1019,16 +1022,16 @@ function renderTelefonTab() {
           <div class="${terminGrid}">
             ${doktorCell}
             <div>
+              <label class="tel-label">Usluga</label>
+              ${buildCsHTML("tel-usluga", serviceOpts[0]?.value || "", serviceOpts, "Odaberi uslugu")}
+            </div>
+            <div>
               <label class="tel-label">Datum</label>
               ${buildDpHTML("tel-datum", danas, danas, "Odaberi datum")}
             </div>
             <div>
               <label class="tel-label">Slobodan termin</label>
               <div id="tel-termin-wrap"></div>
-            </div>
-            <div>
-              <label class="tel-label">Usluga</label>
-              ${buildCsHTML("tel-usluga", serviceOpts[0]?.value || "", serviceOpts, "Odaberi uslugu")}
             </div>
           </div>
         </div>
@@ -1138,7 +1141,7 @@ async function ucitajPostavke() {
     if (!res.ok) throw new Error();
     postavkeData = await res.json();
     sviDoktori = postavkeData.doctors || [];
-    window._clientServices = (postavkeData.services || []).map(s => s.name);
+    window._clientServices = postavkeData.services || [];
   } catch {
     postavkeData = { doctors: [], services: [] };
   }
@@ -1148,57 +1151,63 @@ async function ucitajPostavke() {
 function renderPostavkeView() {
   const { doctors, services } = postavkeData;
 
+  const TRASH = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+
   const drListHTML = doctors.length === 0
-    ? `<div class="post-empty">Nema dodanih doktora.</div>`
+    ? `<div class="post-empty">Još nije dodan niti jedan doktor.</div>`
     : doctors.map((d, i) => `
         <div class="post-item">
           <span class="post-item-name">${esc(d.name)}</span>
-          <button class="post-item-del" onclick="obrisiDoktora(${i})" title="Obriši">×</button>
+          <button class="post-item-del" onclick="obrisiDoktora(${i})" title="Obriši">${TRASH}</button>
         </div>`).join("");
 
   const svcListHTML = services.length === 0
-    ? `<div class="post-empty">Nema dodanih usluga.</div>`
+    ? `<div class="post-empty">Nema definiranih usluga.</div>`
     : services.map((s, i) => `
         <div class="post-item">
           <span class="post-item-name">${esc(s.name)}</span>
           <span class="post-item-badge">${s.duration} min</span>
-          <button class="post-item-del" onclick="obrisiUslugu(${i})" title="Obriši">×</button>
+          <button class="post-item-del" onclick="obrisiUslugu(${i})" title="Obriši">${TRASH}</button>
         </div>`).join("");
 
-  wrap.innerHTML = pageHeadingHTML("Postavke") + `
+  const durOpts = [
+    { value: "15",  label: "15 min" },
+    { value: "30",  label: "30 min" },
+    { value: "45",  label: "45 min" },
+    { value: "60",  label: "60 min" },
+    { value: "90",  label: "90 min" },
+    { value: "120", label: "120 min" },
+  ];
+
+  wrap.innerHTML = pageHeadingHTML("Postavke", "Doktori, usluge i iznimke u rasporedu") + `
     <div class="panel post-panel">
-      <div class="filter-bar">
+      <div class="panel-head panel-head--padded">
         <span class="panel-title">Doktori</span>
+        <span class="panel-meta">${doctors.length} aktivnih</span>
       </div>
-      <div>${drListHTML}</div>
+      ${drListHTML}
       <div id="post-dr-status" class="post-status"></div>
       <div class="post-add-form">
         <input class="post-input" type="text" id="post-dr-ime"
-               placeholder="Ime i prezime doktora…" maxlength="100"
+               placeholder="Ime novog doktora (npr. Dr. Sara Babić)" maxlength="100"
                onkeydown="if(event.key==='Enter') dodajDoktora()">
-        <button class="post-add-btn" onclick="dodajDoktora()">+ Dodaj</button>
+        <button class="post-add-btn" onclick="dodajDoktora()">Dodaj doktora</button>
       </div>
     </div>
 
     <div class="panel post-panel">
-      <div class="filter-bar">
+      <div class="panel-head panel-head--padded">
         <span class="panel-title">Usluge</span>
+        <span class="panel-meta">${services.length} usluga</span>
       </div>
-      <div>${svcListHTML}</div>
+      ${svcListHTML}
       <div id="post-svc-status" class="post-status"></div>
       <div class="post-add-form">
         <input class="post-input" type="text" id="post-svc-ime"
-               placeholder="Naziv usluge…" maxlength="100"
+               placeholder="Naziv usluge (npr. Ultrazvuk štitnjače)" maxlength="100"
                onkeydown="if(event.key==='Enter') dodajUslugu()">
-        <select class="post-select" id="post-svc-dur">
-          <option value="15">15 min</option>
-          <option value="30" selected>30 min</option>
-          <option value="45">45 min</option>
-          <option value="60">60 min</option>
-          <option value="90">90 min</option>
-          <option value="120">120 min</option>
-        </select>
-        <button class="post-add-btn" onclick="dodajUslugu()">+ Dodaj</button>
+        <div style="width:130px;flex-shrink:0;">${buildCsHTML("post-svc-dur", "30", durOpts, "Trajanje")}</div>
+        <button class="post-add-btn" onclick="dodajUslugu()">Dodaj uslugu</button>
       </div>
     </div>`;
 }
@@ -1292,7 +1301,7 @@ async function ucitajZahtjeve() {
     const cfgRes = await fetch(`/config/${clientId}`);
     if (cfgRes.ok) {
       const cfg = await cfgRes.json();
-      window._clientServices = (cfg.services || []).map(s => s.name);
+      window._clientServices = cfg.services || [];
     }
   } catch { /* ignoriraj */ }
 
