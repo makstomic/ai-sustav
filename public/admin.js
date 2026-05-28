@@ -626,10 +626,7 @@ function toggleAlternativni(val) {
 
 function readRvTime(prefix, type, day) {
   if (rvNeradniDani.has(`${prefix}-${day}`)) return "";
-  const h = document.getElementById(`${prefix}-h-${type}-${day}`)?.value.trim();
-  const m = document.getElementById(`${prefix}-m-${type}-${day}`)?.value.trim();
-  if (h === "" || h === undefined || m === "" || m === undefined) return "";
-  return `${String(Number(h)).padStart(2,"0")}:${String(Number(m)).padStart(2,"0")}`;
+  return document.getElementById(`${prefix}-${type}-${day}`)?.value || "";
 }
 
 function toggleNeradanDan(prefix, day, neradan) {
@@ -638,26 +635,20 @@ function toggleNeradanDan(prefix, day, neradan) {
   const td = document.getElementById(`${prefix}-td-${day}`);
   if (!td) return;
   td.classList.toggle("rv-td-neradan", neradan);
-  td.querySelectorAll("input.rv-time-part").forEach(inp => inp.disabled = neradan);
+  td.querySelectorAll("input.rv-time-input").forEach(inp => inp.disabled = neradan);
 }
 
 function applyPonToAll(prefix) {
-  const hS = document.getElementById(`${prefix}-h-start-1`)?.value;
-  const mS = document.getElementById(`${prefix}-m-start-1`)?.value;
-  const hE = document.getElementById(`${prefix}-h-end-1`)?.value;
-  const mE = document.getElementById(`${prefix}-m-end-1`)?.value;
-  for (const day of [1,2,3,4,5,6,0]) {
-    if (day === 1) continue;
-    // unmark neradan so inputs become enabled
+  const startVal = document.getElementById(`${prefix}-start-1`)?.value;
+  const endVal   = document.getElementById(`${prefix}-end-1`)?.value;
+  for (const day of [2,3,4,5,6,0]) {
     if (rvNeradniDani.has(`${prefix}-${day}`)) {
       const cb = document.getElementById(`${prefix}-neradan-${day}`);
       if (cb) cb.checked = false;
       toggleNeradanDan(prefix, day, false);
     }
-    const hs = document.getElementById(`${prefix}-h-start-${day}`); if (hs) hs.value = hS;
-    const ms = document.getElementById(`${prefix}-m-start-${day}`); if (ms) ms.value = mS;
-    const he = document.getElementById(`${prefix}-h-end-${day}`);   if (he) he.value = hE;
-    const me = document.getElementById(`${prefix}-m-end-${day}`);   if (me) me.value = mE;
+    const sInp = document.getElementById(`${prefix}-start-${day}`); if (sInp) sInp.value = startVal;
+    const eInp = document.getElementById(`${prefix}-end-${day}`);   if (eInp) eInp.value = endVal;
   }
 }
 
@@ -746,31 +737,20 @@ function renderRasporedView(doktor) {
 
     const tbody = ORDEN.map(day => {
       const neradan = rvNeradniDani.has(`${prefix}-${day}`);
-      const entry = sched[String(day)];
-      const [odH, odM] = (entry?.startTime || "").split(":");
-      const [doH, doM] = (entry?.endTime   || "").split(":");
-      const isPon = day === 1;
-      const dis = neradan ? "disabled" : "";
-      const applyBtn = isPon
+      const entry   = sched[String(day)];
+      const dis     = neradan ? "disabled" : "";
+      const applyBtn = day === 1
         ? `<button class="rv-apply-all-btn" onclick="applyPonToAll('${prefix}')">Primjeni na sve</button>`
         : "";
       return `
         <td class="rv-td${neradan ? " rv-td-neradan" : ""}" id="${prefix}-td-${day}">
           <div class="rv-time-group">
-            <span class="rv-time-label">od</span>
-            <input class="rv-time-part" type="text" inputmode="numeric" maxlength="2"
-                   id="${prefix}-h-start-${day}" value="${odH || ""}" placeholder="08" ${dis}>
-            <span class="rv-time-colon">:</span>
-            <input class="rv-time-part" type="text" inputmode="numeric" maxlength="2"
-                   id="${prefix}-m-start-${day}" value="${odM || ""}" placeholder="00" ${dis}>
+            <input class="rv-time-input" type="time"
+                   id="${prefix}-start-${day}" value="${entry?.startTime || ""}" ${dis}>
           </div>
           <div class="rv-time-group">
-            <span class="rv-time-label">do</span>
-            <input class="rv-time-part" type="text" inputmode="numeric" maxlength="2"
-                   id="${prefix}-h-end-${day}" value="${doH || ""}" placeholder="16" ${dis}>
-            <span class="rv-time-colon">:</span>
-            <input class="rv-time-part" type="text" inputmode="numeric" maxlength="2"
-                   id="${prefix}-m-end-${day}" value="${doM || ""}" placeholder="00" ${dis}>
+            <input class="rv-time-input" type="time"
+                   id="${prefix}-end-${day}" value="${entry?.endTime || ""}" ${dis}>
           </div>
           ${applyBtn}
         </td>`;
@@ -795,14 +775,14 @@ function renderRasporedView(doktor) {
     <div class="panel rv-panel">
       <div class="filter-bar" style="justify-content:space-between;">
         ${drTabsHTML}
-        <label class="rv-alt-toggle-wrap">
-          <input type="checkbox" class="rv-alt-switch" ${rvAlternativni ? "checked" : ""}
-                 onchange="toggleAlternativni(this.checked)">
-          Alternativni tjedan
-        </label>
       </div>
       ${buildTable("rv", rvSchedule)}
       ${altSection}
+      <div class="rv-alt-wrap">
+        <input type="checkbox" class="rv-alt-switch" id="rv-alt-switch"
+               ${rvAlternativni ? "checked" : ""} onchange="toggleAlternativni(this.checked)">
+        <label for="rv-alt-switch" class="rv-alt-label">Naizmjenični tjedni (A/B raspored)</label>
+      </div>
       <div class="rv-footer">
         <button class="rv-spremi-btn" onclick="spremiRaspored()">Spremi raspored</button>
       </div>

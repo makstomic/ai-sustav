@@ -808,59 +808,22 @@
       border-right: 1px solid rgba(0,0,0,0.08);
     }
 
-    .rv-time-group {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      margin-bottom: 6px;
-    }
+    .rv-time-group { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 6px; }
     .rv-time-group:last-child { margin-bottom: 0; }
 
-    .rv-time-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      width: 18px;
-      flex-shrink: 0;
-    }
-
-    .rv-time-part {
-      width: 34px;
-      padding: 5px 2px;
+    .rv-time-input {
+      width: 100%;
+      padding: 5px 6px;
       border: 1px solid #d1d5db;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       font-family: var(--font);
       font-variant-numeric: tabular-nums;
-      text-align: center;
       color: var(--text);
       background: #fff;
-      -moz-appearance: textfield;
-      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .rv-time-part::-webkit-inner-spin-button,
-    .rv-time-part::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    .rv-time-part:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-ring);
-    }
-    .rv-time-part:disabled {
-      background: transparent;
-      border-color: transparent;
-      color: #aab0ba;
-      cursor: not-allowed;
-    }
-    .rv-time-colon {
-      font-size: 14px;
-      font-weight: 700;
-      color: #6b7280;
-      margin: 0 -1px;
-      line-height: 1;
-    }
-    .rv-td-neradan .rv-time-colon { color: #bcc0c8; }
+    .rv-time-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-focus); }
+    .rv-time-input:disabled { background: transparent; border-color: transparent; color: #aab0ba; cursor: not-allowed; }
     .rv-apply-all-btn {
       margin-top: 8px;
       width: 100%;
@@ -888,10 +851,15 @@
       color: #6b7280;
     }
 
-    .rv-alt-toggle-wrap {
+    .rv-alt-wrap {
+      padding: 10px 24px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      border-top: 1px solid var(--border-light);
+      background: var(--bg-soft);
+    }
+    .rv-alt-label {
       font-size: 13px;
       font-weight: 500;
       color: var(--text);
