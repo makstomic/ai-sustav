@@ -491,9 +491,9 @@ function prikaziKalendar() {
       <div class="filter-bar" style="justify-content:space-between;">
         ${drTabsHTML}
         <div class="filter-bar-right">
-          <button class="kal-nav-btn" onclick="mijenjajMjesec(-1)">&#8592;</button>
-          <span class="kal-mjes">${esc(MJES_NAZIVI[kalendarMjesec])} ${kalendarGodina}</span>
-          <button class="kal-nav-btn" onclick="mijenjajMjesec(1)">&#8594;</button>
+          <button class="kal-nav-btn" onclick="mijenjajMjesec(-1)"><img src="/icons/chevron-left.svg" alt=""></button>
+          <span class="kal-mjes">${esc(MJES_NAZIVI[kalendarMjesec])} ${kalendarGodina}.</span>
+          <button class="kal-nav-btn" onclick="mijenjajMjesec(1)"><img src="/icons/chevron-right.svg" alt=""></button>
         </div>
       </div>
       <div class="kal-grid">
@@ -532,13 +532,13 @@ function napraviTermine(dateKey) {
         <div class="termin-info">
           <div class="termin-name">${esc(t.name)}</div>
           <div class="termin-meta">
-            <span class="service-tag">${esc(t.service)}</span>
+            <span>${esc(t.service)}</span>
             ${drNaziv ? `<span class="termin-meta-dot">·</span>${esc(drNaziv)}` : ""}
             ${emailPrikaz ? `<span class="termin-meta-dot">·</span>${esc(emailPrikaz)}` : ""}
             ${phone ? `<span class="termin-meta-dot">·</span>${esc(phone)}` : ""}
           </div>
         </div>
-        <button class="btn-otkazi-mali" onclick="otkazi(${t.id})">Otkaži</button>
+        <button class="btn-otkazi-mali" onclick="otkazi(${t.id})">Otkaži termin</button>
       </div>`;
   }).join("");
 
