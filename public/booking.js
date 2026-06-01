@@ -315,6 +315,9 @@ window.odaberiUslugu = function(name) {
   document.querySelectorAll(".usluga-chip").forEach(c =>
     c.classList.toggle("aktivan", c.dataset.name === name)
   );
+  const chip = document.querySelector(`.usluga-chip[data-name="${name.replace(/"/g, '\\"')}"]`);
+  const dur = parseInt(chip?.dataset.duration || 30, 10);
+  if (window._setDuracija) window._setDuracija(dur);
   document.getElementById("kalUpozorenje").style.display = "none";
   if (window._isMobile && window._isMobile()) window.idiNaKorak(3);
 };
@@ -325,12 +328,13 @@ function populateServices() {
   const chipsEl  = document.getElementById("uslugaChips");
   if (!chipsEl) return;
 
-  services.forEach(({ name }) => {
+  services.forEach(({ name, duration }) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "usluga-chip";
     btn.textContent = name;
     btn.dataset.name = name;
+    btn.dataset.duration = duration || 30;
     btn.addEventListener("click", () => window.odaberiUslugu(name));
     chipsEl.appendChild(btn);
   });

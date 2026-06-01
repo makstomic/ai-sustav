@@ -12,45 +12,19 @@ const { sanitizeClientId, sanitizeCssValue, sanitizeFontName, loadClient, parseC
 const { faqLimiter, bookingLimiter, publicLimiter }         = require("../lib/limiters");
 const { logError }                                          = require("../lib/errorLog");
 
-async function getClinicDoctors(clientId, client) {
-  let { rows } = await pool.query(
+async function getClinicDoctors(clientId) {
+  const { rows } = await pool.query(
     "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1 ORDER BY displayorder, id",
     [clientId]
   );
-  if (rows.length === 0 && (client.doctors || []).length > 0) {
-    for (let i = 0; i < client.doctors.length; i++) {
-      const d = client.doctors[i];
-      await pool.query(
-        `INSERT INTO clinic_doctors (clientid, doctorid, name, displayorder) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
-        [clientId, d.id, d.name, i]
-      );
-    }
-    ({ rows } = await pool.query(
-      "SELECT doctorid AS id, name FROM clinic_doctors WHERE clientid = $1 ORDER BY displayorder, id",
-      [clientId]
-    ));
-  }
   return rows;
 }
 
-async function getClinicServices(clientId, client) {
-  let { rows } = await pool.query(
+async function getClinicServices(clientId) {
+  const { rows } = await pool.query(
     "SELECT name, duration FROM clinic_services WHERE clientid = $1 ORDER BY displayorder, id",
     [clientId]
   );
-  if (rows.length === 0 && (client.services || []).length > 0) {
-    for (let i = 0; i < client.services.length; i++) {
-      const s = client.services[i];
-      await pool.query(
-        `INSERT INTO clinic_services (clientid, name, duration, displayorder) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
-        [clientId, s.name, s.duration || 30, i]
-      );
-    }
-    ({ rows } = await pool.query(
-      "SELECT name, duration FROM clinic_services WHERE clientid = $1 ORDER BY displayorder, id",
-      [clientId]
-    ));
-  }
   return rows;
 }
 
@@ -158,18 +132,42 @@ router.get("/booking/:clientId", (req, res) => {
   if (client) {
     const t = client.theme || {};
     const vars = [];
-    const safeAccent     = sanitizeCssValue(t.accent);
-    const safeAccent2    = sanitizeCssValue(t.accent2);
-    const safeAccentSoft = sanitizeCssValue(t.accentSoft);
-    const safeBgColor    = sanitizeCssValue(t.bgColor);
-    const safeBgSoft     = sanitizeCssValue(t.bgSoft);
-    const safeFont       = sanitizeFontName(client.font);
+    const safeAccent      = sanitizeCssValue(t.accent);
+    const safeAccent2     = sanitizeCssValue(t.accent2);
+    const safeAccentSoft  = sanitizeCssValue(t.accentSoft);
+    const safeAccentRing  = sanitizeCssValue(t.accentRing);
+    const safeShadowFocus = sanitizeCssValue(t.shadowFocus);
+    const safeBgColor     = sanitizeCssValue(t.bgColor);
+    const safeSurface     = sanitizeCssValue(t.surface);
+    const safeBgSoft      = sanitizeCssValue(t.bgSoft);
+    const safeBgTint      = sanitizeCssValue(t.bgTint);
+    const safeText        = sanitizeCssValue(t.text);
+    const safeMuted       = sanitizeCssValue(t.muted);
+    const safeMuted2      = sanitizeCssValue(t.muted2);
+    const safeBorder      = sanitizeCssValue(t.border);
+    const safeBorderFirm  = sanitizeCssValue(t.borderFirm);
+    const safeBorderLight = sanitizeCssValue(t.borderLight);
+    const safeShadowSm    = sanitizeCssValue(t.shadowSm);
+    const safeShadowMd    = sanitizeCssValue(t.shadowMd);
+    const safeFont        = sanitizeFontName(client.font);
 
-    if (safeAccent)     vars.push(`--accent: ${safeAccent};`);
-    if (safeAccent2)    vars.push(`--accent-2: ${safeAccent2};`);
-    if (safeAccentSoft) vars.push(`--accent-soft: ${safeAccentSoft};`);
-    if (safeBgColor)    vars.push(`--bg: ${safeBgColor};`);
-    if (safeBgSoft)     vars.push(`--bg-soft: ${safeBgSoft};`);
+    if (safeAccent)      vars.push(`--accent: ${safeAccent};`);
+    if (safeAccent2)     vars.push(`--accent-2: ${safeAccent2};`);
+    if (safeAccentSoft)  vars.push(`--accent-soft: ${safeAccentSoft};`);
+    if (safeAccentRing)  vars.push(`--accent-ring: ${safeAccentRing};`);
+    if (safeShadowFocus) vars.push(`--shadow-focus: ${safeShadowFocus};`);
+    if (safeBgColor)     vars.push(`--bg: ${safeBgColor};`);
+    if (safeSurface)     vars.push(`--surface: ${safeSurface};`);
+    if (safeBgSoft)      vars.push(`--bg-soft: ${safeBgSoft};`);
+    if (safeBgTint)      vars.push(`--bg-tint: ${safeBgTint};`);
+    if (safeText)        vars.push(`--text: ${safeText};`);
+    if (safeMuted)       vars.push(`--muted: ${safeMuted};`);
+    if (safeMuted2)      vars.push(`--muted-2: ${safeMuted2};`);
+    if (safeBorder)      vars.push(`--border: ${safeBorder};`);
+    if (safeBorderFirm)  vars.push(`--border-firm: ${safeBorderFirm};`);
+    if (safeBorderLight) vars.push(`--border-light: ${safeBorderLight};`);
+    if (safeShadowSm)    vars.push(`--shadow-sm: ${safeShadowSm};`);
+    if (safeShadowMd)    vars.push(`--shadow: ${safeShadowMd};`);
     if (safeFont)       vars.push(`--font: '${safeFont}', ui-sans-serif, system-ui, sans-serif;`);
 
     let inject = "";
@@ -198,8 +196,8 @@ router.get("/config/:clientId", publicLimiter, async (req, res) => {
 
     const t = client.theme || {};
     const [doctors, services] = await Promise.all([
-      getClinicDoctors(clientId, client),
-      getClinicServices(clientId, client),
+      getClinicDoctors(clientId),
+      getClinicServices(clientId),
     ]);
 
     res.json({
@@ -245,7 +243,7 @@ router.post("/faq", faqLimiter, async (req, res) => {
           .slice(-10)
       : [];
 
-    const dbServices = await getClinicServices(safeClientId, client);
+    const dbServices = await getClinicServices(safeClientId);
     const servicesText = dbServices
       .map(s => `- ${s.name}${s.duration ? ` (${s.duration} min)` : ""}`)
       .join("\n");
@@ -339,8 +337,8 @@ router.post("/booking", bookingLimiter, async (req, res) => {
     if (!client) return res.status(404).json({ ok: false, error: "Client not found" });
 
     const [dbDoctors, dbServices] = await Promise.all([
-      getClinicDoctors(safeClientId, client),
-      getClinicServices(safeClientId, client),
+      getClinicDoctors(safeClientId),
+      getClinicServices(safeClientId),
     ]);
 
     const allowedServices = dbServices.map(s => s.name);
@@ -500,7 +498,7 @@ router.get("/doctor-schedule/:clientId", publicLimiter, async (req, res) => {
     const client = loadClient(clientId);
     if (!client) return res.status(404).json({ error: "Client not found" });
 
-    const doctors = await getClinicDoctors(clientId, client);
+    const doctors = await getClinicDoctors(clientId);
     const result = {};
     for (const doc of doctors) {
       const { rows } = await pool.query(

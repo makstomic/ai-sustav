@@ -3,48 +3,30 @@
   "pageTitle": "Rezervacija termina - Dentalna ordinacija Ivana Vrbić",
   "clinicEmail": "makstomic2009@gmail.com",
   "theme": {
-    "accent": "#3B3B3BFA",
-    "accent2": "#1a1d20",
-    "accentSoft": "rgba(50,55,60,0.08)",
-    "bgColor": "#ffffff",
-    "bgSoft": "#f8f8f8"
+    "accent":       "#3B3B3B",
+    "accent2":      "#1a1d20",
+    "accentSoft":   "rgba(50,55,60,0.08)",
+    "accentRing":   "rgba(50,55,60,0.15)",
+    "shadowFocus":  "0 0 0 3px rgba(50,55,60,0.12)",
+    "bgColor":      "#f5f5f5",
+    "surface":      "#ffffff",
+    "bgSoft":       "#f8f8f8",
+    "bgTint":       "#eeeeee",
+    "text":         "#1a1a1a",
+    "muted":        "#6b7280",
+    "muted2":       "rgba(107,114,128,0.5)",
+    "border":       "rgba(26,26,26,0.09)",
+    "borderFirm":   "rgba(26,26,26,0.15)",
+    "borderLight":  "rgba(26,26,26,0.05)",
+    "shadowSm":     "0 1px 3px rgba(26,26,26,0.06), 0 4px 12px rgba(26,26,26,0.06)",
+    "shadowMd":     "0 1px 2px rgba(26,26,26,0.04), 0 8px 24px rgba(26,26,26,0.08)"
   },
   "bookingUrl": "https://ordinova.app/booking/vrbic",
   "font": "Taviraj",
   "location": "Podsusedska aleja 10a, 10000, Zagreb",
   "phone": "01 3492 410",
   "workingHours": "Pon–Pet: 08:00–20:00 | Sub: 08:00–13:00",
-  "doctors": [
-    {
-      "id": "dr_vrbic",
-      "name": "Dr. Ivana Vrbić"
-    },
-    {
-      "id": "dr_horvat",
-      "name": "Dr. Tomislav Horvat"
-    }
-  ],
-  "services": [
-    {
-      "name": "Konzultacije",
-      "price": ""
-    },
-    {
-      "name": "Estetska stomatologija",
-      "price": ""
-    },
-    {
-      "name": "Endodoncija",
-      "price": ""
-    },
-    {
-      "name": "Implantologija",
-      "price": ""
-    },
-    {
-      "name": "Oralna kirurgija",
-      "price": ""
-    }
-  ],
+  "doctors": [],
+  "services": [],
   "adminPasswordHash": "$2a$12$0POUipLQLkwAvFAtb9.SbeM1vOmfjktfGujy5NNOaZsyRU447Vtpa"
 }

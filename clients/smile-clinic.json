@@ -1,0 +1,31 @@
+{
+  "brandName": "Smile Clinic",
+  "pageTitle": "Rezervirajte termin",
+  "clinicEmail": "makstomic2009@gmail.com",
+  "theme": {
+    "accent":      "#C9A84C",
+    "accent2":     "#E8C97A",
+    "accentSoft":  "rgba(201,168,76,0.10)",
+    "accentRing":  "rgba(201,168,76,0.15)",
+    "shadowFocus": "0 0 0 3px rgba(201,168,76,0.20)",
+    "bgColor":     "#1A1A1A",
+    "bgSoft":      "#1e1e1e",
+    "bgTint":      "#272727",
+    "surface":     "#313131",
+    "text":        "#ffffff",
+    "muted":       "rgba(255,255,255,0.50)",
+    "muted2":      "rgba(255,255,255,0.30)",
+    "border":      "rgba(201,168,76,0.18)",
+    "borderFirm":  "rgba(201,168,76,0.30)",
+    "borderLight": "rgba(201,168,76,0.12)",
+    "shadowSm":    "0 1px 3px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.35)",
+    "shadowMd":    "0 1px 4px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.35)"
+  },
+  "bookingUrl": "https://ordinova.app/booking/smile-clinic",
+  "font": "Inter",
+  "location": "Ilica 1, 10000, Zagreb",
+  "phone": "01 000 0000",
+  "workingHours": "Pon–Pet: 08:00–20:00 | Sub: 08:00–14:00",
+  "doctors": [],
+  "services": []
+}

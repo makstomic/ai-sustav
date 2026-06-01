@@ -214,6 +214,7 @@
     let workingHoursSchedule = {};
     let doctorSchedules = {};       // { doctorId: { "1": "08:00-17:00", ... } }
     let currentDayOverride = null;  // radno vrijeme specifično za odabrani dan/doktora
+    let aktivnaDuracija = 30;
 
     window._isMobile = () => window.innerWidth <= 600;
 
@@ -258,15 +259,21 @@
       const [od, do_] = raspon.split('-');
       const [odH, odM] = od.split(':').map(Number);
       const [doH, doM] = do_.split(':').map(Number);
+      const endMin = doH * 60 + doM;
       const termini = [];
       let h = odH, m = odM;
-      while (h * 60 + m < doH * 60 + doM) {
+      while (h * 60 + m + aktivnaDuracija <= endMin) {
         termini.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-        m += 30;
-        if (m >= 60) { m -= 60; h++; }
+        m += aktivnaDuracija;
+        if (m >= 60) { h += Math.floor(m / 60); m = m % 60; }
       }
       return termini;
     }
+
+    window._setDuracija = function(d) {
+      aktivnaDuracija = d || 30;
+      if (odabraniDan) renderTermini();
+    };
 
     function getISOWeek(date) {
       const d = new Date(date); d.setHours(0,0,0,0);

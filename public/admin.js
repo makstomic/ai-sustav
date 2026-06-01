@@ -279,7 +279,7 @@ function parseDateTime(dateStr) {
 
 // ── Custom Time Picker ────────────────────────────────────────────────────────
 
-function buildTimePicker(id, value) {
+function buildTimePicker(id, value, disabled = false) {
   const [hStr, mStr] = value.split(":");
   const hVal = parseInt(hStr, 10);
   const mVal = parseInt(mStr, 10);
@@ -299,7 +299,7 @@ function buildTimePicker(id, value) {
 
   return `
     <div class="time-picker" id="tp-${id}">
-      <button class="time-picker-btn" onclick="tpToggle('${id}')">${value}</button>
+      <button class="time-picker-btn" onclick="tpToggle('${id}')" ${disabled ? "disabled" : ""}>${value}</button>
       <div class="time-picker-drop" id="tp-drop-${id}">
         <div class="time-picker-col" id="tp-hcol-${id}">
           <div class="time-picker-col-head">h</div>
@@ -318,7 +318,6 @@ function tpToggle(id) {
   const btn  = drop?.previousElementSibling;
   if (!drop) return;
 
-  // close all others
   document.querySelectorAll(".time-picker-drop.is-open").forEach(d => {
     if (d !== drop) {
       d.classList.remove("is-open");
@@ -329,12 +328,18 @@ function tpToggle(id) {
   const isOpen = drop.classList.toggle("is-open");
   btn?.classList.toggle("is-open", isOpen);
 
-  if (isOpen) {
-    // scroll selected item into view
-    const selH = document.querySelector(`#tp-hcol-${id} .is-selected`);
-    const selM = document.querySelector(`#tp-mcol-${id} .is-selected`);
-    selH?.scrollIntoView({ block: "center" });
-    selM?.scrollIntoView({ block: "center" });
+  if (isOpen && btn) {
+    const rect  = btn.getBoundingClientRect();
+    const dropW = 120;
+    let left = rect.left + rect.width / 2 - dropW / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - dropW - 8));
+    drop.style.top  = `${rect.bottom + 4}px`;
+    drop.style.left = `${left}px`;
+
+    setTimeout(() => {
+      document.querySelector(`#tp-hcol-${id} .is-selected`)?.scrollIntoView({ block: "center" });
+      document.querySelector(`#tp-mcol-${id} .is-selected`)?.scrollIntoView({ block: "center" });
+    }, 0);
   }
 }
 
@@ -367,6 +372,12 @@ function _tpUpdateBtn(id) {
 function tpGetValue(id) {
   const btn = document.querySelector(`#tp-${id} .time-picker-btn`);
   return btn ? btn.textContent.trim() : "00:00";
+}
+
+function tpSetValue(id, value) {
+  const [hStr, mStr] = (value || "08:00").split(":");
+  tpSelectH(id, parseInt(hStr, 10));
+  tpSelectM(id, parseInt(mStr, 10));
 }
 
 // ── Doctor switcher ───────────────────────────────────────────────────────────
@@ -791,18 +802,27 @@ function odaberiRvDan(key) {
   renderRasporedView(sviDoktori[rvDoktorIdx]);
 }
 
+function captureSchedule(prefix) {
+  const result = {};
+  for (const day of [1,2,3,4,5,6,0]) {
+    if (rvNeradniDani.has(`${prefix}-${day}`)) continue;
+    const start = tpGetValue(`${prefix}-start-${day}`);
+    const end   = tpGetValue(`${prefix}-end-${day}`);
+    if (start && end) result[String(day)] = { startTime: start, endTime: end };
+  }
+  return result;
+}
+
 function toggleAlternativni(val) {
+  rvSchedule = captureSchedule("rv");
+  if (rvAlternativni) rvScheduleB = captureSchedule("rvb");
+
   rvAlternativni = val;
   if (val && Object.keys(rvScheduleB).length === 0) {
-    // Prvi put — kopiraj tjedan A kao polaznu točku
     rvScheduleB = JSON.parse(JSON.stringify(rvSchedule));
-    // Rvb neradan = isti kao rv neradan
     for (const day of [1,2,3,4,5,6,0]) {
-      if (rvNeradniDani.has(`rv-${day}`)) {
-        rvNeradniDani.add(`rvb-${day}`);
-      } else {
-        rvNeradniDani.delete(`rvb-${day}`);
-      }
+      if (rvNeradniDani.has(`rv-${day}`)) rvNeradniDani.add(`rvb-${day}`);
+      else rvNeradniDani.delete(`rvb-${day}`);
     }
   }
   renderRasporedView(sviDoktori[rvDoktorIdx]);
@@ -810,7 +830,7 @@ function toggleAlternativni(val) {
 
 function readRvTime(prefix, type, day) {
   if (rvNeradniDani.has(`${prefix}-${day}`)) return "";
-  return document.getElementById(`${prefix}-${type}-${day}`)?.value || "";
+  return tpGetValue(`${prefix}-${type}-${day}`);
 }
 
 function toggleNeradanDan(prefix, day, neradan) {
@@ -819,20 +839,20 @@ function toggleNeradanDan(prefix, day, neradan) {
   const td = document.getElementById(`${prefix}-td-${day}`);
   if (!td) return;
   td.classList.toggle("rv-td-neradan", neradan);
-  td.querySelectorAll("input.rv-time-input").forEach(inp => inp.disabled = neradan);
+  td.querySelectorAll(".time-picker-btn").forEach(btn => btn.disabled = neradan);
 }
 
 function applyPonToAll(prefix) {
-  const startVal = document.getElementById(`${prefix}-start-1`)?.value;
-  const endVal   = document.getElementById(`${prefix}-end-1`)?.value;
+  const startVal = tpGetValue(`${prefix}-start-1`);
+  const endVal   = tpGetValue(`${prefix}-end-1`);
   for (const day of [2,3,4,5,6,0]) {
     if (rvNeradniDani.has(`${prefix}-${day}`)) {
       const cb = document.getElementById(`${prefix}-neradan-${day}`);
       if (cb) cb.checked = false;
       toggleNeradanDan(prefix, day, false);
     }
-    const sInp = document.getElementById(`${prefix}-start-${day}`); if (sInp) sInp.value = startVal;
-    const eInp = document.getElementById(`${prefix}-end-${day}`);   if (eInp) eInp.value = endVal;
+    tpSetValue(`${prefix}-start-${day}`, startVal);
+    tpSetValue(`${prefix}-end-${day}`, endVal);
   }
 }
 
@@ -926,12 +946,10 @@ function renderRasporedView(doktor) {
       return `
         <td class="rv-td${neradan ? " rv-td-neradan" : ""}" id="${prefix}-td-${day}">
           <div class="rv-time-group">
-            <input class="rv-time-input" type="time"
-                   id="${prefix}-start-${day}" value="${entry?.startTime || ""}" ${dis}>
+            ${buildTimePicker(`${prefix}-start-${day}`, entry?.startTime || "08:00", neradan)}
           </div>
           <div class="rv-time-group">
-            <input class="rv-time-input" type="time"
-                   id="${prefix}-end-${day}" value="${entry?.endTime || ""}" ${dis}>
+            ${buildTimePicker(`${prefix}-end-${day}`, entry?.endTime || "16:00", neradan)}
           </div>
           ${applyBtn}
         </td>`;

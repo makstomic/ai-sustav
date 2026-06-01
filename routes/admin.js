@@ -2,6 +2,7 @@ const express = require("express");
 const path    = require("path");
 const crypto  = require("crypto");
 const bcrypt  = require("bcryptjs");
+const { getHash } = require("../lib/authHashes");
 
 const router = express.Router();
 
@@ -91,12 +92,13 @@ router.post("/admin-login", loginLimiter, async (req, res) => {
   const client = loadClient(safeClientId);
   if (!client) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
-  if (!client.adminPasswordHash) {
-    logError("LOGIN SECURITY", new Error(`${safeClientId}: nema adminPasswordHash — pokreni hash-passwords.js`));
+  const hash = getHash(safeClientId) || client.adminPasswordHash || null;
+  if (!hash) {
+    logError("LOGIN SECURITY", new Error(`${safeClientId}: nema lozinke (env ADMIN_PASSWORD_${safeClientId.replace(/-/g, "_").toUpperCase()} ili adminPasswordHash)`));
     return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
   }
 
-  const ok = await bcrypt.compare(password, client.adminPasswordHash);
+  const ok = await bcrypt.compare(password, hash);
   if (!ok) return res.status(403).json({ ok: false, error: "Pogrešan ID klinike ili lozinka." });
 
   const token     = crypto.randomBytes(32).toString("hex");

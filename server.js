@@ -5,7 +5,8 @@ const cookieParser = require("cookie-parser");
 const morgan       = require("morgan");
 const helmet       = require("helmet");
 
-const { initDb }   = require("./database");
+const { initDb }          = require("./database");
+const { initAuthHashes }  = require("./lib/authHashes");
 const { logError } = require("./lib/errorLog");
 
 const app  = express();
@@ -82,7 +83,7 @@ app.use((err, req, res, next) => {
   if (!res.headersSent) res.status(500).json({ ok: false, error: "Interna greška servera." });
 });
 
-initDb()
+Promise.all([initDb(), initAuthHashes()])
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server radi na http://localhost:${PORT}/admin`);
